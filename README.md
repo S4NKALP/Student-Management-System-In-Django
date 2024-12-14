@@ -1,38 +1,25 @@
 <p align="center">
-  <img src="sample-logo-470x235-1.png" alt="Logo">
+  <img src="./assets/logo.png" alt="Logo">
 </p>
 
 <h1 align="center">Project Name</h1>
 
 <p align="center">
 
-<a href="https://github.com/your-username/repos/graphs/contributors">
-<img alt="People" src="https://img.shields.io/github/contributors/your-username/repos?style=flat&color=ffaaf2&label=People"> </a>
+<a href="https://github.com/S4NKALP/Student-Management-System-In-Django//graphs/contributors">
+<img alt="People" src="https://img.shields.io/github/contributors/S4NKALP/Student-Management-System-In-Django/?style=flat&color=ffaaf2&label=People"> </a>
 
-<a href="https://github.com/your-username/repos/stargazers">
-<img alt="Stars" src="https://img.shields.io/github/stars/your-username/repos?style=flat&color=98c379&label=Stars"></a>
+<a href="https://github.com/S4NKALP/Student-Management-System-In-Django/stargazers">
+<img alt="Stars" src="https://img.shields.io/github/stars/S4NKALP/Student-Management-System-In-Django/?style=flat&color=98c379&label=Stars"></a>
 
-<a href="https://github.com/your-username/repos/network/members">
-<img alt="Forks" src="https://img.shields.io/github/forks/your-username/repos?style=flat&color=66a8e0&label=Forks"> </a>
+<a href="https://github.com/S4NKALP/Student-Management-System-In-Django//network/members">
+<img alt="Forks" src="https://img.shields.io/github/forks/S4NKALP/Student-Management-System-In-Django/?style=flat&color=66a8e0&label=Forks"> </a>
 
-<a href="https://github.com/your-username/repos/watchers">
-<img alt="Watches" src="https://img.shields.io/github/watchers/your-username/repos?style=flat&color=f5d08b&label=Watches"> </a>
+<a href="https://github.com/S4NKALP/Student-Management-System-In-Django//watchers">
+<img alt="Watches" src="https://img.shields.io/github/watchers/S4NKALP/Student-Management-System-In-Django/?style=flat&color=f5d08b&label=Watches"> </a>
 
-<a href="https://github.com/your-username/repos/pulse">
-<img alt="Last Updated" src="https://img.shields.io/github/last-commit/your-username/repos?style=flat&color=e06c75&label="> </a>
-</p>
-
-<p align="center">
-  <strong>A brief description of the project</strong>
-  <br>
-  Describe detailed information about the project, including its description and features.
-  <br>
-  <br>
-  <a href="https://github.com/your-username/your-repo/wiki">Documentation</a>
-  ·
-  <a href="https://github.com/your-username/your-repo/issues">Report a Bug</a>
-  ·
-  <a href="https://github.com/your-username/your-repo/issues">Request a Feature</a>
+<a href="https://github.com/S4NKALP/Student-Management-System-In-Django//pulse">
+<img alt="Last Updated" src="https://img.shields.io/github/last-commit/S4NKALP/Student-Management-System-In-Django/?style=flat&color=e06c75&label="> </a>
 </p>
 
 <br>

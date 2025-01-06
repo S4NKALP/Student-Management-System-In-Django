@@ -1,25 +1,18 @@
 from django.contrib import admin
-from main.models import (
-    Teacher,
-    Student,
-    Staff,
-    Course,
-    AcademicYear,
-    Subject,
-    NewsEvent,
-)
-
-# Register your models here.
+from app.models import Teacher, Student, Staff, Course, AcademicYear, Subject, NewsEvent
 
 
+@admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ("first_name", "last_name", "email", "phone", "active_status")
-    search_fields = ("first_name", "last_name", "email")
-    list_filter = ("gender", "active_status")
+    list_display = ("id", "first_name", "last_name", "email", "phone", "active_status")
+    search_fields = ("first_name", "last_name", "email", "phone")
+    list_filter = ("active_status", "gender", "group")
 
 
+@admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "first_name",
         "last_name",
         "email",
@@ -29,11 +22,13 @@ class StudentAdmin(admin.ModelAdmin):
         "active_status",
     )
     search_fields = ("first_name", "last_name", "email", "phone")
-    list_filter = ("gender", "course", "academic_year", "active_status")
+    list_filter = ("active_status", "gender", "course", "academic_year")
 
 
+@admin.register(Staff)
 class StaffAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "first_name",
         "last_name",
         "email",
@@ -42,37 +37,31 @@ class StaffAdmin(admin.ModelAdmin):
         "active_status",
     )
     search_fields = ("first_name", "last_name", "email", "phone")
-    list_filter = ("position", "active_status")
+    list_filter = ("active_status", "position", "group")
 
 
+@admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("name", "course_type", "duration", "academic_year")
+    list_display = ("id", "name", "course_type", "duration")
     search_fields = ("name",)
-    list_filter = ("course_type", "academic_year")
+    list_filter = ("course_type",)
 
 
+@admin.register(AcademicYear)
 class AcademicYearAdmin(admin.ModelAdmin):
-    list_display = ("batch",)
+    list_display = ("id", "batch")
     search_fields = ("batch",)
 
 
+@admin.register(Subject)
 class SubjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "course", "semester_or_year_number")
+    list_display = ("id", "name", "course", "semester_or_year_number")
     search_fields = ("name", "course__name")
     list_filter = ("course", "semester_or_year_number")
 
 
+@admin.register(NewsEvent)
 class NewsEventAdmin(admin.ModelAdmin):
-    list_display = ("title", "type", "created_at")
+    list_display = ("id", "title", "type", "created_at")
     search_fields = ("title", "summary")
     list_filter = ("type", "created_at")
-
-
-# Register models with custom admin configurations
-admin.site.register(Teacher, TeacherAdmin)
-admin.site.register(Student, StudentAdmin)
-admin.site.register(Staff, StaffAdmin)
-admin.site.register(Course, CourseAdmin)
-admin.site.register(AcademicYear, AcademicYearAdmin)
-admin.site.register(Subject, SubjectAdmin)
-admin.site.register(NewsEvent, NewsEventAdmin)

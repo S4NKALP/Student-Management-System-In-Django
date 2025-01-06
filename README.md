@@ -17,11 +17,7 @@
 
 <a href="https://github.com/S4NKALP/Student-Management-System-In-Django//watchers">
 <img alt="Watches" src="https://img.shields.io/github/watchers/S4NKALP/Student-Management-System-In-Django/?style=flat&color=f5d08b&label=Watches"> </a>
-   session_year_id=SessionYearModel.object.get(id=1),
-                address="",
-                profile_pic="",
-                gender="",
-            )
+
 <a href="https://github.com/S4NKALP/Student-Management-System-In-Django//pulse">
 <img alt="Last Updated" src="https://img.shields.io/github/last-commit/S4NKALP/Student-Management-System-In-Django/?style=flat&color=e06c75&label="> </a>
 </p>

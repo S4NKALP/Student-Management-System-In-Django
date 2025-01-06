@@ -17,7 +17,11 @@
 
 <a href="https://github.com/S4NKALP/Student-Management-System-In-Django//watchers">
 <img alt="Watches" src="https://img.shields.io/github/watchers/S4NKALP/Student-Management-System-In-Django/?style=flat&color=f5d08b&label=Watches"> </a>
-
+   session_year_id=SessionYearModel.object.get(id=1),
+                address="",
+                profile_pic="",
+                gender="",
+            )
 <a href="https://github.com/S4NKALP/Student-Management-System-In-Django//pulse">
 <img alt="Last Updated" src="https://img.shields.io/github/last-commit/S4NKALP/Student-Management-System-In-Django/?style=flat&color=e06c75&label="> </a>
 </p>
@@ -39,13 +43,3 @@ Provide instructions on how to install the project and any dependencies.
 ## Usage
 
 Offer information on how to use the project, including sample code, to help users make the most of it.
-
----
-
-To use this template, follow these steps:
-
-1. [Fork the repository](https://github.com/S4NKALP/README-Templates/fork).
-2. Clone the forked repository to your local environment.
-3. Make the necessary changes and modifications.
-4. Commit and push your changes.
-5. Create a pull request to the original repository.

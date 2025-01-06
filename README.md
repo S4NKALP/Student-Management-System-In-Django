@@ -2,7 +2,7 @@
   <img src="./assets/logo.png" alt="Logo">
 </p>
 
-<h1 align="center">Project Name</h1>
+<h1 align="center">Student Management System In Django</h1>
 
 <p align="center">
 

@@ -26,10 +26,10 @@
 
 # TODO
 
-[] Better UI
-[] Library Model
-[] Notification Model
-[] Calendar
-[] Parent Model
-[] Study Material
-[] Routine
+- [] Better UI
+- [] Library Model
+- [] Notification Model
+- [] Calendar
+- [] Parent Model
+- [] Study Material
+- [] Routine

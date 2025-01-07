@@ -1,16 +1,39 @@
 from django.contrib import admin
-from app.models import Teacher, Student, Staff, Course, AcademicYear, Subject, NewsEvent
+from app.models import (
+    Teacher,
+    Student,
+    Staff,
+    Course,
+    AcademicYear,
+    Subject,
+    NewsEvent,
+    Attendance,
+    Result,
+)
+
+
+class BaseUserAdmin(admin.ModelAdmin):
+    exclude = ["user"]
+
+    def save_model(self, request, obj, form, change):
+        # Save the BaseUser instance
+        super().save_model(request, obj, form, change)
+
+        # Sync the groups with the related User object
+        if obj.user:
+            obj.user.groups.set(obj.group.all())  # Sync groups
+            obj.user.save()  # Save the User object to persist changes
 
 
 @admin.register(Teacher)
-class TeacherAdmin(admin.ModelAdmin):
+class TeacherAdmin(BaseUserAdmin):
     list_display = ("id", "first_name", "last_name", "email", "phone", "active_status")
     search_fields = ("first_name", "last_name", "email", "phone")
     list_filter = ("active_status", "gender", "group")
 
 
 @admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
+class StudentAdmin(BaseUserAdmin):
     list_display = (
         "id",
         "first_name",
@@ -26,7 +49,7 @@ class StudentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Staff)
-class StaffAdmin(admin.ModelAdmin):
+class StaffAdmin(BaseUserAdmin):
     list_display = (
         "id",
         "first_name",
@@ -65,3 +88,24 @@ class NewsEventAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "type", "created_at")
     search_fields = ("title", "summary")
     list_filter = ("type", "created_at")
+
+
+@admin.register(Attendance)
+class AttendanceAdmin(admin.ModelAdmin):
+    list_display = ("id", "student", "subject", "date", "status")
+
+
+@admin.register(Result)
+class ResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "student",
+        "subject",
+        "practical_marks",
+        "exam_marks",
+        "total_marks",
+    )
+    readonly_fields = ("total_marks",)
+
+    def save_model(self, request, obj, form, change):
+        obj.total_marks = obj.get_total()
+        super().save_model(request, obj, form, change)

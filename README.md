@@ -24,18 +24,12 @@
 
 <br>
 
-## Overview
+# TODO
 
-Describe important information about the project, such as its overview and background.
-
-## Features
-
-Explain the features and unique points of the project.
-
-## Installation
-
-Provide instructions on how to install the project and any dependencies.
-
-## Usage
-
-Offer information on how to use the project, including sample code, to help users make the most of it.
+[] Better UI
+[] Library Model
+[] Notification Model
+[] Calendar
+[] Parent Model
+[] Study Material
+[] Routine

@@ -27,6 +27,8 @@
 # TODO
 
 - [ ] Better UI
+- [ ] Add more features
+- [ ] Add more models that are given below
 
 ### models
 

@@ -9,20 +9,19 @@ from app.models import (
     NewsEvent,
     Attendance,
     Result,
+    Library,
 )
 
 
+# BaseUserAdmin to handle common behavior for BaseUser-based models
 class BaseUserAdmin(admin.ModelAdmin):
     exclude = ["user"]
 
     def save_model(self, request, obj, form, change):
-        # Save the BaseUser instance
         super().save_model(request, obj, form, change)
-
-        # Sync the groups with the related User object
         if obj.user:
-            obj.user.groups.set(obj.group.all())  # Sync groups
-            obj.user.save()  # Save the User object to persist changes
+            obj.user.groups.set(obj.group.all())
+            obj.user.save()
 
 
 @admin.register(Teacher)
@@ -38,13 +37,22 @@ class StudentAdmin(BaseUserAdmin):
         "id",
         "first_name",
         "last_name",
+        "father_name",
+        "mother_name",
         "email",
         "phone",
         "course",
         "academic_year",
         "active_status",
     )
-    search_fields = ("first_name", "last_name", "email", "phone")
+    search_fields = (
+        "first_name",
+        "last_name",
+        "father_name",
+        "mother_name",
+        "email",
+        "phone",
+    )
     list_filter = ("active_status", "gender", "course", "academic_year")
 
 
@@ -72,8 +80,8 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(AcademicYear)
 class AcademicYearAdmin(admin.ModelAdmin):
-    list_display = ("id", "batch")
-    search_fields = ("batch",)
+    list_display = ("id", "year")
+    search_fields = ("year",)
 
 
 @admin.register(Subject)
@@ -109,3 +117,8 @@ class ResultAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.total_marks = obj.get_total()
         super().save_model(request, obj, form, change)
+
+
+@admin.register(Library)
+class LibraryAdmin(admin.ModelAdmin):
+    list_display = ("book_name", "author", "publication_year")

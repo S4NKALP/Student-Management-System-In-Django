@@ -27,9 +27,17 @@
 # TODO
 
 - [ ] Better UI
+
+### models
+
 - [ ] Library Model
 - [ ] Notification Model
 - [ ] Calendar
 - [ ] Parent Model
 - [ ] Study Material
 - [ ] Routine
+- [ ] Complaint
+- [ ] Feedback
+- [ ] Student Performance Report
+- [ ] Syllabus
+- [ ] Online Exam

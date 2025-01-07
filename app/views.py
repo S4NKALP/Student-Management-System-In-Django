@@ -2,8 +2,11 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.admin import site
 from app.models import Student, NewsEvent, Subject
 
+from django.contrib.auth.decorators import login_required
+
 
 # Dashboard for admin
+@login_required(login_url="login")
 def dashboard(request):
     context = {
         **site.each_context(request),

@@ -1,0 +1,152 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+    <h2 class="col-12">{{ title }}</h2>
+    <p class="col-12">Welcome</p>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!--cards-->
+    <div class="row g-4 col-12">
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center p-3">
+                <h5>Total Students</h5>
+                <p class="fs-2">{{ total_student }}</p>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center p-3">
+                <h5>Total Staff</h5>
+                <p class="fs-2">{{ total_staff }}</p>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center p-3">
+                <h5>Total Teacher</h5>
+                <p class="fs-2">{{ total_teacher }}</p>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center p-3">
+                <h5>Total Course</h5>
+                <p class="fs-2">{{ total_course }}</p>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center p-3">
+                <h5>Total Subject</h5>
+                <p class="fs-2">{{ total_subjects }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="row col-12">
+        <div class="col-12 col-md-6 col-lg-6">
+            <table class="text-center table table-bordered">
+                <thead class="table-dark">
+                    <th>S.N</th>
+                    <th>Name</th>
+                    <th>Course</th>
+                    <th>Academic Year</th>
+                </thead>
+                <tbody>
+                    <td>1</td>
+                    <td>hello</td>
+                    <td>DCOM</td>
+                    <td>2023</td>
+                </tbody>
+            </table>
+        </div>
+        <div class="col-12 col-md-6 col-lg-6">
+            <table class="text-center table table-bordered">
+                <thead class="table-dark">
+                    <th>S.N</th>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Phone No</th>
+                    <th>Gmail</th>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>hello</td>
+                        <td>kohalpur</td>
+                        <td>9801230123</td>
+                        <td>example@example.com</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Pie Chart -->
+    <div class="row col-12 col-lg-6 chart-container">
+        <canvas id="pieChart"></canvas>
+    </div>
+    <!-- Bar Chart -->
+    <div class="row col-12 col-lg-6 chart-container">
+        <canvas id="barChart"></canvas>
+    </div>
+    <!-- Line Chart -->
+    <div class="row col-12 col-lg-6 chart-container">
+        <canvas id="lineChart"></canvas>
+    </div>
+    <script>
+    // Pie Chart
+    const pieCtx = document.getElementById("pieChart").getContext("2d");
+    new Chart(pieCtx, {
+        type: "pie",
+        data: {
+            labels: ["Category A", "Category B", "Category C"],
+            datasets: [
+                {
+                    data: [30, 50, 20],
+                    backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+                },
+            ],
+        },
+    });
+
+    // Bar Chart
+    const barCtx = document.getElementById("barChart").getContext("2d");
+    new Chart(barCtx, {
+        type: "bar",
+        data: {
+            labels: ["Category A", "Category B", "Category C"],
+            datasets: [
+                {
+                    label: "Values",
+                    data: [30, 50, 20],
+                    backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+                },
+            ],
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                },
+            },
+        },
+    });
+
+    // Line Chart
+    const lineCtx = document.getElementById("lineChart").getContext("2d");
+    new Chart(lineCtx, {
+        type: "line",
+        data: {
+            labels: ["January", "February", "March", "April"],
+            datasets: [
+                {
+                    label: "Values",
+                    data: [10, 30, 20, 40],
+                    borderColor: "#36A2EB",
+                    fill: false,
+                },
+            ],
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                },
+            },
+        },
+    });
+    </script>
+{% endblock %}

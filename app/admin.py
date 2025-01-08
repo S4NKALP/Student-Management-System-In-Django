@@ -10,6 +10,8 @@ from app.models import (
     Attendance,
     Result,
     Library,
+    Marksheet,
+    SubjectMark,
 )
 
 
@@ -39,6 +41,7 @@ class StudentAdmin(BaseUserAdmin):
         "last_name",
         "father_name",
         "mother_name",
+        "guardian_name",
         "email",
         "phone",
         "course",
@@ -73,7 +76,7 @@ class StaffAdmin(BaseUserAdmin):
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "course_type", "duration")
+    list_display = ("id", "name", "level", "course_type", "duration")
     search_fields = ("name",)
     list_filter = ("course_type",)
 
@@ -93,7 +96,7 @@ class SubjectAdmin(admin.ModelAdmin):
 
 @admin.register(NewsEvent)
 class NewsEventAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "type", "created_at")
+    list_display = ("id", "title", "summary", "type", "created_at")
     search_fields = ("title", "summary")
     list_filter = ("type", "created_at")
 
@@ -121,4 +124,59 @@ class ResultAdmin(admin.ModelAdmin):
 
 @admin.register(Library)
 class LibraryAdmin(admin.ModelAdmin):
-    list_display = ("book_name", "author", "publication_year")
+    list_display = ("book_name", "publication", "publication_year", "available")
+
+
+class SubjectMarkInline(admin.TabularInline):
+    model = SubjectMark
+    extra = 1
+    fields = (
+        "subject",
+        "obtained_theory_marks",
+        "total_theory_marks",
+        "obtained_practical_marks",
+        "total_practical_marks",
+        "total_marks",
+    )
+    readonly_fields = ("total_marks",)
+
+
+@admin.register(Marksheet)
+class MarksheetAdmin(admin.ModelAdmin):
+    inlines = [SubjectMarkInline]
+    list_display = ["student", "course", "total_marks", "obtained_marks", "grade"]
+    readonly_fields = ["total_marks", "obtained_marks", "grade"]
+
+
+# class SubjectMarkInline(admin.TabularInline):
+#     model = SubjectMark
+#     extra = 1
+#     fields = (
+#         "subject",
+#         "obtained_theory_marks",
+#         "total_theory_marks",
+#         "obtained_practical_marks",
+#         "total_practical_marks",
+#         "total_marks",
+#     )
+#     readonly_fields = ("total_marks",)
+#
+#
+# @admin.register(Marksheet)
+# class MarksheetAdmin(admin.ModelAdmin):
+#     list_display = ["student", "course", "total_marks", "obtained_marks", "grade"]
+#     list_filter = ["grade", "course"]
+#     search_fields = ["student__first_name", "student__last_name", "course__name"]
+#     readonly_fields = ["total_marks", "obtained_marks", "grade"]
+#     inlines = [SubjectMarkInline]
+#
+#     fieldsets = (
+#         ("Student Information", {"fields": ("student", "course")}),
+#         (
+#             "Results",
+#             {
+#                 "fields": ("total_marks", "obtained_marks", "grade"),
+#                 "classes": ("collapse",),
+#             },
+#         ),
+#     )

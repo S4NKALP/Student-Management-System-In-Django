@@ -6,7 +6,7 @@ JAZZMIN_SETTINGS = {
     # Title on the brand (19 chars max) (defaults to current_admin_site.site_header if absent or None)
     "site_brand": "SMS",
     # Logo to use for your site, must be present in static files, used for brand on top left
-    "site_logo": "/src/img/logo2.png",
+    "site_logo": "/src/img/logo.png",
     # CSS classes that are applied to the logo above
     "site_logo_classes": "img-circle",
     # Relative path to a favicon for your site, will default to site_logo if absent (ideally 32x32 px)
@@ -56,15 +56,73 @@ JAZZMIN_SETTINGS = {
     # Hide these models when generating side menu (e.g auth.user)
     "hide_models": [],
     # List of apps (and/or models) to base side menu ordering off of (does not need to contain all apps/models)
-    "order_with_respect_to": ["auth", "dashboard"],
+    "order_with_respect_to": ["auth", "dashboard", "course"],
     "custom_links": {
+        "courses": [
+            {"name": "Manage Courses", "url": "add_course", "icon": "fas fa-book"}
+        ],
+        "menu": [
+            {
+                "name": "Dashboard",
+                "url": "admin:index",
+                "icon": "fas fa-tachometer-alt",
+            },
+            {
+                "name": "Courses",
+                "icon": "fas fa-book",
+                "children": [
+                    {
+                        "name": "Manage Courses",
+                        "url": "add_course",
+                        "icon": "fas fa-plus",
+                    },
+                    {"name": "Course List", "model": "app.course"},
+                ],
+            },
+            {"name": "Students", "icon": "fas fa-users", "models": ["app.student"]},
+            {
+                "name": "Teachers",
+                "icon": "fas fa-chalkboard-teacher",
+                "models": ["app.teacher"],
+            },
+            {"name": "Staff", "icon": "fas fa-user-tie", "models": ["app.staff"]},
+            {
+                "name": "Academics",
+                "icon": "fas fa-graduation-cap",
+                "children": [
+                    {"model": "app.subject"},
+                    {"model": "app.academicyear"},
+                    {"model": "app.result"},
+                    {"model": "app.attendance"},
+                ],
+            },
+            {
+                "name": "Library",
+                "icon": "fas fa-book-reader",
+                "models": ["app.library"],
+            },
+            {
+                "name": "Certificates",
+                "icon": "fas fa-certificate",
+                "models": ["app.certificate"],
+            },
+            {
+                "name": "News & Events",
+                "icon": "fas fa-newspaper",
+                "models": ["app.newsevent"],
+            },
+        ],
         "app": [
             {
                 "name": "Dashboard",
                 "url": "dashboard",
                 "icon": "fas fa-tachometer-alt",
             },
-        ]
+            # {
+            #     "name": "course",
+            #     "url": "add_course",
+            # },
+        ],
     },
     #################
     # Related Modal #

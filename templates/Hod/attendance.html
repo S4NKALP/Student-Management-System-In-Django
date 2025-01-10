@@ -1,0 +1,87 @@
+
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="container p-4">
+    <!-- Add Attendance Record Button -->
+    <div class="mb-4">
+        <a href="{% url 'admin:app_attendance_add' %}" class="btn btn-primary">Add Attendance Record</a>
+    </div>
+
+    <!-- Attendance List Table -->
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Student</th>
+                <th>Subject</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in attendance_records %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ record.student.name }}</td>
+                    <td>{{ record.subject.name }}</td>
+                    <td>{{ record.date|date:"Y-m-d" }}</td>
+                    <td>{{ record.get_status_display }}</td>
+                    <td>
+                        <!-- Edit and Delete Actions -->
+                        <a href="{% url 'admin:app_attendance_change' record.id %}" class="btn btn-warning btn-sm">Edit</a>
+                        <a href="{% url 'admin:app_attendance_delete' record.id %}" class="btn btn-danger btn-sm">Delete</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No attendance records found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn {
+        padding: 6px 12px;
+        margin: 0 4px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+    .btn-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    .btn:hover {
+        opacity: 0.8;
+    }
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+        background-color: white;
+    }
+    .table th,
+    .table td {
+        padding: 12px;
+        border: 1px solid #dee2e6;
+    }
+    .table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .container {
+        padding: 20px;
+    }
+</style>
+{% endblock %}

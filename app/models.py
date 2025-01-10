@@ -6,7 +6,7 @@ import random
 from decimal import Decimal
 from datetime import time, timedelta, datetime
 from django.core.validators import MinValueValidator, MaxValueValidator
-
+from django.utils import timezone
 
 # Abstract BaseUser Model
 class BaseUser(models.Model):
@@ -27,15 +27,12 @@ class BaseUser(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        # Generate a username if not provided
         if not self.username:
             self.username = f"{self.first_name.lower()}_{random.randint(1000, 9999)}"
 
-        # Hash the password if new or not already hashed
         if self._state.adding or not self.password.startswith("pbkdf2_"):
             self.password = make_password(self.password)
 
-        # Sync with Django User model
         if not self.user:
             self.user = User.objects.create(
                 username=self.username,
@@ -351,63 +348,41 @@ class Library(models.Model):
         verbose_name = "Library"
         verbose_name_plural = "Library"
 
+# class Certificate(models.Model):
+#     title = models.CharField(max_length=255)
+#     student = models.ForeignKey("Student", on_delete=models.CASCADE, related_name="certificates")
+#     course = models.ForeignKey("Course", on_delete=models.CASCADE, related_name="certificates")
+#     issued_date = models.DateField(default=timezone.now)
+#     is_verified = models.BooleanField(default=False)
+#     certificate_file = models.FileField(upload_to="certificates/", blank=True, null=True)
+#     description = models.TextField(blank=True, null=True)
 
-class Certificate(models.Model):
-    id = models.AutoField(primary_key=True)
-    student = models.ForeignKey("Student", on_delete=models.CASCADE)
-    course = models.ForeignKey("Course", on_delete=models.CASCADE)
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-    issue_date = models.DateField(auto_now_add=True)
+#     def __str__(self):
+#         return f"{self.title} - {self.student.first_name} {self.student.last_name}"
 
-    class Meta:
-        verbose_name = "Certificate"
-        verbose_name_plural = "Certificate"
+#     class Meta:
+#         verbose_name = "Certificate"
+#         verbose_name_plural = "Certificates"
+
+
 
 
 class Marksheet(models.Model):
-    student = models.ForeignKey(
-        "Student", on_delete=models.CASCADE, related_name="marksheets"
-    )
-    course = models.ForeignKey(
-        "Course", on_delete=models.CASCADE, related_name="marksheets"
-    )
-    total_marks = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)],
-        default=Decimal("0.00"),
-        help_text="Total marks for the course",
-        # editable=False,
-    )
-    obtained_marks = models.PositiveIntegerField(
-        validators=[MinValueValidator(0)],
-        default=Decimal("0.00"),
-        help_text="Total marks obtained by the student",
-        # editable=False,
-    )
-    grade = models.CharField(
-        max_length=2,
-        choices=[
-            # ("A+", "Outstanding"),
-            # ("A", "Excellent"),
-            # ("B+", "Very Good"),
-            # ("B", "Good"),
-            # ("C+", "Above Average"),
-            # ("C", "Average"),
-            # ("D", "Below Average"),
-            # ("E", "Fail"),
-            ("A+", "A+"),
-            ("A", "A"),
-            ("B+", "B+"),
-            ("B", "B"),
-            ("C+", "C+"),
-            ("C", "C"),
-            ("D", "D"),
-            ("E", "E"),
-        ],
-        blank=True,
-        null=True,
-        help_text="Grade assigned based on marks",
-    )
+    student = models.ForeignKey("Student", on_delete=models.CASCADE, related_name="marksheets")
+    course = models.ForeignKey("Course", on_delete=models.CASCADE, related_name="marksheets")
+    total_marks = models.PositiveIntegerField(validators=[MinValueValidator(0)], default=Decimal("0.00"), blank=True, null=True)
+    obtained_marks = models.PositiveIntegerField(validators=[MinValueValidator(0)], default=Decimal("0.00"))
+    
+    grade = models.CharField(max_length=2, choices=[
+        ("A+", "A+"),
+        ("A", "A"),
+        ("B+", "B+"),
+        ("B", "B"),
+        ("C+", "C+"),
+        ("C", "C"),
+        ("D", "D"),
+        ("E", "E"),
+    ], blank=True, null=True)
 
     class Meta:
         verbose_name = "Marksheet"
@@ -416,17 +391,8 @@ class Marksheet(models.Model):
 
     def calculate_totals(self):
         subject_marks = self.subject_marks.all()
-
-        total_marks = sum(
-            subject.total_practical_marks + subject.total_theory_marks
-            for subject in subject_marks
-        ) or Decimal("0.00")
-
-        obtained_marks = sum(
-            subject.obtained_practical_marks + subject.obtained_theory_marks
-            for subject in subject_marks
-        ) or Decimal("0.00")
-
+        total_marks = sum(subject.total_practical_marks + subject.total_theory_marks for subject in subject_marks) or Decimal("0.00")
+        obtained_marks = sum(subject.obtained_practical_marks + subject.obtained_theory_marks for subject in subject_marks) or Decimal("0.00")
         return total_marks, obtained_marks
 
     def save(self, *args, **kwargs):
@@ -461,97 +427,24 @@ class Marksheet(models.Model):
 
 
 class SubjectMark(models.Model):
-    marksheet = models.ForeignKey(
-        Marksheet, on_delete=models.CASCADE, related_name="subject_marks"
-    )
-    subject = models.ForeignKey(
-        "Subject", on_delete=models.CASCADE, related_name="subject_marks"
-    )
-    obtained_practical_marks = models.DecimalField(
-        max_digits=5, decimal_places=2, default=Decimal("0.00")
-    )
-    total_practical_marks = models.DecimalField(
-        max_digits=5, decimal_places=2, default=Decimal("20.00")
-    )
-    obtained_theory_marks = models.DecimalField(
-        max_digits=5, decimal_places=2, default=Decimal("0.00")
-    )
-    total_theory_marks = models.DecimalField(
-        max_digits=5, decimal_places=2, default=Decimal("80.00")
-    )
-    total_marks = models.DecimalField(
-        max_digits=5, decimal_places=2, default=Decimal("0.00")
-    )
+    marksheet = models.ForeignKey(Marksheet, on_delete=models.CASCADE, related_name="subject_marks")
+    subject = models.ForeignKey("Subject", on_delete=models.CASCADE, related_name="subject_marks")
+    obtained_practical_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    total_practical_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("20.00"))
+    obtained_theory_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    total_theory_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("80.00"))
+    total_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
 
     def get_total(self):
-        return Decimal(str(self.obtained_practical_marks or 0)) + Decimal(
-            str(self.obtained_theory_marks or 0)
-        )
+        return Decimal(str(self.obtained_practical_marks or 0)) + Decimal(str(self.obtained_theory_marks or 0))
 
     def save(self, *args, **kwargs):
         self.total_marks = self.get_total()
         super().save(*args, **kwargs)
-        self.marksheet.save()
+        self.marksheet.save()  # Trigger the marksheet save to recalculate totals
 
     class Meta:
         unique_together = ("marksheet", "subject")
 
     def __str__(self):
         return f"{self.subject.name} - {self.marksheet.student.first_name}"
-
-
-# class Marksheet(models.Model):
-#     student = models.ForeignKey(
-#         "Student", on_delete=models.CASCADE, related_name="marksheets"
-#     )
-#     course = models.ForeignKey(
-#         "Course", on_delete=models.CASCADE, related_name="marksheets"
-#     )
-#     subj_result = models.ForeignKey(
-#         "Result", on_delete=models.CASCADE, related_name="marksheets", null=True
-#     )
-#     marks_obtained = models.PositiveIntegerField(
-#         validators=[MinValueValidator(0)], help_text="Marks obtained by the student"
-#     )
-#     total_marks = models.PositiveIntegerField(
-#         validators=[MinValueValidator(1)], help_text="Total marks for the subject"
-#     )
-#     grade = models.CharField(
-#         max_length=2,
-#         choices=[
-#             ("A+", "Excellent"),
-#             ("A", "Very Good"),
-#             ("B", "Good"),
-#             ("C", "Average"),
-#             ("D", "Below Average"),
-#             ("F", "Fail"),
-#         ],
-#         blank=True,
-#         null=True,
-#         help_text="Grade assigned based on marks",
-#     )
-#
-#     class Meta:
-#         verbose_name = "Marksheet"
-#         verbose_name_plural = "Marksheets"
-#         unique_together = ("student", "course")
-#
-#     def save(self, *args, **kwargs):
-#         percentage = (self.marks_obtained / self.total_marks) * 100
-#         if percentage >= 90:
-#             self.grade = "A+"
-#         elif percentage >= 80:
-#             self.grade = "A"
-#         elif percentage >= 70:
-#             self.grade = "B"
-#         elif percentage >= 60:
-#             self.grade = "C"
-#         elif percentage >= 50:
-#             self.grade = "D"
-#         else:
-#             self.grade = "F"
-#
-#         super().save(*args, **kwargs)
-#
-#     def __str__(self):
-#         return f"Marksheet: {self.student.first_name} {self.student.last_name}"

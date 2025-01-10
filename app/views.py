@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import DetailView
 from django.contrib.admin import site
 from app.models import (
     Student,
@@ -12,6 +13,84 @@ from app.models import (
     SubjectMark,
 )
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+
+def view_marksheet(request, pk):
+    try:
+        marksheet = Marksheet.objects.get(pk=pk)
+        percentage = (
+            (marksheet.obtained_marks / marksheet.total_marks) * 100
+            if marksheet.total_marks > 0
+            else 0
+        )
+        
+        context = {
+            "marksheet": marksheet,
+            "percentage": percentage,
+            "student": marksheet.student, 
+            "school_name": "XYZ Secondary School",
+            "theory_max": 80,
+            "practical_max": 20,
+            "exam_year": marksheet.student.academic_year,
+        }
+        return render(request, "Hod/view_marksheet.html", context)
+    except Marksheet.DoesNotExist:
+        return HttpResponse("Marksheet not found", status=404)
+
+
+@login_required
+def Add_Course(request):
+    courses = Course.objects.all()
+
+    context = {
+        **site.each_context(request),  # This adds admin context
+        "title": "Manage Courses",
+        "courses": courses,
+        "subtitle": "Course Management",
+        "site_title": "School Management",
+        "has_permission": True,
+        "is_popup": False,
+        "is_nav_sidebar_enabled": True,
+        "available_apps": site.get_app_list(request),
+    }
+
+    if request.method == "POST":
+        name = request.POST.get("name")
+        level = request.POST.get("level")
+        course_type = request.POST.get("course_type")
+        duration = request.POST.get("duration")
+
+        Course.objects.create(
+            name=name, level=level, course_type=course_type, duration=duration
+        )
+        messages.success(request, "Course Added Successfully!")
+        return redirect("add_course")
+
+    return render(request, "Hod/add_course.html", context)
+
+
+@login_required
+def Edit_Course(request, id):
+    course = Course.objects.all()
+    if request.method == "POST":
+        name = request.POST.get("name")
+        Course.objects.filter(id=id).update(
+            name=name,
+        )
+        messages.success(request, "Course Updated Successfully!")
+        return redirect("add_course")
+    context = {
+        "course": course,
+    }
+    return render(request, "Hod/add_course.html", context)
+
+
+@login_required
+def Delete_Course(request, id):
+    Course.objects.filter(id=id).delete()
+    messages.success(request, "Course Deleted Successfully")
+    return redirect("add_course")
 
 
 @login_required

@@ -1,0 +1,242 @@
+{% extends 'admin/base_site.html' %} {% load static %} {% block content %}
+<body>
+  <div class="certificate">
+    <div class="border">
+      <div class="corner-design top-left"></div>
+      <div class="corner-design top-right"></div>
+      <div class="corner-design bottom-left"></div>
+      <div class="corner-design bottom-right"></div>
+
+      <header>
+        <!-- <div class="logo"> -->
+        <!--   <img src="https://placehold.co/100x100" alt="School Logo" /> -->
+        <!-- </div> -->
+        <div class="school-info">
+          <h1>{{ school_name }}</h1>
+          <p class="estd">Estd. 2040</p>
+          <p class="address">Rural Municipality - 3, Dumidanda, Dhading</p>
+        </div>
+        <!-- <div class="photo-box"> -->
+        <!--   <div class="photo-placeholder"></div> -->
+        <!-- </div> -->
+      </header>
+
+      <div class="certificate-title">TRANSFER/CHARACTER CERTIFICATE</div>
+
+      <div class="content">
+        <h2>TO WHOM IT MAY CONCERN</h2>
+
+        <p class="certificate-text">
+          This is to certify that Mr./Ms.
+          <span class="highlight">{{student}}</span>, son/daughter of Mr. / Mrs.
+          {{father}}, resident of <span class="highlight">{{address}}</span>,
+          Ward No.- <span class="highlight">3</span>, District
+          <span class="highlight">Dhading</span>, was a student of this school.
+          He/She passed the
+          <span class="highlight">{{course}}{{course.level}}</span>
+          in the year <span class="highlight">{{finished_year}}</span> and
+          placed <span class="highlight">2.80 </span>. His/Her character so far
+          known to this school is good. His/Her date of birth according to the
+          register of this school is <span class="highlight">{{dob}} AD</span>.
+        </p>
+
+        <p class="moral-character">
+          I know nothing against his/her moral character while he/she was
+          studying in this school. I wish success in every step of his/her life.
+        </p>
+
+        <!-- <div class="details"> -->
+        <!--   <p>Registration No. 1234567890</p> -->
+        <!--   <p>Symbol No 02123456 'W'</p> -->
+        <!--   <p>Date of Issue: 2078-09-25</p> -->
+        <!-- </div> -->
+
+        <div class="signatures">
+          <div class="sign">
+            <div class="line"></div>
+            <p>Issued By</p>
+          </div>
+          <div class="sign">
+            <div class="line"></div>
+            <p>Checked By</p>
+          </div>
+          <div class="sign">
+            <div class="line"></div>
+            <p>Headmaster</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #f0f0f0;
+    padding: 20px;
+  }
+
+  .certificate {
+    width: 1000px;
+    background: white;
+    padding: 20px;
+  }
+
+  .border {
+    position: relative;
+    border: 2px solid #ff0000;
+    padding: 40px;
+    min-height: 842px;
+  }
+
+  .top-left {
+    top: -2px;
+    left: -2px;
+    transform: rotate(0deg);
+  }
+
+  .top-right {
+    top: -2px;
+    right: -2px;
+    transform: rotate(90deg);
+  }
+
+  .bottom-left {
+    bottom: -2px;
+    left: -2px;
+    transform: rotate(270deg);
+  }
+
+  .bottom-right {
+    bottom: -2px;
+    right: -2px;
+    transform: rotate(180deg);
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+  }
+
+  .logo img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .school-info {
+    text-align: center;
+    flex-grow: 1;
+    padding: 0 20px;
+  }
+
+  .school-info h1 {
+    color: #0066cc;
+    font-size: 32px;
+    margin-bottom: 10px;
+  }
+
+  .estd,
+  .address {
+    color: #666;
+    font-size: 18px;
+  }
+
+  .photo-box {
+    width: 120px;
+    height: 140px;
+    border: 2px solid #000;
+    background: #f0f0f0;
+  }
+
+  .certificate-title {
+    text-align: center;
+    color: #ff0000;
+    font-size: 24px;
+    font-weight: bold;
+    border: 2px solid #ff0000;
+    padding: 10px;
+    margin: 30px 0;
+  }
+
+  .content {
+    padding: 0 20px;
+  }
+
+  h2 {
+    color: #0066cc;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 24px;
+  }
+
+  .certificate-text {
+    text-align: justify;
+    line-height: 1.8;
+    margin-bottom: 30px;
+    font-size: 16px;
+  }
+
+  .highlight {
+    color: #ff0000;
+    font-weight: bold;
+  }
+
+  .moral-character {
+    text-align: center;
+    color: #0066cc;
+    margin-bottom: 40px;
+    line-height: 1.8;
+  }
+
+  .details {
+    margin-bottom: 60px;
+  }
+
+  .details p {
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 100px;
+  }
+
+  .sign {
+    text-align: center;
+    width: 200px;
+  }
+
+  .line {
+    width: 100%;
+    border-top: 1px solid #000;
+    margin-bottom: 10px;
+  }
+
+  @media print {
+    body {
+      background: white;
+    }
+
+    .certificate {
+      width: 100%;
+      padding: 0;
+    }
+  }
+</style>
+
+{% endblock %}

@@ -1,0 +1,257 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block content %}
+    <div class="certificate">
+        <header>
+            <div class="logo">
+                <img src="{% static 'dist/img/logo.png' %}"
+                     alt="School Logo"
+                     onerror="this.style.display='none'" />
+            </div>
+            <div class="school-info">
+                <h1>{{ school_name }}</h1>
+                <p class="estd">Estd. 2040</p>
+                <p class="address">{{ school_address }}</p>
+                <p class="phone">Phone: +977-1-4123456</p>
+                <p class="email">Email: info@xyzschool.edu.np</p>
+            </div>
+            <div class="photo-box">
+                {% if student.photo %}
+                    <img src="{{ student.photo.url }}" alt="Student Photo">
+                {% else %}
+                    <div class="photo-placeholder">Photo</div>
+                {% endif %}
+            </div>
+        </header>
+        <div class="certificate-title">TRANSFER/CHARACTER CERTIFICATE</div>
+        <div class="content">
+            <div class="details-top">
+                <p>
+                    Registration No: <span class="highlight">123</span>
+                </p>
+                <p>
+                    Date of Issue: <span class="highlight">{{ issue_date }}</span>
+                </p>
+            </div>
+            <h2>TO WHOM IT MAY CONCERN</h2>
+            <p class="certificate-text">
+                This is to certify that Mr./Ms. <span class="highlight">{{ student }}</span>,
+                son/daughter of Mr. {{ father }}, resident of <span class="highlight">{{ address }}</span>,
+                was a student of this school. He/She has successfully completed
+                <span class="highlight">{{ course }}{{ course.level }}</span>
+                in the year <span class="highlight">{{ finished_year|date:"Y" }}</span>
+                {% if gpa %}with a GPA of <span class="highlight">{{ gpa }}</span>{% endif %}
+                .
+                His/Her character throughout the academic tenure has been exemplary.
+                According to our school records, his/her date of birth is
+                <span class="highlight">{{ dob|date:"F d, Y" }} AD</span>.
+            </p>
+            <p class="moral-character">
+                Throughout their time at our institution, the student has demonstrated commendable moral character
+                and actively participated in school activities. We wish them continued success in their future endeavors.
+            </p>
+            <div class="signatures">
+                <div class="sign">
+                    <div class="line"></div>
+                    <p>{{ issued_by|default:"Issued By" }}</p>
+                    <p class="designation">Administrative Officer</p>
+                </div>
+                <div class="sign">
+                    <div class="line"></div>
+                    <p>{{ checked_by|default:"Checked By" }}</p>
+                    <p class="designation">Academic Coordinator</p>
+                </div>
+                <div class="sign">
+                    <div class="line"></div>
+                    <p>{{ principle|default:"Principal" }}</p>
+                    <p class="designation">School Principal</p>
+                </div>
+            </div>
+            <div class="footer">
+                <p class="note">This certificate is valid subject to verification from the school administration.</p>
+            </div>
+        </div>
+        <div class="mt-4 text-center">
+            <a href="#" class="btn btn-success" onclick="window.print();"><i class="fas fa-print"></i> Print Certificate</a>
+        </div>
+    </div>
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Times New Roman', Times, serif;
+    background: #f0f0f0;
+    padding: 20px;
+}
+
+.certificate {
+    width: 21cm;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.border {
+    position: relative;
+    border: 2px solid #000080;
+    padding: 40px;
+    min-height: 29.7cm;
+    background: url('{% static "images/watermark.png" %}') center center no-repeat;
+    background-size: 50%;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+}
+
+.logo img {
+    width: 100px;
+    height: auto;
+}
+
+.school-info {
+    text-align: center;
+    flex-grow: 1;
+    padding: 0 20px;
+}
+
+.school-info h1 {
+    color: #000080;
+    font-size: 32px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.estd, .address, .phone, .email {
+    color: #333;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.photo-box {
+    width: 120px;
+    height: 140px;
+    border: 2px solid #000080;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+}
+
+.photo-placeholder {
+    color: #666;
+    font-style: italic;
+}
+
+.certificate-title {
+    text-align: center;
+    color: #000080;
+    font-size: 28px;
+    font-weight: bold;
+    border: 3px solid #000080;
+    padding: 15px;
+    margin: 30px 0;
+    letter-spacing: 2px;
+}
+
+.content {
+    padding: 0 20px;
+}
+
+.details-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    font-size: 16px;
+}
+
+h2 {
+    color: #000080;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 24px;
+    text-decoration: underline;
+}
+
+.certificate-text {
+    text-align: justify;
+    line-height: 1.8;
+    margin-bottom: 30px;
+    font-size: 18px;
+}
+
+.highlight {
+    color: #000080;
+    font-weight: bold;
+}
+
+.moral-character {
+    text-align: justify;
+    color: #333;
+    margin: 40px 0;
+    line-height: 1.8;
+    font-size: 18px;
+}
+
+.signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 100px;
+}
+
+.sign {
+    text-align: center;
+    width: 200px;
+}
+
+.line {
+    width: 100%;
+    border-top: 1px solid #000;
+    margin-bottom: 10px;
+}
+
+.designation {
+    color: #666;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.footer {
+    margin-top: 50px;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+}
+
+.note {
+    font-style: italic;
+}
+
+@media print {
+    body {
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+
+    .certificate {
+        width: 100%;
+        padding: 0;
+        box-shadow: none;
+    }
+
+    .border {
+        border: none;
+        padding: 20px;
+    }
+}
+    </style>
+{% endblock %}

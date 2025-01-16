@@ -1,0 +1,92 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="container p-4">
+    <!-- Add Book Button -->
+    <div class="mb-4">
+        <a href="{% url 'admin:app_library_add' %}" class="btn btn-primary">Add New Book</a>
+    </div>
+
+    <!-- Library Book List Table -->
+    <table class="table">
+        <thead>
+            <tr>
+                <th>S.N</th>
+                <th>Category</th>
+                <th>Book Name</th>
+                <th>Description</th>
+                <th>Publication</th>
+                <th>Publication Year</th>
+                <th>Quantity</th>
+                <th>Available</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ book.category }}</td>
+                    <td>{{ book.book_name }}</td>
+                    <td>{{ book.description }}</td>
+                    <td>{{ book.publication }}</td>
+                    <td>{{ book.publication_year }}</td>
+                    <td>{{ book.quantity }}</td>
+                    <td>{{ book.get_available_display }}</td>
+                    <td>
+                        <!-- Edit and Delete Actions -->
+                        <a href="{% url 'admin:app_library_change' book.id %}" class="btn btn-warning btn-sm">Edit</a>
+                        <a href="{% url 'admin:app_library_delete' book.id %}" class="btn btn-danger btn-sm">Delete</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center">No books found in the library.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn {
+        padding: 6px 12px;
+        margin: 0 4px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+    .btn-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    .btn:hover {
+        opacity: 0.8;
+    }
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+        background-color: white;
+    }
+    .table th,
+    .table td {
+        padding: 12px;
+        border: 1px solid #dee2e6;
+    }
+    .table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .container {
+        padding: 20px;
+    }
+</style>
+{% endblock %}

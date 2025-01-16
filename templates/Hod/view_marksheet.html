@@ -1,0 +1,129 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="container p-4">
+  <a href="{% url 'admin:app_marksheet_changelist' %}" class="btn btn-primary">Back to Marksheet List</a>
+    <div class="text-center mb-4">
+        <h3>GOVERNMENT OF NEPAL</h3>
+        <h4>MINISTRY OF EDUCATION</h4>
+        <h5>OFFICE OF THE CONTROLLER OF EXAMINATIONS</h5>
+        <h6>{{ exam_year }}</h6>
+        <hr>
+        <h4>MARK - SHEET</h4>
+    </div>
+
+    <!-- Student Information -->
+    <div class="card mb-4">
+        <div class="card-body">
+          <h4>THE MARKS SECURED BY : <u><b>{{ marksheet.student.first_name }} {{ marksheet.student.last_name }}</b> </u> </h4>
+          <H4>DATE OF BIRTH :<u><b>{{ marksheet.student.date_of_birth }}</b> </u> </H4>
+           
+            <H4>Course:<u><b>{{ marksheet.course.name }} </b> </u> </H4>
+            <H4>Roll No: <u><b> 124 </b> </u> </H4>
+            <H4> OF <u><b> {{ school_name }} </b> </u> </H4>
+            <H4> IN THE  ANNUAL EXAMINATION OF <u><b> 2081 </b> </u> ARE GIVEN BELOW </H4>
+        </div>
+    </div>
+
+    <!-- Subject Marks Table -->
+    <table class="table table-bordered">
+        <thead class="thead-dark">
+            <tr>
+                <th>S.N</th>
+                <th>Subject</th>
+                <th>Theory (Out of {{ theory_max }})</th>
+                <th>Practical (Out of {{ practical_max }})</th>
+                <th>Total Marks</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for subject_mark in marksheet.subject_marks.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ subject_mark.subject.name }}</td>
+                    <td>{{ subject_mark.obtained_theory_marks }}</td>
+                    <td>{{ subject_mark.obtained_practical_marks }}</td>
+                    <td>{{ subject_mark.total_marks }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No subjects found for this marksheet.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Total, Percentage, and Grade -->
+    <div class="mt-4">
+        <h5><strong>Total Marks:</strong> {{ marksheet.total_marks }}</h5>
+        <h5><strong>Obtained Marks:</strong> {{ marksheet.obtained_marks }}</h5>
+        <h5><strong>Percentage:</strong> {{ percentage|floatformat:2 }}%</h5>
+        <h5><strong>Overall Grade:</strong> 
+            <span class="grade-badge grade-{{ marksheet.grade|lower }}">{{ marksheet.grade }}</span>
+        </h5>
+    </div>
+
+    <!-- Actions -->
+    <div class="mt-4 text-center">
+        
+        <a href="#" class="btn btn-success" onclick="window.print();"><i class="fas fa-print"></i> Print Marksheet</a>
+    </div>
+</div>
+
+<!-- Styling -->
+<style>
+    .container {
+        max-width: 800px;
+        margin: auto;
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .table {
+        margin-top: 20px;
+        width: 100%;
+        border: 1px solid #dee2e6;
+    }
+
+    .table th, .table td {
+        padding: 8px;
+        text-align: center;
+    }
+
+    .thead-dark th {
+        background-color: #343a40;
+        color: white;
+    }
+
+    .grade-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        color: white;
+    }
+
+    .grade-a\+ { background-color: #28a745; }
+    .grade-a { background-color: #20c997; }
+    .grade-b\+ { background-color: #17a2b8; }
+    .grade-b { background-color: #007bff; }
+    .grade-c\+ { background-color: #6f42c1; }
+    .grade-c { background-color: #fd7e14; }
+    .grade-d { background-color: #ffc107; }
+    .grade-e { background-color: #dc3545; }
+
+    @media print {
+        .btn {
+            display: none;
+        }
+        .container {
+            border: none;
+            box-shadow: none;
+        }
+    }
+</style>
+{% endblock %}

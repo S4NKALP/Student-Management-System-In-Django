@@ -1,0 +1,161 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block content %}
+    <div class="container p-4">
+        <!-- Add Marksheet Button -->
+        <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap">
+            <a href="{% url 'admin:app_certificate_add' %}" class="button">
+                <button type="button" class="btn btn-primary">Add New Marksheet</button>
+            </a>
+        </div>
+        <!-- Marksheet List Table -->
+        <table class="table table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>S.N</th>
+                    <th>Student Name</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for certificate in certificates %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ certificate.student }}</td>
+                        <td>{{ certificate.date }}</td>
+                        <td>
+                            <a href="{% url 'admin:app_certificate_change' certificate.id %}"
+                               class="button btn-edit">
+                                <button type="button" class="btn btn-warning btn-sm">Edit</button>
+                            </a>
+                            <a href="{% url 'admin:app_certificate_delete' certificate.id %}"
+                               class="button btn-delete">
+                                <button type="button" class="btn btn-danger btn-sm">Delete</button>
+                            </a>
+                            <a href="{% url 'app_certificate_view' certificate.id %}"
+                               class="button btn-view">
+                                <button type="button" class="btn btn-info btn-sm">View</button>
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No marksheets found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="#" class="btn btn-success" onclick="window.print();"><i class="fas fa-print"></i> Print PDF</a>
+    </div>
+    <style>
+  /* Custom Button Styles */
+  .btn {
+    padding: 6px 12px;
+    margin: 2px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .btn-primary {
+    background-color: #007bff;
+    color: white;
+  }
+  .btn-info {
+    background-color: #17a2b8;
+    color: white;
+  }
+  .btn-danger {
+    background-color: #dc3545;
+    color: white;
+  }
+  .btn:hover {
+    opacity: 0.8;
+  }
+  td,
+  th {
+    white-space: nowrap;
+  }
+  /* Table Styling */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .table th,
+  .table td {
+    padding: 12px;
+    border: 1px solid #dee2e6;
+  }
+  .table thead th {
+    background-color: #343a40;
+    color: white;
+  }
+  .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f2f2f2;
+  }
+  .table-responsive {
+    overflow-x: auto;
+  }
+
+  /* Print Styles */
+  @media print {
+    .container {
+      padding: 0;
+    }
+    .table th,
+    .table td {
+      padding: 8px;
+    }
+    .btn {
+      display: none;
+    }
+  }
+
+  /* Container Padding */
+  .container {
+    padding: 20px;
+  }
+  .grade-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    color: white;
+  }
+  .grade-a\+ {
+    background-color: #28a745; /* Green for A+ */
+  }
+  .grade-a {
+    background-color: #20c997; /* Teal for A */
+  }
+  .grade-b\+ {
+    background-color: #17a2b8; /* Cyan for B+ */
+  }
+  .grade-b {
+    background-color: #007bff; /* Blue for B */
+  }
+  .grade-c\+ {
+    background-color: #6f42c1; /* Purple for C+ */
+  }
+  .grade-c {
+    background-color: #fd7e14; /* Orange for C */
+  }
+  .grade-d {
+    background-color: #ffc107; /* Yellow for D */
+  }
+  .grade-e {
+    background-color: #dc3545; /* Red for E */
+  }
+  @media print {
+    .container {
+      padding: 0;
+    }
+    .table th,
+    .table td {
+      padding: 8px;
+    }
+    .btn {
+      display: none;
+    }
+  }
+    </style>
+{% endblock %}

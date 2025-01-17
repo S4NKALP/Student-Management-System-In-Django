@@ -1,0 +1,97 @@
+{% extends "admin/base_site.html" %}
+{% block page_title %}Manage Subjects{% endblock %}
+{% load static %}
+{% block extrastyle %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+          rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+          rel="stylesheet" />
+    <style>
+    .course-filter, .duration-filter {
+        margin-bottom: 20px;
+    }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="container py-4">
+        <h1 class="h3 mb-4">Manage Subjects</h1>
+        <!-- Course Filter -->
+        <div class="course-filter">
+            <form method="get" class="form-inline">
+                <div class="form-group mb-3">
+                    <label for="course" class="form-label">Select Course</label>
+                    <select class="form-control" id="course" name="course">
+                        <option value="">All Courses</option>
+                        {% for course in courses %}
+                            <option value="{{ course.id }}"
+                                    {% if course.id == selected_course_id %}selected{% endif %}>
+                                {{ course.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Duration Filter -->
+                <div class="form-group mb-3">
+                    <label for="duration" class="form-label">Select Duration</label>
+                    <select class="form-control" id="duration" name="duration">
+                        <option value="">All Durations</option>
+                        <option value="1" {% if selected_duration == "1" %}selected{% endif %}>1</option>
+                        <option value="2" {% if selected_duration == "2" %}selected{% endif %}>2</option>
+                        <option value="3" {% if selected_duration == "3" %}selected{% endif %}>3</option>
+                        <option value="4" {% if selected_duration == "4" %}selected{% endif %}>4</option>
+                        <option value="5" {% if selected_duration == "5" %}selected{% endif %}>5</option>
+                        <option value="6" {% if selected_duration == "6" %}selected{% endif %}>6</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+            </form>
+        </div>
+        <!-- Subjects Table -->
+        {% if subjects %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th width="5%">S.N</th>
+                            <th width="30%">Subject Name</th>
+                            <th width="20%">Course Name</th>
+                            <th width="25%">Duration</th>
+                            <th width="20%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject in subjects %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ subject.name }}</td>
+                                <td>{{ subject.course.name }}</td>
+                                <td>
+                                    {{ subject.duration }}
+                                    {% if subject.course.course_type == 'semester' %}
+                                        Semesters
+                                    {% else %}
+                                        Years
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'edit_subject' subject.id %}"
+                                       class="btn btn-action btn-edit me-2">
+                                        <i class="fas fa-edit me-1"></i>Edit
+                                    </a>
+                                    <a href="{% url 'delete_subject' subject.id %}"
+                                       class="btn btn-action btn-delete">
+                                        <i class="fas fa-trash-alt me-1"></i>Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">No subjects found for the selected filters.</div>
+        {% endif %}
+    </div>
+{% endblock %}

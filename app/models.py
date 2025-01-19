@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.validators import RegexValidator, ValidationError
-
+from django.contrib.auth.models import User
 # Create your models here.
 
 
@@ -15,8 +15,8 @@ class Student(models.Model):
     academic_year = models.ForeignKey(
         "AcademicYear", on_delete=models.CASCADE, related_name="students"
     )
-    username = models.CharField(max_length=255)
     password = models.CharField(max_length=255)
+    fcm_token = models.TextField(default="")
     phone = models.CharField(
         max_length=10, validators=[RegexValidator(r"^\+?1?\d{9,15}$")]
     )
@@ -80,7 +80,7 @@ class Teacher(models.Model):
     dob = models.DateField()
     gender = models.CharField(max_length=1, choices=[("M", "Male"), ("F", "Female")])
     address = models.CharField(max_length=255)
-    username = models.CharField(max_length=255)
+    fcm_token = models.TextField(default="")
     password = models.CharField(max_length=255)
     qualification_choice = (
         ("SLC", "SLC"),
@@ -181,8 +181,8 @@ class Attendance(models.Model):  # Subject Attendance
     id = models.AutoField(primary_key=True)
     subject_id = models.ForeignKey(Subject, on_delete=models.DO_NOTHING)
     attendance_date = models.DateField()
+    academic_year_id = models.ForeignKey(AcademicYear, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE)
     updated_at = models.DateTimeField(auto_now=True)
 
 
@@ -219,15 +219,15 @@ class FeedbackStudent(models.Model):
     id = models.AutoField(primary_key=True)
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     feedback = models.TextField()
-    feedback_reply = models.TextField()
+    feedback_reply = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
 class FeedbackTeacher(models.Model):
     id = models.AutoField(primary_key=True)
-    staff_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)
     feedback = models.TextField()
-    feedback_reply = models.TextField()
+    feedback_reply = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

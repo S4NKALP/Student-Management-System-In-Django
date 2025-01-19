@@ -16,168 +16,58 @@ from app.models import (
 )
 # Register your models here.
 
-admin.site.register(FeedbackStudent)
-admin.site.register(FeedbackTeacher)
-admin.site.register(LeaveReportStudent)
-admin.site.register(LeaveReportTeacher)
+
+@admin.register(LeaveReportStudent)
+class LeaveReportStudentAdmin(admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
+        return redirect(reverse("student_leave_view"))
+
+
+@admin.register(LeaveReportTeacher)
+class LeaveReportTeacherAdmin(admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
+        return redirect(reverse("teacher_leave_view"))
+
+
+@admin.register(FeedbackTeacher)
+class FeedbackTeacherAdmin(admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
+        return redirect(reverse("teacher_feedback"))
+
+
+@admin.register(FeedbackStudent)
+class FeedbackStudentAdmin(admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
+        return redirect(reverse("student_feedback_message"))
 
 
 @admin.register(AcademicYear)
 class AcademicYearAdmin(admin.ModelAdmin):
-    list_display = ("id", "start_date", "created_at", "updated_at")
-
     def changelist_view(self, request, extra_context=None):
         return redirect(reverse("manage_academicyear"))
 
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ("subject_id", "attendance_date", "created_at", "updated_at")
+    def changelist_view(self, request, extra_context=None):
+        return redirect(reverse("admin_view_attendance"))
 
 
 @admin.register(AttendanceReport)
 class AttendanceReportAdmin(admin.ModelAdmin):
-    list_display = ("student_id", "attendance_id", "status", "created_at", "updated_at")
+    pass
 
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "first_name",
-        "middle_name",
-        "last_name",
-        "username",
-        "email",
-        "phone",
-        "dob",
-        "gender",
-        "address",
-        "father_name",
-        "mother_name",
-        "parents_number",
-        "father_occupation",
-        "guardian_name",
-        "relationship_with_student",
-    )
-    search_fields = (
-        "first_name",
-        "middle_name",
-        "last_name",
-        "email",
-        "phone",
-        "father_name",
-        "mother_name",
-        "guardian_name",
-    )
-    list_filter = (
-        "gender",
-        "father_occupation",
-        "mother_occupation",
-        "relationship_with_student",
-    )
-    list_editable = ("phone", "email", "gender", "address")
-    date_hierarchy = "dob"
-    fieldsets = (
-        (
-            "Personal Information",
-            {
-                "fields": (
-                    "first_name",
-                    "middle_name",
-                    "last_name",
-                    "dob",
-                    "gender",
-                    "address",
-                )
-            },
-        ),
-        ("Contact Information", {"fields": ("username", "password", "phone", "email")}),
-        (
-            "Parent Details",
-            {
-                "fields": (
-                    "father_name",
-                    "mother_name",
-                    "parents_number",
-                    "father_occupation",
-                    "mother_occupation",
-                )
-            },
-        ),
-        (
-            "Guardian Details",
-            {
-                "fields": (
-                    "guardian_name",
-                    "guardian_number",
-                    "relationship_with_student",
-                )
-            },
-        ),
-        ("Timestamps", {"fields": ("created_at", "updated_at")}),
-    )
-    readonly_fields = ("created_at", "updated_at")
+    def changelist_view(self, request, extra_context=None):
+        return redirect(reverse("manage_student"))
 
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "first_name",
-        "middle_name",
-        "last_name",
-        "username",
-        "email",
-        "phone",
-        "gender",
-        "qualification",
-        "specialization_on",
-        "marital_status",
-        "date_of_joining",
-        "created_at",
-        "updated_at",
-    )
-    search_fields = (
-        "first_name",
-        "middle_name",
-        "last_name",
-        "email",
-        "phone",
-        "username",
-        "specialization_on",
-    )
-    list_filter = (
-        "gender",
-        "qualification",
-        "marital_status",
-        "date_of_joining",
-    )
-    list_editable = ("phone", "email", "gender", "marital_status")
-    date_hierarchy = "date_of_joining"
-    fieldsets = (
-        (
-            "Personal Information",
-            {
-                "fields": (
-                    "first_name",
-                    "middle_name",
-                    "last_name",
-                    "dob",
-                    "gender",
-                    "marital_status",
-                    "address",
-                )
-            },
-        ),
-        ("Contact Information", {"fields": ("username", "password", "phone", "email")}),
-        (
-            "Professional Details",
-            {"fields": ("qualification", "specialization_on", "date_of_joining")},
-        ),
-        ("Timestamps", {"fields": ("created_at", "updated_at")}),
-    )
-    readonly_fields = ("created_at", "updated_at")
+    def changelist_view(self, request, extra_context=None):
+        return redirect(reverse("manage_teacher"))
 
 
 @admin.register(Course)

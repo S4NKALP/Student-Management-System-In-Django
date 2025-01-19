@@ -44,25 +44,24 @@
         transition: all 0.2s ease-in-out;
     }
 
-    .btn-edit {
-        background-color: #ffc107;
-        border-color: #ffc107;
-        color: #000;
+    .btn-approve {
+        background-color: #28a745;
+        border-color: #28a745;
+        color: #fff;
     }
 
-    .btn-edit:hover {
-        background-color: #e0a800;
-        border-color: #d39e00;
-        color: #000;
+    .btn-approve:hover {
+        background-color: #218838;
+        border-color: #1e7e34;
     }
 
-    .btn-delete {
+    .btn-reject {
         background-color: #dc3545;
         border-color: #dc3545;
         color: #fff;
     }
 
-    .btn-delete:hover {
+    .btn-reject:hover {
         background-color: #c82333;
         border-color: #bd2130;
     }
@@ -90,12 +89,7 @@
         <div class="container-fluid">
             <div class="row align-items-center">
                 <div class="col">
-                    <h1 class="h3 mb-0">Manage Subjects</h1>
-                </div>
-                <div class="col-auto">
-                    <a href="{% url 'add_subject' %}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i> Add New Subject
-                    </a>
+                    <h1 class="h3 mb-0">Leave Applications</h1>
                 </div>
             </div>
         </div>
@@ -109,46 +103,47 @@
                         <div class="search-box">
                             <input type="text"
                                    class="form-control"
-                                   id="subjectSearch"
-                                   placeholder="Search subjects..." />
+                                   id="leaveSearch"
+                                   placeholder="Search leave applications..." />
                         </div>
                     </div>
                 </div>
-                {% if subjects %}
-                    <div class="table-responsive">
+                {% if leaves %}
+                    <div class="table-responsive table-bordered">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th width="5%">S.N</th>
-                                    <th width="25%">Subject Name</th>
-                                    <th width="20%">Course</th>
-                                    <th width="20%">Duration</th>
-                                    <th width="20%">Actions</th>
+                                    <th width="1%">S.N</th>
+                                    <th width="20%">Teacher Name</th>
+                                    <th width="10%">Leave Date</th>
+                                    <th width="25%">Leave Message</th>
+                                    <th width="10%">Applied On</th>
+                                    <th width="15%">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for subject in subjects %}
+                                {% for leave in leaves %}
                                     <tr>
                                         <td>{{ forloop.counter }}</td>
-                                        <td>{{ subject.name }}</td>
-                                        <td>{{ subject.course.name }}</td>
+                                        <td>{{ leave.teacher_id.first_name }}{{ leave.teacher_id.middle_name }} {{ leave.teacher_id.last_name }}</td>
+                                        <td>{{ leave.leave_date }}</td>
+                                        <td>{{ leave.leave_message }}</td>
+                                        <td>{{ leave.created_at }}</td>
                                         <td>
-                                            {{ subject.duration }}
-                                            {% if subject.course.course_type == 'semester' %}
-                                                Semesters
+                                            {% if leave.leave_status == 0 %}
+                                                <a href="{% url 'teacher_leave_approve' leave_id=leave.id %}"
+                                                   class="btn btn-action btn-approve me-2">
+                                                    <i class="fas fa-check-circle me-1"></i>Approve
+                                                </a>
+                                                <a href="{% url 'teacher_leave_reject' leave_id=leave.id %}"
+                                                   class="btn btn-action btn-reject">
+                                                    <i class="fas fa-times-circle me-1"></i>Reject
+                                                </a>
+                                            {% elif leave.leave_status == 1 %}
+                                                <button class="btn btn-action btn-approve" disabled>Approved</button>
                                             {% else %}
-                                                Years
+                                                <button class="btn btn-action btn-reject" disabled>Rejected</button>
                                             {% endif %}
-                                        </td>
-                                        <td>
-                                            <a href="{% url 'edit_subject' subject.id %}"
-                                               class="btn btn-action btn-edit me-2">
-                                                <i class="fas fa-edit me-1"></i>Edit
-                                            </a>
-                                            <a href="{% url 'delete_subject' subject.id %}"
-                                               class="btn btn-action btn-delete">
-                                                <i class="fas fa-trash-alt me-1"></i>Delete
-                                            </a>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -157,9 +152,9 @@
                     </div>
                 {% else %}
                     <div class="empty-state">
-                        <i class="fas fa-book empty-state-icon"></i>
-                        <h3>No Subjects Found</h3>
-                        <p class="text-muted">Start by adding your first subject using the button above.</p>
+                        <i class="fas fa-calendar-times empty-state-icon"></i>
+                        <h3>No Leave Applications Found</h3>
+                        <p class="text-muted">There are no leave applications to display at the moment.</p>
                     </div>
                 {% endif %}
             </div>
@@ -168,23 +163,24 @@
     {% block extrajs %}
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-    document
-        .getElementById("subjectSearch")
-        .addEventListener("keyup", function () {
-            const searchText = this.value.toLowerCase();
-            const tableRows = document.querySelectorAll("tbody tr");
+    document.getElementById("leaveSearch").addEventListener("keyup", function () {
+        const searchText = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll("tbody tr");
 
-            tableRows.forEach((row) => {
-                const subjectName = row.cells[1].textContent.toLowerCase();
-                const courseName = row.cells[2].textContent.toLowerCase();
+        tableRows.forEach((row) => {
+            const teacherName = row.cells[1].textContent.toLowerCase();
+            const leaveMessage = row.cells[3].textContent.toLowerCase();
 
-                if (subjectName.includes(searchText) || courseName.includes(searchText)) {
-                    row.style.display = "";
-                } else {
-                    row.style.display = "none";
-                }
-            });
+            if (
+                teacherName.includes(searchText) ||
+                leaveMessage.includes(searchText)
+            ) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
         });
+    });
         </script>
     {% endblock %}
 {% endblock %}

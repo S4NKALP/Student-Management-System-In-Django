@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: "pip" # For Python projects using pip
+    directory: "/" # Root directory of your repository
+    schedule:
+      interval: "daily" # Check for updates daily
+    commit-message:
+      prefix: "fix(deps)" # Custom prefix for Dependabot PRs
+    open-pull-requests-limit: 5 # Limit the number of open PRs at once
+    reviewers:
+      - "S4NKALP" # Add GitHub username(s) to review PRs

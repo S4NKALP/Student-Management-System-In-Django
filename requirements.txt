@@ -1,5 +1,5 @@
 asgiref==3.8.1
-Django==5.1.4
+Django==5.1.5
 django-jazzmin==3.0.1
 pytz==2024.2
 setuptools==75.7.0

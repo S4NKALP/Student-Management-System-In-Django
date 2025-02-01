@@ -1,7 +1,7 @@
 asgiref==3.8.1
 Django==5.1.5
 django-jazzmin==3.0.1
-pytz==2024.2
+pytz==2025.1
 setuptools==75.8.0
 sqlparse==0.5.3
 typing_extensions==4.12.2

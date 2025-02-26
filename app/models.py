@@ -1,70 +1,90 @@
 from django.db import models
-from django.contrib.auth.models import User, Group
-from django.core.validators import RegexValidator
-from django.contrib.auth.hashers import make_password
-import random
-from decimal import Decimal
-from datetime import time, timedelta, datetime
-from django.core.validators import MinValueValidator, MaxValueValidator
-from django.utils import timezone
+from django.core.validators import RegexValidator, ValidationError
+from django.contrib.auth.models import User
+# Create your models here.
 
-# Abstract BaseUser Model
-class BaseUser(models.Model):
-    active_status = models.BooleanField(default=True)
+
+class Student(models.Model):
+    id = models.AutoField(primary_key=True)
     first_name = models.CharField(max_length=255)
     middle_name = models.CharField(max_length=255, blank=True, null=True)
     last_name = models.CharField(max_length=255)
-    email = models.EmailField(max_length=255, unique=True)
+    course = models.ForeignKey(
+        "Course", on_delete=models.CASCADE, related_name="students"
+    )
+    academic_year = models.ForeignKey(
+        "AcademicYear", on_delete=models.CASCADE, related_name="students"
+    )
+    password = models.CharField(max_length=255)
+    fcm_token = models.TextField(default="")
     phone = models.CharField(
         max_length=10, validators=[RegexValidator(r"^\+?1?\d{9,15}$")]
     )
-    username = models.CharField(max_length=255, unique=True, blank=True, null=True)
-    password = models.CharField(max_length=255)
-    group = models.ManyToManyField(Group, blank=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
-
-    class Meta:
-        abstract = True
-
-    def save(self, *args, **kwargs):
-        if not self.username:
-            self.username = f"{self.first_name.lower()}_{random.randint(1000, 9999)}"
-
-        if self._state.adding or not self.password.startswith("pbkdf2_"):
-            self.password = make_password(self.password)
-
-        if not self.user:
-            self.user = User.objects.create(
-                username=self.username,
-                email=self.email,
-                first_name=self.first_name,
-                last_name=self.last_name,
-                is_staff=True,
-                is_active=self.active_status,
-                password=self.password,
-            )
-        else:
-            self.user.username = self.username
-            self.user.email = self.email
-            self.user.first_name = self.first_name
-            self.user.last_name = self.last_name
-            self.user.is_active = self.active_status
-            self.user.is_staff = True
-            self.user.password = self.password
-
-        super().save(*args, **kwargs)
-        self.user.groups.set(self.group.all())
-        self.user.save()
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-
-
-# Teacher model
-class Teacher(BaseUser):
-    address = models.CharField(max_length=255)
+    email = models.EmailField(max_length=255, unique=True)
+    dob = models.DateField()
     gender = models.CharField(max_length=1, choices=[("M", "Male"), ("F", "Female")])
+    address = models.CharField(max_length=255)
+    father_name = models.CharField(max_length=255)
+    mother_name = models.CharField(max_length=255)
+    parents_number = models.CharField(
+        max_length=10, validators=[RegexValidator(r"^\+?1?\d{9,15}$")]
+    )
+    occupation_choice = (
+        ("business", "Business"),
+        ("doctor", "Doctor"),
+        ("farmer", "Farmer"),
+        ("teacher", "teacher"),
+        ("public service", "Public Service"),
+        ("private service", "Private Service"),
+        ("shopkeeper", "Shopkeeper"),
+        ("driver", "Driver"),
+        ("housewife", "HouseWife"),
+        ("worker", "Worker"),
+        ("N/A", "N/A"),
+    )
+    father_occupation = models.CharField(
+        choices=occupation_choice, max_length=45, default="N/A"
+    )
+    mother_occupation = models.CharField(
+        choices=occupation_choice, max_length=45, default="N/A"
+    )
+    guardian_name = models.CharField(max_length=255)
+    guardian_number = models.CharField(
+        max_length=10, validators=[RegexValidator(r"^\+?1?\d{9,15}$")]
+    )
+    relationship_choice = (
+        ("father", "Father"),
+        ("mother", "Mother"),
+        ("brother", "Brother"),
+        ("sister", "Sister"),
+        ("uncle", "Uncle"),
+        ("aunt", "Aunt"),
+        ("grandfather", "Grandfather"),
+    )
+    relationship_with_student = models.CharField(
+        choices=relationship_choice, max_length=45
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
+
+
+class Teacher(models.Model):
+    id = models.AutoField(primary_key=True)
+    first_name = models.CharField(max_length=255)
+    middle_name = models.CharField(max_length=255, blank=True, null=True)
+    last_name = models.CharField(max_length=255)
+    phone = models.CharField(
+        max_length=10, validators=[RegexValidator(r"^\+?1?\d{9,15}$")]
+    )
+    email = models.EmailField(max_length=255, unique=True)
+    dob = models.DateField()
+    gender = models.CharField(max_length=1, choices=[("M", "Male"), ("F", "Female")])
+    address = models.CharField(max_length=255)
+    fcm_token = models.TextField(default="")
+    password = models.CharField(max_length=255)
     qualification_choice = (
+        ("SLC", "SLC"),
+        ("Intermediate", "Intermediate"),
         ("BA", "BA"),
         ("BBS", "BBS"),
         ("BE", "BE"),
@@ -78,7 +98,7 @@ class Teacher(BaseUser):
         ("Others", "Others"),
     )
     qualification = models.CharField(choices=qualification_choice, max_length=45)
-    specialization = models.CharField(max_length=255)
+    specialization_on = models.CharField(max_length=255)
     marital_status_choice = (
         ("married", "Married"),
         ("widowed", "Widowed"),
@@ -88,363 +108,126 @@ class Teacher(BaseUser):
     )
     marital_status = models.CharField(choices=marital_status_choice, max_length=10)
     date_of_joining = models.DateField()
-
-    class Meta:
-        verbose_name = "Teacher"
-        verbose_name_plural = "Teachers"
-
-
-# Student model
-class Student(BaseUser):
-    date_of_birth = models.DateField(blank=False)
-    gender = models.CharField(max_length=1, choices=[("M", "Male"), ("F", "Female")])
-    address = models.CharField(max_length=255)
-    course = models.ForeignKey("Course", on_delete=models.CASCADE)
-    academic_year = models.ForeignKey("AcademicYear", on_delete=models.CASCADE)
-    father_name = models.CharField(max_length=100)
-    father_phone_no = models.CharField(
-        max_length=10, validators=[RegexValidator(r"^\+?1?\d{9,15}$")]
-    )
-    father_email = models.EmailField(blank=True, null=True)
-    father_occupation_choice = (
-        ("agriculture", "Agriculture"),
-        ("banker", "Banker"),
-        ("business", "Business"),
-        ("doctor", "Doctor"),
-        ("farmer", "Farmer"),
-        ("fisherman", "Fisherman"),
-        ("public service", "Public Service"),
-        ("private service", "Private Service"),
-        ("shopkeeper", "Shopkeeper"),
-        ("driver", "Driver"),
-        ("worker", "Worker"),
-        ("N/A", "N/A"),
-    )
-    father_occupation = models.CharField(
-        choices=father_occupation_choice, max_length=45, default="N/A"
-    )
-    mother_name = models.CharField(max_length=100)
-    mother_phone_no = models.CharField(
-        max_length=10,
-        validators=[RegexValidator(r"^\+?1?\d{9,15}$")],
-        blank=True,
-        null=True,
-    )
-    mother_email = models.EmailField(blank=True, null=True)
-    mother_occupation_choice = (
-        ("agriculture", "Agriculture"),
-        ("banker", "Banker"),
-        ("business", "Business"),
-        ("doctor", "Doctor"),
-        ("farmer", "Farmer"),
-        ("fisherman", "Fisherman"),
-        ("public service", "Public Service"),
-        ("private service", "Private Service"),
-        ("shopkeeper", "Shopkeeper"),
-        ("driver", "Driver"),
-        ("houseWife", "HouseWife"),
-        ("worker", "Worker"),
-        ("N/A", "N/A"),
-    )
-    mother_occupation = models.CharField(
-        choices=mother_occupation_choice, max_length=45, default="N/A"
-    )
-    guardian_name = models.CharField(max_length=100)
-    guardian_phone_no = models.CharField(
-        max_length=10, validators=[RegexValidator(r"^\+?1?\d{9,15}$")]
-    )
-    guardian_email = models.EmailField(blank=True, null=True)
-    relationship_choice = (
-        ("father", "Father"),
-        ("mother", "Mother"),
-        ("brother", "Brother"),
-        ("sister", "Sister"),
-        ("uncle", "Uncle"),
-        ("aunt", "Aunt"),
-        ("grandfather", "Grandfather"),
-    )
-    relationship_with_student = models.CharField(
-        choices=relationship_choice, max_length=45
-    )
-
-    class Meta:
-        verbose_name = "Student"
-        verbose_name_plural = "Students"
-
-
-# Staff model
-class Staff(BaseUser):
-    gender = models.CharField(max_length=1, choices=[("M", "Male"), ("F", "Female")])
-    position = models.CharField(
-        max_length=255,
-        choices=[
-            ("lab Assistant", "Lab Assistant"),
-            ("librarian", "Librarian"),
-            ("accountant", "Accountant"),
-            ("guard", "Guard"),
-            ("driver", "Driver"),
-            ("helper", "Helper"),
-            ("cleaner", "Cleaner"),
-        ],
-    )
-    address = models.CharField(max_length=255)
-    marital_status_choice = (
-        ("married", "Married"),
-        ("widowed", "Widowed"),
-        ("separated", "Separated"),
-        ("divorced", "Divorced"),
-        ("single", "Single"),
-    )
-    marital_status = models.CharField(choices=marital_status_choice, max_length=10)
-    date_of_joining = models.DateField()
-
-    class Meta:
-        verbose_name = "Staff"
-        verbose_name_plural = "Staff"
-
-
-# Course model
-class Course(models.Model):
-    name = models.CharField(max_length=100)
-    level_choice = (
-        ("basic", "Basic"),
-        ("primary", "Primary"),
-        ("secondary", "Secondary"),
-        ("vocational traning", "Vocational Traning"),
-        ("higher secondary", "Higher Secondary"),
-        ("graduation", "Graduation"),
-        ("post graduation", "Post Graduation"),
-    )
-    level = models.CharField(choices=level_choice, max_length=45)
-    course_type = models.CharField(
-        max_length=10,
-        choices=[("semester", "Semester-based"), ("yearly", "Yearly-based")],
-    )
-    duration = models.PositiveIntegerField()
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = "Course"
-        verbose_name_plural = "Courses"
-
-
-# AcademicYear model
-class AcademicYear(models.Model):
-    year = models.CharField(max_length=255, unique=True)
-
-    def __str__(self):
-        return self.year
-
-    class Meta:
-        verbose_name = "Academic Year"
-        verbose_name_plural = "Academic Years"
-
-
-# Subject model
-class Subject(models.Model):
-    name = models.CharField(max_length=255)
-    course = models.ForeignKey(
-        "Course", on_delete=models.CASCADE, related_name="subjects"
-    )
-    semester_or_year_number = models.PositiveIntegerField()
-    teacher = models.ForeignKey(
-        "Teacher",
-        on_delete=models.CASCADE,
-        related_name="subjects",
-        null=True,
-        blank=True,
-    )
-
-    def __str__(self):
-        return f"{self.name} (Sem/Year {self.semester_or_year_number})"
-
-    class Meta:
-        verbose_name = "Subject"
-        verbose_name_plural = "Subjects"
-
-
-# NewsEvent model
-class NewsEvent(models.Model):
-    class NewsEventType(models.TextChoices):
-        NEWS = "news", "News"
-        EVENT = "event", "Event"
-
-    title = models.CharField(max_length=255)
-    summary = models.TextField()
-    type = models.CharField(max_length=5, choices=NewsEventType.choices)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.title} ({self.type})"
-
-    class Meta:
-        verbose_name = "News/Event"
-        verbose_name_plural = "News/Events"
+        return self.first_name + "" + self.middle_name + "" + self.last_name
 
 
-# Attendance model
-class Attendance(models.Model):
+class AcademicYear(models.Model):
     id = models.AutoField(primary_key=True)
-    student = models.ForeignKey("Student", on_delete=models.CASCADE)
-    subject = models.ForeignKey("Subject", on_delete=models.CASCADE)
-    date = models.DateField()
-    status = models.CharField(
-        max_length=10, choices=[("present", "Present"), ("absent", "Absent")]
-    )
+    start_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        verbose_name = "Attendance"
-        verbose_name_plural = "Attendance Records"
+    def __str__(self):
+        return str(self.start_date)
 
 
-# Result model
-class Result(models.Model):
+class Course(models.Model):
+    SEMESTER = "semester"
+    YEAR = "year"
+
+    COURSE_TYPE_CHOICES = [
+        (SEMESTER, "Semester-based"),
+        (YEAR, "Year-based"),
+    ]
+
     id = models.AutoField(primary_key=True)
-    student = models.ForeignKey("Student", on_delete=models.CASCADE)
-    subject = models.ForeignKey("Subject", on_delete=models.CASCADE)
-    practical_marks = models.DecimalField(
-        max_digits=5, decimal_places=2, default=Decimal("0.00")
+    name = models.CharField(max_length=255, unique=True)
+    course_type = models.CharField(max_length=10, choices=COURSE_TYPE_CHOICES)
+    duration = models.PositiveIntegerField(help_text="Duration in months")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.get_course_type_display()})"
+
+
+class Subject(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=255, unique=True)
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="subjects"
     )
-    exam_marks = models.DecimalField(
-        max_digits=5, decimal_places=2, default=Decimal("0.00")
+    duration = models.PositiveIntegerField(
+        help_text="For semester-based courses, specify the semester number. For year-based courses, specify the year."
     )
-    total_marks = models.DecimalField(
-        max_digits=5, decimal_places=2, default=Decimal("0.00"), editable=False
-    )
-
-    def get_total(self):
-        return Decimal(str(self.practical_marks or 0)) + Decimal(
-            str(self.exam_marks or 0)
-        )
-
-    def save(self, *args, **kwargs):
-        self.total_marks = self.get_total()
-        super().save(*args, **kwargs)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.student} - {self.subject} - Total: {self.total_marks}"
+        return f"{self.name} ({self.course.name}, Duration: {self.duration})"
 
-    class Meta:
-        verbose_name = "Result"
-        verbose_name_plural = "Results"
-
-
-class Library(models.Model):
-    category = models.CharField(max_length=255)
-    book_name = models.CharField(max_length=255)
-    description = models.CharField(max_length=255)
-    publication = models.CharField(max_length=255)
-    publication_year = models.PositiveIntegerField()
-    quantity = models.PositiveIntegerField()
-    available = models.CharField(max_length=1, choices=[("Y", "Yes"), ("N", "NO")])
-    date_added = models.DateField(auto_now_add=True)
-
-    def __str__(self):
-        return self.book_name
-
-    class Meta:
-        verbose_name = "Library"
-        verbose_name_plural = "Library"
-
-# class Certificate(models.Model):
-#     title = models.CharField(max_length=255)
-#     student = models.ForeignKey("Student", on_delete=models.CASCADE, related_name="certificates")
-#     course = models.ForeignKey("Course", on_delete=models.CASCADE, related_name="certificates")
-#     issued_date = models.DateField(default=timezone.now)
-#     is_verified = models.BooleanField(default=False)
-#     certificate_file = models.FileField(upload_to="certificates/", blank=True, null=True)
-#     description = models.TextField(blank=True, null=True)
-
-#     def __str__(self):
-#         return f"{self.title} - {self.student.first_name} {self.student.last_name}"
-
-#     class Meta:
-#         verbose_name = "Certificate"
-#         verbose_name_plural = "Certificates"
+    def clean(self):
+        if (
+            self.course.course_type == Course.SEMESTER
+            and self.duration > self.course.duration
+        ):
+            raise ValidationError(
+                f"Duration (semester) must not exceed the course's total semesters ({self.course.duration})."
+            )
+        if (
+            self.course.course_type == Course.YEAR
+            and self.duration > self.course.duration
+        ):
+            raise ValidationError(
+                f"Duration (year) must not exceed the course's total years ({self.course.duration})."
+            )
 
 
+class Attendance(models.Model):  # Subject Attendance
+    id = models.AutoField(primary_key=True)
+    subject_id = models.ForeignKey(Subject, on_delete=models.DO_NOTHING)
+    attendance_date = models.DateField()
+    academic_year_id = models.ForeignKey(AcademicYear, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
-class Marksheet(models.Model):
-    student = models.ForeignKey("Student", on_delete=models.CASCADE, related_name="marksheets")
-    course = models.ForeignKey("Course", on_delete=models.CASCADE, related_name="marksheets")
-    total_marks = models.PositiveIntegerField(validators=[MinValueValidator(0)], default=Decimal("0.00"), blank=True, null=True)
-    obtained_marks = models.PositiveIntegerField(validators=[MinValueValidator(0)], default=Decimal("0.00"))
-    
-    grade = models.CharField(max_length=2, choices=[
-        ("A+", "A+"),
-        ("A", "A"),
-        ("B+", "B+"),
-        ("B", "B"),
-        ("C+", "C+"),
-        ("C", "C"),
-        ("D", "D"),
-        ("E", "E"),
-    ], blank=True, null=True)
-
-    class Meta:
-        verbose_name = "Marksheet"
-        verbose_name_plural = "Marksheets"
-        unique_together = ("student", "course")
-
-    def calculate_totals(self):
-        subject_marks = self.subject_marks.all()
-        total_marks = sum(subject.total_practical_marks + subject.total_theory_marks for subject in subject_marks) or Decimal("0.00")
-        obtained_marks = sum(subject.obtained_practical_marks + subject.obtained_theory_marks for subject in subject_marks) or Decimal("0.00")
-        return total_marks, obtained_marks
-
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            super().save(*args, **kwargs)
-
-        self.total_marks, self.obtained_marks = self.calculate_totals()
-
-        if self.total_marks > 0:
-            percentage = (self.obtained_marks / self.total_marks) * 100
-            if percentage >= 90:
-                self.grade = "A+"
-            elif percentage >= 80:
-                self.grade = "A"
-            elif percentage >= 70:
-                self.grade = "B+"
-            elif percentage >= 60:
-                self.grade = "B"
-            elif percentage >= 50:
-                self.grade = "C+"
-            elif percentage >= 40:
-                self.grade = "C"
-            elif percentage >= 30:
-                self.grade = "D"
-            else:
-                self.grade = "E"
-
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Marksheet: {self.student.first_name} {self.student.last_name}"
+class AttendanceReport(models.Model):  # Individual Student Attendance
+    id = models.AutoField(primary_key=True)
+    student_id = models.ForeignKey(Student, on_delete=models.DO_NOTHING)
+    attendance_id = models.ForeignKey(Attendance, on_delete=models.CASCADE)
+    status = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
 
 
-class SubjectMark(models.Model):
-    marksheet = models.ForeignKey(Marksheet, on_delete=models.CASCADE, related_name="subject_marks")
-    subject = models.ForeignKey("Subject", on_delete=models.CASCADE, related_name="subject_marks")
-    obtained_practical_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
-    total_practical_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("20.00"))
-    obtained_theory_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
-    total_theory_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("80.00"))
-    total_marks = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
+class LeaveReportStudent(models.Model):
+    id = models.AutoField(primary_key=True)
+    student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
+    leave_date = models.DateField()
+    leave_message = models.TextField()
+    leave_status = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    def get_total(self):
-        return Decimal(str(self.obtained_practical_marks or 0)) + Decimal(str(self.obtained_theory_marks or 0))
 
-    def save(self, *args, **kwargs):
-        self.total_marks = self.get_total()
-        super().save(*args, **kwargs)
-        self.marksheet.save()  # Trigger the marksheet save to recalculate totals
+class LeaveReportTeacher(models.Model):
+    id = models.AutoField(primary_key=True)
+    teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    leave_date = models.DateField()
+    leave_message = models.TextField()
+    leave_status = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        unique_together = ("marksheet", "subject")
 
-    def __str__(self):
-        return f"{self.subject.name} - {self.marksheet.student.first_name}"
+class FeedbackStudent(models.Model):
+    id = models.AutoField(primary_key=True)
+    student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
+    feedback = models.TextField()
+    feedback_reply = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class FeedbackTeacher(models.Model):
+    id = models.AutoField(primary_key=True)
+    teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    feedback = models.TextField()
+    feedback_reply = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

@@ -1,0 +1,43 @@
+{% extends 'admin/base_site.html' %}
+{% block content %}
+    <div class="container mt-4">
+        <h2 class="mb-4">Manage Teachers</h2>
+        <a href="{% url 'add_teacher' %}" class="btn btn-primary mb-3">Add Teacher</a>
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>S.N</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Gender</th>
+                    <th>Qualification</th>
+                    <th>Marital Status</th>
+                    <th>Date of Joining</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for teacher in teachers %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ teacher.first_name }} {{ teacher.middle_name }} {{ teacher.last_name }}</td>
+                        <td>{{ teacher.email }}</td>
+                        <td>{{ teacher.phone }}</td>
+                        <td>{{ teacher.get_gender_display }}</td>
+                        <td>{{ teacher.get_qualification_display }}</td>
+                        <td>{{ teacher.get_marital_status_display }}</td>
+                        <td>{{ teacher.date_of_joining }}</td>
+                        <td>
+                            <a href="{% url 'edit_teacher' teacher.id %}"
+                               class="btn btn-sm btn-warning">Edit</a>
+                            <a href="{% url 'delete_teacher' teacher.id %}"
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('Are you sure you want to delete this teacher?');">Delete</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

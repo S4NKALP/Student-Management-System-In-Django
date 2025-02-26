@@ -1,0 +1,54 @@
+{% extends "admin/base_site.html" %}
+{% block page_title %}Edit Subject{% endblock %}
+{% load static %}
+{% block extrastyle %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+          rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+          rel="stylesheet" />
+    <style>
+    .page-header {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.5rem;
+        border: none;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="page-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="h3 mb-0">Edit Subject</h1>
+                </div>
+                <div class="col-auto">
+                    <a href="{% url 'manage_subject' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Subjects
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

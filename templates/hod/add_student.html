@@ -1,0 +1,149 @@
+{% extends "admin/base_site.html" %}
+{% block page_title %}{{ title }}{% endblock %}
+{% load static %}
+{% block extrastyle %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+          rel="stylesheet" />
+{% endblock %}
+{% block content %}
+    <div class="container mt-4">
+        <h2 class="mb-4">Add Student</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="row">
+                <!-- Name Fields -->
+                <div class="col-md-4 mb-3">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text"
+                           class="form-control"
+                           id="first_name"
+                           name="first_name"
+                           required />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="middle_name" class="form-label">Middle Name</label>
+                    <input type="text" class="form-control" id="middle_name" name="middle_name" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text"
+                           class="form-control"
+                           id="last_name"
+                           name="last_name"
+                           required />
+                </div>
+                <!-- Course and Academic Year -->
+                <div class="col-md-6 mb-3">
+                    <label for="course" class="form-label">Course</label>
+                    <select class="form-select" id="course" name="course" required>
+                        <option value="">Select Course</option>
+                        {% for course in courses %}<option value="{{ course.id }}">{{ course.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="academic_year" class="form-label">Academic Year</label>
+                    <select class="form-select" id="academic_year" name="academic_year" required>
+                        <option value="">Select Academic Year</option>
+                        {% for year in academic_years %}<option value="{{ year.id }}">{{ year.start_date }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Personal Information -->
+                <div class="col-md-6 mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="phone" class="form-label">Phone</label>
+                    <input type="text" class="form-control" id="phone" name="phone" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="dob" class="form-label">Date of Birth</label>
+                    <input type="date" class="form-control" id="dob" name="dob" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="gender" class="form-label">Gender</label>
+                    <select class="form-select" id="gender" name="gender" required>
+                        <option value="">Select Gender</option>
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                </div>
+                <!-- Address -->
+                <div class="col-12 mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+                </div>
+                <!-- Parent Information -->
+                <div class="col-md-6 mb-3">
+                    <label for="father_name" class="form-label">Father's Name</label>
+                    <input type="text"
+                           class="form-control"
+                           id="father_name"
+                           name="father_name"
+                           required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="mother_name" class="form-label">Mother's Name</label>
+                    <input type="text"
+                           class="form-control"
+                           id="mother_name"
+                           name="mother_name"
+                           required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="parents_number" class="form-label">Parents' Contact Number</label>
+                    <input type="text"
+                           class="form-control"
+                           id="parents_number"
+                           name="parents_number"
+                           required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="father_occupation" class="form-label">Father's Occupation</label>
+                    <select class="form-select" id="father_occupation" name="father_occupation">
+                        <option value="">Select Occupation</option>
+                        {% for key, value in occupation_choices %}<option value="{{ key }}">{{ value }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="mother_occupation" class="form-label">Mother's Occupation</label>
+                    <select class="form-select" id="mother_occupation" name="mother_occupation">
+                        <option value="">Select Occupation</option>
+                        {% for key, value in occupation_choices %}<option value="{{ key }}">{{ value }}</option>{% endfor %}
+                    </select>
+                </div>
+                <!-- Guardian Information -->
+                <div class="col-md-6 mb-3">
+                    <label for="guardian_name" class="form-label">Guardian's Name</label>
+                    <input type="text"
+                           class="form-control"
+                           id="guardian_name"
+                           name="guardian_name"
+                           required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="guardian_number" class="form-label">Guardian's Contact</label>
+                    <input type="text"
+                           class="form-control"
+                           id="guardian_number"
+                           name="guardian_number"
+                           required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="relationship_with_student" class="form-label">Relationship with Student</label>
+                    <select class="form-select"
+                            id="relationship_with_student"
+                            name="relationship_with_student"
+                            required>
+                        <option value="">Select Relationship</option>
+                        {% for key, value in relationship_choices %}<option value="{{ key }}">{{ value }}</option>{% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="{% url 'manage_student' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

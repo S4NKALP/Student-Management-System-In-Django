@@ -13,21 +13,24 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from student_management_system.jazzmin import JAZZMIN_SETTINGS, JAZZMIN_UI_TWEAKS
 
-
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-4^0p#+b(zk1vavtg#+f)i$hog(!v(v4=bsf*d#-v=kic)3%kbx"
+SECRET_KEY = "django-insecure-)bp&!(x=q)##0hl&7r&h2x$u_3bvd7td)yq4y&_k)$)ce%pj&m"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*", "192.168.18.225"]
+ALLOWED_HOSTS = ["*"]
 
 JAZZMIN_SETTINGS = JAZZMIN_SETTINGS
 JAZZMIN_UI_TWEAKS = JAZZMIN_UI_TWEAKS
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -101,6 +104,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -129,6 +133,8 @@ STATICFILES_FINDERS = [
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

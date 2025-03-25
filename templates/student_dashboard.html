@@ -1,0 +1,217 @@
+{% extends 'admin/base_site.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body d-flex align-items-center">
+                    {% if student.image %}
+                        <img src="{{ student.image.url }}" alt="{{ student.name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                    {% endif %}
+                    <div>
+                        <h2 class="mb-0">Welcome, {{ student.name }}!</h2>
+                        <p class="mb-0">Student ID: {{ student.id }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    <div class="row mb-4">
+        <!-- Course Progress Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-primary h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Course Progress</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ course_summary.completion_percentage|floatformat:1 }}%</div>
+                            <div class="mt-2">
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" style="width: {{ course_summary.completion_percentage }}%"></div>
+                                </div>
+                            </div>
+                            <div class="mt-2 small">
+                                <span class="me-2">Completed: {{ course_summary.completed_courses }}/{{ course_summary.total_courses }}</span>
+                                <span>Ongoing: {{ course_summary.ongoing_courses }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Attendance Rate</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ attendance_summary.attendance_percentage|floatformat:1 }}%</div>
+                            <div class="mt-2">
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ attendance_summary.attendance_percentage }}%"></div>
+                                </div>
+                            </div>
+                            <div class="mt-2 small">
+                                <span class="me-2">Present: {{ attendance_summary.classes_attended }}/{{ attendance_summary.total_classes }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Streak Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-info h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Attendance Streaks</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                Current: {{ attendance_summary.current_streak }} days
+                            </div>
+                            <div class="mt-2 small">
+                                <span>Best Streak: {{ attendance_summary.longest_streak }} days</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-fire fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Details and Recent Activity -->
+    <div class="row">
+        <!-- Course Details -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Course Details</h6>
+                </div>
+                <div class="card-body">
+                    {% for course_name, details in course_summary.details.items %}
+                    <div class="course-item mb-4">
+                        <h5>{{ course_name }}</h5>
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Start Date:</strong> {{ details.start_date|default:'-' }}</p>
+                                <p class="mb-1"><strong>End Date:</strong> {{ details.end_date|default:'-' }}</p>
+                                <p class="mb-1"><strong>Status:</strong> <span class="badge {% if details.progress_status == 'Completed' %}bg-success{% elif details.progress_status == 'In Progress' %}bg-warning{% else %}bg-secondary{% endif %}">{{ details.progress_status }}</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Progress:</strong></p>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" style="width: {{ details.completion_percentage }}%" aria-valuenow="{{ details.completion_percentage }}" aria-valuemin="0" aria-valuemax="100">{{ details.completion_percentage }}%</div>
+                                </div>
+                                {% if details.book %}
+                                <div class="mt-2">
+                                    <a href="/media/{{ details.book }}" class="btn btn-sm btn-primary" target="_blank">
+                                        <i class="fas fa-book me-1"></i> View Course Material
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <hr>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No courses enrolled yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-xl-4 col-lg-5">
+            <!-- Recent Leave Requests -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Leave Requests</h6>
+                </div>
+                <div class="card-body">
+                    {% for leave in recent_leaves %}
+                    <div class="leave-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">{{ leave.date }}</span>
+                            <span class="badge {% if leave.status == 1 %}bg-success{% elif leave.status == 2 %}bg-danger{% else %}bg-warning{% endif %}">
+                                {{ leave.get_status_display }}
+                            </span>
+                        </div>
+                        <p class="mb-0 small">{{ leave.message|truncatechars:100 }}</p>
+                        <hr>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No recent leave requests.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Feedback -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Feedback</h6>
+                </div>
+                <div class="card-body">
+                    {% for feedback in recent_feedback %}
+                    <div class="feedback-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">{{ feedback.created_at|date:"M d, Y" }}</span>
+                            <div class="rating">
+                                {% for i in "12345"|make_list %}
+                                <i class="fas fa-star {% if forloop.counter <= feedback.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <p class="mb-1 small"><strong>{{ feedback.subject.name }}</strong> - {{ feedback.teacher.name }}</p>
+                        <p class="mb-0 small">{{ feedback.feedback_text|truncatechars:100 }}</p>
+                        <hr>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No recent feedback.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom styles -->
+<style>
+    .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+    .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+    }
+    .border-left-info {
+        border-left: 4px solid #36b9cc !important;
+    }
+    .progress {
+        height: 0.5rem;
+        border-radius: 0.25rem;
+    }
+    .card {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    .card-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+    }
+</style>
+{% endblock %} 

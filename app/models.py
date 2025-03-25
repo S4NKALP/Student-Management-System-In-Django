@@ -76,6 +76,11 @@ class Student(AbstractUser):
     username = None
     email = None
 
+    # Add these fields
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=True)  # This ensures admin access
+    is_superuser = models.BooleanField(default=False)
+
     user_permissions = models.ManyToManyField(
         "auth.Permission",
         verbose_name="user permissions",
@@ -129,6 +134,11 @@ class Student(AbstractUser):
     def is_staff(self):
         """Check if student has any groups (permissions)"""
         return self.groups.exists()
+
+    @property
+    def is_authenticated(self):
+        """Required by Django's authentication system"""
+        return True
 
     def has_perm(self, perm, obj=None):
         """Check if student has a specific permission"""
@@ -431,7 +441,6 @@ class Student_Leave(models.Model):
 
 class StudentFeedback(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='feedbacks')
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='feedbacks')
     teacher = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='feedbacks')
     rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])  # 1-5 rating
     feedback_text = models.TextField()
@@ -439,13 +448,49 @@ class StudentFeedback(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.student.name} - {self.subject.name} - {self.teacher.name}"
+        return f"{self.student.name} - {self.teacher.name}"
 
     class Meta:
         verbose_name = "Student Feedback"
         verbose_name_plural = "Student Feedbacks"
         ordering = ['-created_at']
-        unique_together = ['student', 'subject', 'teacher']  # Prevent duplicate feedbacks
+        unique_together = ['student', 'teacher']  # Updated unique constraint
+
+
+class InstituteFeedback(models.Model):
+    FEEDBACK_TYPE_CHOICES = (
+        ('General', 'General'),
+        ('Facilities', 'Facilities'),
+        ('Teaching', 'Teaching'),
+        ('Infrastructure', 'Infrastructure'),
+        ('Administration', 'Administration'),
+    )
+
+    institute = models.ForeignKey(Institute, on_delete=models.CASCADE, related_name='feedbacks')
+    user = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='institute_feedbacks')
+    feedback_type = models.CharField(max_length=20, choices=FEEDBACK_TYPE_CHOICES, default='General')
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])  # 1-5 rating
+    feedback_text = models.TextField()
+    is_anonymous = models.BooleanField(default=False)
+    is_public = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        if self.is_anonymous:
+            return f"Anonymous - {self.institute.name} - {self.feedback_type}"
+        return f"{self.user.name} - {self.institute.name} - {self.feedback_type}"
+
+    class Meta:
+        verbose_name = "Institute Feedback"
+        verbose_name_plural = "Institute Feedbacks"
+        ordering = ['-created_at']
+        unique_together = ['user', 'institute', 'feedback_type']  # One feedback per type per user
+
+    @property
+    def display_name(self):
+        """Return anonymous if feedback is anonymous, otherwise return user's name"""
+        return 'Anonymous' if self.is_anonymous else self.user.name
 
 
 class CourseTracking(models.Model):

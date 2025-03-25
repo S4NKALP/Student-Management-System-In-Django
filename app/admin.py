@@ -15,6 +15,7 @@ from app.models import (
     Student_Leave,
     StudentFeedback,
     CourseTracking,
+    InstituteFeedback,
 )
 from django.forms import ModelForm
 from django.contrib.auth.models import User, Group
@@ -29,6 +30,7 @@ class CustomAdminSite(admin.AdminSite):
         app_list = super().get_app_list(request)
 
         model_map = {
+            # Authentication Models
             "User": {
                 "group": "Authentication",
                 "group_label": "authentication",
@@ -37,19 +39,63 @@ class CustomAdminSite(admin.AdminSite):
                 "group": "Authentication",
                 "group_label": "authentication",
             },
-            "Institute": {"group": "Organization", "group_label": "organization"},
-            "Batch": {"group": "Organization", "group_label": "organization"},
-            "Notice": {"group": "Organization", "group_label": "organization"},
-            "Course": {"group": "Organization", "group_label": "organization"},
-            "Subject": {"group": "Organization", "group_label": "organization"},
-            "Student": {"group": "Human Management", "group_label": "human_management"},
-            "Staff": {"group": "Human Management", "group_label": "human_management"},
-            "Routine": {"group": "Human Management", "group_label": "human_management"},
-            "Staff_leave": {"group": "Human Management", "group_label": "human_management"},
-            "Student_Leave": {"group": "Human Management", "group_label": "human_management"},
-            "StudentFeedback": {"group": "Human Management", "group_label": "human_management"},
-            "CourseTracking": {"group": "Human Management", "group_label": "human_management"},
+
+            # Organization Models
+            "Institute": {
+                "group": "Organization",
+                "group_label": "organization",
+            },
+            "Batch": {
+                "group": "Organization",
+                "group_label": "organization",
+            },
+            "Notice": {
+                "group": "Organization",
+                "group_label": "organization",
+            },
+            "Course": {
+                "group": "Organization",
+                "group_label": "organization",
+            },
+            "Subject": {
+                "group": "Organization",
+                "group_label": "organization",
+            },
+
+            # Human Management Models
+            "Student": {
+                "group": "Human Management",
+                "group_label": "human_management",
+            },
+            "Staff": {
+                "group": "Human Management",
+                "group_label": "human_management",
+            },
+            "Routine": {
+                "group": "Human Management",
+                "group_label": "human_management",
+            },
+            "Staff_leave": {
+                "group": "Human Management",
+                "group_label": "human_management",
+            },
+            "Student_Leave": {
+                "group": "Human Management",
+                "group_label": "human_management",
+            },
+            "StudentFeedback": {
+                "group": "Human Management",
+                "group_label": "human_management",
+            },
+            "CourseTracking": {
+                "group": "Human Management",
+                "group_label": "human_management",
+            },
             "Attendance": {
+                "group": "Human Management",
+                "group_label": "human_management",
+            },
+            "InstituteFeedback": {
                 "group": "Human Management",
                 "group_label": "human_management",
             },
@@ -378,6 +424,40 @@ class CourseTrackingAdmin(admin.ModelAdmin):
         js = ("js/course_tracking_admin.js",)
 
 
+@admin.register(InstituteFeedback, site=custom_admin_site)
+class InstituteFeedbackAdmin(admin.ModelAdmin):
+    list_display = ('display_name', 'institute', 'feedback_type', 'rating', 'is_anonymous', 'is_public', 'created_at')
+    list_filter = ('feedback_type', 'rating', 'is_anonymous', 'is_public', 'created_at', 'institute')
+    search_fields = ('user__name', 'institute__name', 'feedback_text')
+    readonly_fields = ('created_at', 'updated_at')
+    date_hierarchy = 'created_at'
+    
+    def display_name(self, obj):
+        return obj.display_name
+    display_name.short_description = 'Student Name'
+    
+    fieldsets = (
+        ('Feedback Information', {
+            'fields': ('institute', 'user', 'feedback_type', 'rating', 'feedback_text')
+        }),
+        ('Privacy Settings', {
+            'fields': ('is_anonymous', 'is_public'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'institute')
+
+    class Media:
+        css = {
+            'all': ('admin/css/forms.css',)
+        }
+        js = ('admin/js/collapse.js',)
 
 
 custom_admin_site.register(User, UserAdmin)

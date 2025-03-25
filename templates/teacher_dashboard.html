@@ -1,0 +1,250 @@
+{% extends 'admin/base_site.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body d-flex align-items-center">
+                    {% if teacher.image %}
+                        <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                    {% endif %}
+                    <div>
+                        <h2 class="mb-0">Welcome, {{ teacher.name }}!</h2>
+                        <p class="mb-0">{{ teacher.designation }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    <div class="row mb-4">
+        <!-- Today's Classes Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Today's Classes</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_classes }}</div>
+                            <div class="mt-2 small">
+                                <span>Completed: {{ completed_classes }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Students</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_students }}</div>
+                            <div class="mt-2 small">
+                                <span>Present Today: {{ present_students }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Average Rating</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ avg_rating|floatformat:1 }}/5.0
+                            </div>
+                            <div class="mt-2">
+                                <div class="rating">
+                                    {% with ''|center:avg_rating_rounded as range %}
+                                    {% for _ in range %}
+                                        <i class="fas fa-star text-warning"></i>
+                                    {% endfor %}
+                                    {% endwith %}
+                                    {% with ''|center:remaining_stars as range %}
+                                    {% for _ in range %}
+                                        <i class="fas fa-star text-muted"></i>
+                                    {% endfor %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Status Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Leave Requests</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_leaves }}</div>
+                            <div class="mt-2 small">
+                                <span class="text-success">Approved: {{ approved_leaves }}</span> |
+                                <span class="text-danger">Rejected: {{ rejected_leaves }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Schedule and Recent Activity -->
+    <div class="row">
+        <!-- Today's Schedule -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Today's Schedule</h6>
+                </div>
+                <div class="card-body">
+                    {% if today_routines %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Course</th>
+                                        <th>Status</th>
+                                        <th>Attendance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for routine in today_routines %}
+                                    <tr>
+                                        <td>{{ routine.start_time|time:"g:i A" }} - {{ routine.end_time|time:"g:i A" }}</td>
+                                        <td>{{ routine.name }}</td>
+                                        <td>
+                                            {% if routine.is_completed %}
+                                                <span class="badge bg-success">Completed</span>
+                                            {% elif routine.is_ongoing %}
+                                                <span class="badge bg-warning">Ongoing</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Upcoming</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ routine.attendance_count }}/{{ routine.total_students }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No classes scheduled for today.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-xl-4 col-lg-5">
+            <!-- Recent Leave Requests -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Leave Requests</h6>
+                </div>
+                <div class="card-body">
+                    {% for leave in recent_leaves %}
+                    <div class="leave-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">{{ leave.date }}</span>
+                            <span class="badge {% if leave.status == 1 %}bg-success{% elif leave.status == 2 %}bg-danger{% else %}bg-warning{% endif %}">
+                                {{ leave.get_status_display }}
+                            </span>
+                        </div>
+                        <p class="mb-0 small">{{ leave.message|truncatechars:100 }}</p>
+                        <hr>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No recent leave requests.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Feedback -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Feedback</h6>
+                </div>
+                <div class="card-body">
+                    {% for feedback in recent_feedback %}
+                    <div class="feedback-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">{{ feedback.created_at|date:"M d, Y" }}</span>
+                            <div class="rating">
+                                {% for i in "12345"|make_list %}
+                                <i class="fas fa-star {% if forloop.counter <= feedback.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <p class="mb-1 small"><strong>{{ feedback.subject.name }}</strong> - {{ feedback.student.name }}</p>
+                        <p class="mb-0 small">{{ feedback.feedback_text|truncatechars:100 }}</p>
+                        <hr>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No recent feedback.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom styles -->
+<style>
+    .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+    .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+    }
+    .border-left-info {
+        border-left: 4px solid #36b9cc !important;
+    }
+    .border-left-warning {
+        border-left: 4px solid #f6c23e !important;
+    }
+    .progress {
+        height: 0.5rem;
+        border-radius: 0.25rem;
+    }
+    .card {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    .card-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    .rating {
+        color: #f6c23e;
+    }
+</style>
+{% endblock %} 

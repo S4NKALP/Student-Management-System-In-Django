@@ -1,0 +1,225 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load app_filters %}
+
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Quick Stats Row -->
+    <div class="row">
+        <!-- Student Stats -->
+        <div class="col-xl-3 col-md-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>{{ total_students }}</h3>
+                    <p>Total Students</p>
+                    <div class="mt-2">
+                        <small>Active: {{ active_students }}</small> |
+                        <small>Completed: {{ completed_students }}</small> |
+                        <small>On Leave: {{ on_leave_students }}</small>
+                    </div>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Stats -->
+        <div class="col-xl-3 col-md-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>{{ total_courses }}</h3>
+                    <p>Course Statistics</p>
+                    <div class="mt-2">
+                        <small>Active: {{ active_courses }}</small> |
+                        <small>Completed: {{ completed_courses }}</small>
+                    </div>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-book"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Tracking Stats -->
+        <div class="col-xl-3 col-md-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>{{ in_progress_trackings }}</h3>
+                    <p>Course Progress</p>
+                    <div class="mt-2">
+                        <small>In Progress</small> |
+                        <small>Completed: {{ completed_trackings }}</small> |
+                        <small>Dropped: {{ dropped_trackings }}</small>
+                    </div>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Stats -->
+        <div class="col-xl-3 col-md-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>{{ today_present }}/{{ today_attendance }}</h3>
+                    <p>Today's Attendance</p>
+                    <div class="mt-2">
+                        <small>Rate: {{ attendance_rate }}%</small>
+                    </div>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Course Progress Chart -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Course Progress Overview</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Total Students</th>
+                                    <th>In Progress</th>
+                                    <th>Completed</th>
+                                    <th>Avg Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for progress in course_progress %}
+                                <tr>
+                                    <td>{{ progress.course.name }}</td>
+                                    <td>{{ progress.total_students }}</td>
+                                    <td>{{ progress.in_progress }}</td>
+                                    <td>{{ progress.completed }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ progress.average_progress }}%;"
+                                                aria-valuenow="{{ progress.average_progress }}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="100">
+                                                {{ progress.average_progress }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Activity</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Recent Leave Requests -->
+                    <h5>Recent Leave Requests</h5>
+                    <div class="mb-4">
+                        <h6 class="text-primary">Students</h6>
+                        {% for leave in recent_student_leaves %}
+                        <div class="mb-2">
+                            <small class="text-muted">{{ leave.created_at|date:"M d, Y" }}</small>
+                            <div>{{ leave.student.name }} - {{ leave.get_status_display }}</div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted">No recent student leave requests</p>
+                        {% endfor %}
+                    </div>
+
+                    <h6 class="text-primary">Staff</h6>
+                    {% for leave in recent_staff_leaves %}
+                    <div class="mb-2">
+                        <small class="text-muted">{{ leave.created_at|date:"M d, Y" }}</small>
+                        <div>{{ leave.staff.name }} - {{ leave.get_status_display }}</div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No recent staff leave requests</p>
+                    {% endfor %}
+
+                    <!-- Recent Feedback -->
+                    <h5 class="mt-4">Recent Feedback</h5>
+                    {% for feedback in recent_feedback %}
+                    <div class="mb-2">
+                        <small class="text-muted">{{ feedback.created_at|date:"M d, Y" }}</small>
+                        <div>{{ feedback.student.name }} - {{ feedback.subject.name }}</div>
+                        <div class="text-warning">
+                            {% for i in feedback.rating|get_range %}
+                            <i class="fas fa-star"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No recent feedback</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Statistics -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Monthly Statistics</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">New Students</span>
+                                    <span class="info-box-number">{{ monthly_stats.new_students }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Completed Courses</span>
+                                    <span class="info-box-number">{{ monthly_stats.completed_courses }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning">
+                                    <i class="fas fa-chart-bar"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Monthly Attendance Rate</span>
+                                    <span class="info-box-number">{{ monthly_stats.attendance_rate }}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -24,22 +24,4 @@
 
 <br>
 
-# TODO
-
-- [ ] Better UI
-- [ ] Add more features
-- [ ] Add more models that are given below
-
-### models
-
-- [ ] Library Model
-- [ ] Notification Model
-- [ ] Calendar
-- [ ] Parent Model
-- [ ] Study Material
-- [ ] Routine
-- [ ] Complaint
-- [ ] Feedback
-- [ ] Student Performance Report
-- [ ] Syllabus
-- [ ] Online Exam
+# WIP

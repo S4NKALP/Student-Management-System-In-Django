@@ -19,13 +19,13 @@ def showFirebaseJS(request):
         importScripts('https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging-compat.js');
 
         firebase.initializeApp({
-            apiKey: "AIzaSyAVzOJh5v8_oZg4MoQkq0CzrAbeyHGn4z4",
-            authDomain: "institute-management-sys-a2d20.firebaseapp.com",
-            projectId: "institute-management-sys-a2d20",
-            storageBucket: "institute-management-sys-a2d20.firebasestorage.app",
-            messagingSenderId: "777235542100",
-            appId: "1:777235542100:web:4d0cb9553918cb3cc23dc1",
-            measurementId: "G-4QP9GYV0SJ"
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: "",
+            measurementId: ""
         });
 
         const messaging = firebase.messaging();

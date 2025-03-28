@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Student Management System</title>
+    <style>
+        :root {
+            --primary-color: #4285f4;
+            --secondary-color: #34a853;
+            --accent-color: #ea4335;
+            --background-color: #f8f9fa;
+            --text-color: #202124;
+            --light-text: #5f6368;
+            --error-color: #ea4335;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--text-color);
+        }
+
+        .login-container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            width: 380px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px auto;
+        }
+
+        .logo {
+            margin-bottom: 30px;
+            width: 80px;
+            height: 80px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--light-text);
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 12px 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            border: 1px solid var(--primary-color);
+            outline: none;
+        }
+
+        .submit-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background-color: #3367d6;
+        }
+
+        .error-message {
+            color: var(--error-color);
+            margin-bottom: 20px;
+            text-align: left;
+            font-size: 14px;
+            padding: 10px;
+            background-color: rgba(234, 67, 53, 0.1);
+            border-radius: var(--border-radius);
+        }
+
+        .forgot-password {
+            margin-top: 20px;
+            text-align: right;
+        }
+
+        .forgot-password a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <img src="{% static 'img/logo.png' %}" alt="Logo" class="logo">
+        <h1>Login</h1>
+        
+        {% if error %}
+        <div class="error-message">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        {% if messages %}
+        <div class="error-message">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="input-group">
+                <label for="username">Email or Phone Number</label>
+                <input type="text" name="username" id="username" required autofocus placeholder="Enter email or phone number">
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" name="password" id="password" required placeholder="Enter password">
+            </div>
+            
+            <button type="submit" class="submit-btn">Login</button>
+        </form>
+        
+        <div class="forgot-password">
+            <a href="{% url 'reset_password_options' %}">Forgot Password?</a>
+        </div>
+    </div>
+</body>
+</html>
+{% endblock %}

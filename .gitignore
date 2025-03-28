@@ -150,3 +150,7 @@ media/result_sheet/*
 # Custom
 dump.rdb
 *.DS_Store
+
+# Firebase configuration
+firebase-config.json
+firebase.json

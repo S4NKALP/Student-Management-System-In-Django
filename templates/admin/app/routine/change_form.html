@@ -1,0 +1,555 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+{% load mathfilters %}
+
+{% block extrahead %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<style>
+    #content {
+        width: auto !important;
+        padding: 0px !important;
+        max-width: auto !important;
+    }
+
+    .content {
+        padding: 0px !important;
+        margin: 0 !important;
+    }
+
+    .card {
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    .filters-row {
+        background: #fff;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        border: 1px solid #ddd;
+    }
+
+    .table {
+        background: white;
+        border: 1px solid #ddd;
+        width: 100%;
+    }
+
+    .select2-container {
+        width: 100% !important;
+    }
+
+    .card-header {
+        padding: 1rem;
+        margin-bottom: 0;
+        background-color: transparent;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .card-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 400;
+    }
+
+    .card-body {
+        flex: 1 1 auto;
+        padding: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-control {
+        display: block;
+        width: 100%;
+        padding: .375rem .75rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #495057;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: .25rem;
+        transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    }
+
+    .select2-container--default .select2-selection--single {
+        height: calc(2.25rem + 2px);
+        padding: .375rem .75rem;
+        border: 1px solid #ced4da;
+    }
+
+    .table th,
+    .table td {
+        padding: .75rem;
+        vertical-align: middle;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .table thead th {
+        vertical-align: bottom;
+        border-bottom: 2px solid #dee2e6;
+        background-color: #f4f6f9;
+    }
+
+    .btn {
+        display: inline-block;
+        font-weight: 400;
+        text-align: center;
+        vertical-align: middle;
+        user-select: none;
+        padding: .375rem .75rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        border-radius: .25rem;
+        transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    }
+
+    .btn-primary {
+        color: #fff;
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+
+    .btn-success {
+        color: #fff;
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+
+    .remove-row-btn {
+        color: #dc3545;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .alert {
+        position: relative;
+        padding: .75rem 1.25rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: .25rem;
+    }
+
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Add Routines</h3>
+    </div>
+    <div class="card-body">
+        <form method="post" id="routine-form">
+            {% csrf_token %}
+            
+            <div class="filters-row">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="id_course">Course</label>
+                            <select name="course" id="id_course" class="form-control" required>
+                                <option value="">Select Course</option>
+                                {% for course in adminform.form.fields.course.queryset %}
+                                    {% if course.duration and course.duration_type %}
+                                        {% with total_semesters=course.duration|mul:2 %}
+                                        <option value="{{ course.id }}" 
+                                                data-duration="{{ total_semesters }}" 
+                                                data-duration-type="Semester">
+                                            {{ course.name }}
+                                        </option>
+                                        {% endwith %}
+                                    {% else %}
+                                        <option value="{{ course.id }}">{{ course.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="id_semester_or_year">Semester/Year</label>
+                            <select name="semester_or_year" id="id_semester_or_year" class="form-control" required disabled>
+                                <option value="">Select Course First</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table" id="routine-table">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Teacher</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th style="width: 50px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="routine-row">
+                            <td colspan="5" class="text-center">
+                                Please select course and semester
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary float-right">
+                        <i class="fas fa-save"></i> Save All Routines
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const courseSelect = document.getElementById('id_course');
+    const semesterSelect = document.getElementById('id_semester_or_year');
+    const routineTable = document.getElementById('routine-table');
+    const addRowBtn = document.querySelector('.btn-add');
+    const form = document.getElementById('routine-form');
+
+    // Function to show status message
+    function showStatus(message, isError = false) {
+        const statusDiv = document.createElement('div');
+        statusDiv.className = `alert ${isError ? 'alert-danger' : 'alert-success'}`;
+        statusDiv.textContent = message;
+        
+        // Insert at the top of the card body
+        const cardBody = document.querySelector('.card-body');
+        cardBody.insertBefore(statusDiv, cardBody.firstChild);
+        
+        setTimeout(() => {
+            statusDiv.remove();
+        }, 5000);
+    }
+
+    // Function to update subject options
+    function updateSubjectOptions() {
+        const courseId = courseSelect.value;
+        const semester = semesterSelect.value;
+        const tbody = routineTable.querySelector('tbody');
+
+        if (courseId && semester) {
+            // Show loading state
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center">
+                        <div>Loading subjects...</div>
+                    </td>
+                </tr>
+            `;
+
+            fetch(`/app/get-subjects/?course_id=${courseId}&semester_or_year=${semester}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.subjects && data.subjects.length > 0) {
+                        // Clear tbody
+                        tbody.innerHTML = '';
+                        
+                        // Create a row for each subject
+                        data.subjects.forEach(subject => {
+                            const row = document.createElement('tr');
+                            row.className = 'routine-row';
+                            row.innerHTML = `
+                                <td>
+                                    <input type="hidden" name="subjects[]" value="${subject.id}">
+                                    <span>${subject.name}</span>
+                                </td>
+                                <td>
+                                    <select name="teachers[]" class="teacher-select" required>
+                                        <option value="">Select Teacher</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="time" name="start_times[]" required>
+                                </td>
+                                <td>
+                                    <input type="time" name="end_times[]" required>
+                                </td>
+                                <td>
+                                    <span class="remove-row-btn">×</span>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        
+                        // Initialize teacher dropdowns
+                        updateTeacherOptions();
+                        
+                        // Initialize Select2 for new teacher dropdowns
+                        $('.teacher-select').select2({
+                            width: '100%'
+                        });
+                    } else {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <div>No subjects available for this semester</div>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching subjects:', error);
+                    showStatus('Error loading subjects', true);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center">
+                                <div>Error loading subjects</div>
+                            </td>
+                        </tr>
+                    `;
+                });
+        } else {
+            tbody.innerHTML = `
+                <tr class="routine-row">
+                    <td colspan="5" class="text-center">
+                        <div>Please select both course and semester</div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // Function to update teacher options
+    function updateTeacherOptions() {
+        const teacherSelects = document.querySelectorAll('.teacher-select');
+        
+        // Disable teacher selects while loading
+        teacherSelects.forEach(select => {
+            select.disabled = true;
+            select.innerHTML = '<option value="">Loading teachers...</option>';
+        });
+
+        fetch('/app/get-teachers/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.teachers) {
+                    teacherSelects.forEach(select => {
+                        select.innerHTML = '<option value="">Select Teacher</option>';
+                        data.teachers.forEach(teacher => {
+                            select.innerHTML += `<option value="${teacher.id}">${teacher.name}</option>`;
+                        });
+                        select.disabled = false;
+                    });
+                } else {
+                    throw new Error('No teachers data returned');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading teachers:', error);
+                showStatus('Error loading teachers', true);
+                teacherSelects.forEach(select => {
+                    select.disabled = false;
+                    select.innerHTML = '<option value="">Error loading teachers</option>';
+                });
+            });
+    }
+
+    // Function to update semester/year options based on course
+    function updateSemesterOptions() {
+        const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+        console.log('Selected course:', selectedOption.text);
+        console.log('Duration:', selectedOption.dataset.duration);
+        console.log('Duration type:', selectedOption.dataset['duration-type']);
+        
+        if (courseSelect.value) {
+            const totalSemesters = parseInt(selectedOption.dataset.duration) || 0;
+            console.log('Total semesters:', totalSemesters);
+            
+            // Clear and update the semester select
+            semesterSelect.innerHTML = '<option value="">Select Semester</option>';
+            
+            if (totalSemesters > 0) {
+                for (let i = 1; i <= totalSemesters; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `Semester ${i}`;
+                    semesterSelect.appendChild(option);
+                }
+                semesterSelect.disabled = false;
+            } else {
+                console.log('No valid duration found for course');
+                semesterSelect.disabled = true;
+            }
+        } else {
+            semesterSelect.innerHTML = '<option value="">Select Course First</option>';
+            semesterSelect.disabled = true;
+        }
+        
+        // Initialize or update Select2
+        $(semesterSelect).select2({
+            width: '100%'
+        });
+    }
+
+    // Update subjects when course or semester changes
+    $(courseSelect).on('change', function() {
+        console.log('Course changed:', this.value);
+        updateSemesterOptions();
+        updateSubjectOptions();
+    });
+
+    $(semesterSelect).on('change', function() {
+        console.log('Semester changed:', this.value);
+        updateSubjectOptions();
+    });
+    
+    // Event delegation for remove row button
+    $(routineTable).on('click', '.remove-row-btn', function() {
+        const row = $(this).closest('.routine-row');
+        if (confirm('Are you sure you want to remove this routine?')) {
+            row.remove();
+            if (routineTable.querySelector('tbody').children.length === 0) {
+                routineTable.querySelector('tbody').innerHTML = `
+                    <tr class="routine-row">
+                        <td colspan="5" class="text-center">
+                            <div>All routines removed. Please select a course and semester to add more.</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    });
+
+    // Remove the "Add Another Row" button since rows are auto-generated
+    if (addRowBtn) {
+        addRowBtn.style.display = 'none';
+    }
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!courseSelect.value || !semesterSelect.value) {
+            showStatus('Please select both Course and Semester/Year', true);
+            return;
+        }
+        
+        const routines = [];
+        
+        // Get all routine rows
+        const routineRows = document.querySelectorAll('.routine-row');
+        
+        routineRows.forEach(row => {
+            const subjectInput = row.querySelector('input[name="subjects[]"]');
+            const teacherSelect = row.querySelector('select[name="teachers[]"]');
+            const startTimeInput = row.querySelector('input[name="start_times[]"]');
+            const endTimeInput = row.querySelector('input[name="end_times[]"]');
+            
+            if (subjectInput && teacherSelect && startTimeInput && endTimeInput) {
+                // Validate all required values are present
+                if (!subjectInput.value) {
+                    showStatus('Subject is required for all rows', true);
+                    return;
+                }
+                if (!teacherSelect.value) {
+                    showStatus('Please select a teacher for all subjects', true);
+                    return;
+                }
+                if (!startTimeInput.value) {
+                    showStatus('Start time is required for all subjects', true);
+                    return;
+                }
+                if (!endTimeInput.value) {
+                    showStatus('End time is required for all subjects', true);
+                    return;
+                }
+
+                // Validate time format
+                if (startTimeInput.value >= endTimeInput.value) {
+                    showStatus('End time must be after start time', true);
+                    return;
+                }
+
+                const routine = {
+                    subject: subjectInput.value,
+                    teacher: teacherSelect.value,
+                    start_time: startTimeInput.value,
+                    end_time: endTimeInput.value,
+                    course: courseSelect.value,
+                    semester_or_year: semesterSelect.value
+                };
+                
+                console.log('Adding routine:', routine);
+                routines.push(routine);
+            }
+        });
+
+        if (routines.length === 0) {
+            showStatus('Please assign teachers and times for at least one subject', true);
+            return;
+        }
+
+        console.log('Sending routines data:', routines);
+
+        // Show loading state
+        showStatus('Saving routines...');
+
+        // Send data to server
+        fetch('{% url "admin:routine-add-multiple" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ routines: routines })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Server response:', data);
+            if (data.success) {
+                showStatus('Routines saved successfully');
+                // Clear form data
+                courseSelect.value = '';
+                semesterSelect.value = '';
+                routineTable.querySelector('tbody').innerHTML = '';
+                // Redirect after a short delay
+                setTimeout(() => {
+                    window.location.href = '{% url "admin:app_routine_changelist" %}';
+                }, 1500);
+            } else {
+                showStatus('Error saving routines: ' + (data.message || 'Unknown error'), true);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showStatus('Error saving routines. Please try again.', true);
+        });
+    });
+});
+</script>
+{% endblock %} 

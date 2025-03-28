@@ -1,0 +1,22 @@
+/* Target the specific logo image */
+img[src*="/static/img/logo.png"] {
+    max-height: 100px !important;
+    width: auto !important;
+}
+
+/* Target login page logo */
+.jazzmin-login-page .login-logo img {
+    max-height: 100px !important;
+    width: auto !important;
+}
+
+/* Target admin interface logo */
+.brand-link img.img-circle {
+    max-height: 33px !important;
+    width: auto !important;
+    opacity: .8;
+    margin-left: .8rem;
+    margin-right: .5rem;
+    margin-top: -3px;
+}
+

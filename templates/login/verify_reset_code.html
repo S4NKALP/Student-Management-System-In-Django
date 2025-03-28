@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">Reset Password</h3>
+                </div>
+                <div class="card-body">
+                    {% if message %}
+                    <div class="alert alert-info">{{ message }}</div>
+                    {% endif %}
+                    
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            <label for="email">Email address</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ email }}" readonly>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="code">Reset Code</label>
+                            <input type="text" class="form-control" id="code" name="code" required placeholder="Enter 6-digit code" maxlength="6" pattern="\d{6}">
+                            <small class="form-text text-muted">
+                                Enter the 6-digit code sent to your email.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="new_password1">New Password</label>
+                            <input type="password" class="form-control" id="new_password1" name="new_password1" required>
+                            <small class="form-text text-muted">
+                                Your password must contain at least 8 characters.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="new_password2">Confirm New Password</label>
+                            <input type="password" class="form-control" id="new_password2" name="new_password2" required>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">Reset Password</button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <p>Didn't receive the code? <a href="{% url 'password_reset' %}">Request a new one</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -11,21 +11,26 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+from student_management_system.jazzmin import JAZZMIN_SETTINGS, JAZZMIN_UI_TWEAKS
+
+# Load environment variables
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-r))8$j-a-kc641we86oiyxr&x$1e43c!7y4#w-r1s@$$q8dik8"
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
 # Application definition
 
@@ -38,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "mathfilters",
     "app",
 ]
 
@@ -139,96 +145,37 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-JAZZMIN_SETTINGS = {
-    "site_title": "SMS",
-    "site_header": "SMS",
-    "site_brand": "SMS",
-    "site_logo_classes": "img-circle",
-    "welcome_sign": "WELCOME TO SMS",
-    "copyright": "S4NKALP: SMS",
-    "search_model": ["app.Student", "app.Course"],
-    "topmenu_links": [
-        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "Dashboard", "url": "/app/dashboard", "permissions": []},
-        {"model": "app.Student"},
-        {"app": "app"},
-    ],
-    "usermenu_links": [
-        {"model": "auth.user"}
-    ],
-    "show_sidebar": True,
-    "navigation_expanded": True,
-    "hide_apps": [],
-    "hide_models": [],
-    "order_with_respect_to": [
-        "dashboard",
-        "authentication","organization","human_management"
-        "organization.institute", "organization.batch", "organization.course",
-        "human_management.student", "human_management.staff", "human_management.routine",
-        "human_management.staff_leave", "human_management.student_leave",
-        "human_management.studentfeedback", "human_management.coursetracking",
-        "human_management.attendance", "human_management.institutefeedback"
-    ],
-    "icons": {
-        "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
-        "auth.Group": "fas fa-users",
-        "app.Student": "fas fa-user-graduate",
-        "app.Course": "fas fa-book",
-        "app.Staff": "fas fa-chalkboard-teacher",
-        "app.Attendance": "fas fa-calendar-check",
-        "app.CourseTracking": "fas fa-chart-line",
-        "app.StudentFeedback": "fas fa-comment",
-    },
-    "default_icon_parents": "fas fa-chevron-circle-right",
-    "default_icon_children": "fas fa-circle",
-    "related_modal_active": False,
-    "custom_css": None,
-    "custom_js": None,
-    "show_ui_builder": False,
-    "changeform_format": "horizontal_tabs",
-    "changeform_format_overrides": {"auth.user": "collapsible", "auth.group": "vertical_tabs"},
-    "language_chooser": False,
-    "custom_links": {
-        "app": [
-            {
-                "name": "Dashboard",
-                "url": "/app/dashboard",
-                "icon": "fas fa-tachometer-alt",
-                "permissions": []
-            }
-        ]
-    },
-}
 
-JAZZMIN_UI_TWEAKS = {
-    "navbar_small_text": False,
-    "footer_small_text": False,
-    "body_small_text": False,
-    "brand_small_text": False,
-    "brand_colour": False,
-    "accent": "accent-primary",
-    "navbar": "navbar-dark",
-    "no_navbar_border": False,
-    "navbar_fixed": True,
-    "layout_boxed": False,
-    "footer_fixed": False,
-    "sidebar_fixed": True,
-    "sidebar": "sidebar-dark-primary",
-    "sidebar_nav_small_text": False,
-    "sidebar_disable_expand": False,
-    "sidebar_nav_child_indent": False,
-    "sidebar_nav_compact_style": False,
-    "sidebar_nav_legacy_style": False,
-    "sidebar_nav_flat_style": False,
-    "theme": "default",
-    "dark_mode_theme": None,
-    "button_classes": {
-        "primary": "btn-primary",
-        "secondary": "btn-secondary",
-        "info": "btn-info",
-        "warning": "btn-warning",
-        "danger": "btn-danger",
-        "success": "btn-success"
+# Jazmin Settings
+JAZZMIN_SETTINGS = JAZZMIN_SETTINGS
+JAZZMIN_UI_TWEAKS = JAZZMIN_UI_TWEAKS
+
+# Login redirect URL
+LOGIN_REDIRECT_URL = '/app/dashboard/'
+LOGIN_URL = '/login/'
+
+# Email Configuration
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@studentmanagementsystem.com')
+
+# Cache configuration for OTP storage
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': os.getenv('CACHE_LOCATION', 'unique-snowflake'),
     }
 }
+
+# SMS API configuration
+SMS_API_KEY = os.getenv('SMS_API_KEY', '')
+SMS_SENDER_ID = os.getenv('SMS_SENDER_ID', 'SMSSYS')
+
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://ab4c-2405-acc0-1504-65ce-00-2.ngrok-free.app"
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.ngrok-free.app",
+    "https://*.ngrok.io"
+]

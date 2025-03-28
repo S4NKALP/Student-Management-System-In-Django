@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load app_filters %}
+{% block extrastyle %}
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+          rel="stylesheet" />
+    <style>
+    /* Custom styling */
+    .content-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .content-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .routine-card {
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    .routine-card:hover {
+        background-color: #f8f9fa;
+    }
+
+    .routine-card.active {
+        background-color: #e7f1ff;
+        border-left: 4px solid #4F46E5;
+    }
+
+    .student-list {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .table th {
+        position: sticky;
+        top: 0;
+        background-color: #fff;
+        z-index: 10;
+    }
+
+    .custom-control {
+        padding-left: 1.5rem;
+    }
+
+    .header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="header-flex">
+            <h2 class="mb-0">Manage Attendance</h2>
+            <a href="{% url 'teacherDashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+            </a>
+        </div>
+        <div class="row">
+            <!-- Routines Sidebar -->
+            <div class="col-md-3">
+                <div class="content-card">
+                    <h5 class="mb-3">Your Routines</h5>
+                    {% if routines %}
+                        <div class="list-group">
+                            {% for routine in routines %}
+                                <a href="{% url 'manage_attendance_routine' routine.id %}"
+                                   class="list-group-item list-group-item-action routine-card {% if selected_routine.id == routine.id %}active{% endif %}">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ routine.subject.name }}</h6>
+                                    </div>
+                                    <p class="mb-1 small">{{ routine.course.name }} - Semester {{ routine.semester_or_year }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-info text-white">
+                                            {{ routine.start_time|time:"g:i A" }} - {{ routine.end_time|time:"g:i A" }}
+                                        </span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> You don't have any active routines.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Attendance Form -->
+            <div class="col-md-9">
+                <div class="content-card">
+                    {% if selected_routine %}
+                        <div class="header-flex">
+                            <div>
+                                <h5 class="mb-1">{{ selected_routine.subject.name }}</h5>
+                                <p class="text-muted mb-0">{{ selected_routine.course.name }} - Semester {{ selected_routine.semester_or_year }}</p>
+                            </div>
+                            <div>
+                                <form class="d-flex align-items-center"
+                                      method="get"
+                                      action="{% url 'manage_attendance_routine' selected_routine.id %}">
+                                    <label for="datePicker" class="me-2">Date:</label>
+                                    <input type="date"
+                                           id="datePicker"
+                                           name="date"
+                                           class="form-control form-control-sm"
+                                           value="{{ selected_date|date:'Y-m-d' }}"
+                                           max="{{ today|date:'Y-m-d' }}">
+                                    <button type="submit" class="btn btn-sm btn-primary ms-2">
+                                        <i class="fas fa-calendar-check me-1"></i> View
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <hr>
+                        <!-- Attendance Form -->
+                        <form method="post" action="/app/save-attendance/" id="attendanceForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="routine_id" value="{{ selected_routine.id }}">
+                            <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           id="teacherAttend"
+                                           name="teacher_attend"
+                                           {% if attendance_data.teacher_attend %}checked{% endif %}>
+                                    <label class="form-check-label" for="teacherAttend">Teacher Present</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="classStatus" class="form-label">Class Status</label>
+                                <select class="form-select" id="classStatus" name="class_status">
+                                    <option value="True"
+                                            {% if attendance_data.class_status == True %}selected{% endif %}>
+                                        Conducted
+                                    </option>
+                                    <option value="False"
+                                            {% if attendance_data.class_status == False %}selected{% endif %}>
+                                        Not Conducted
+                                    </option>
+                                </select>
+                            </div>
+                            <!-- Student Attendance -->
+                            <h6 class="mb-3">Student Attendance</h6>
+                            {% if students %}
+                                <div class="student-list">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th width="5%">#</th>
+                                                <th width="40%">Name</th>
+                                                <th width="40%">Roll/ID</th>
+                                                <th width="15%">Present</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for student in students %}
+                                                <tr>
+                                                    <td>{{ forloop.counter }}</td>
+                                                    <td>{{ student.name }}</td>
+                                                    <td>{{ student.roll_no|default:student.id }}</td>
+                                                    <td>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input"
+                                                                   type="checkbox"
+                                                                   id="student_{{ student.id }}"
+                                                                   name="student_{{ student.id }}"
+                                                                   {% if attendance_data.records and attendance_data.records|get_item:student.id %}checked{% endif %}>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-3 d-flex justify-content-between">
+                                    <div>
+                                        <button type="button" class="btn btn-outline-success me-2" id="selectAllBtn">
+                                            <i class="fas fa-check-double me-1"></i> Mark All Present
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" id="deselectAllBtn">
+                                            <i class="fas fa-times-circle me-1"></i> Mark All Absent
+                                        </button>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i> Save Attendance
+                                    </button>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i> No students found for this course and semester.
+                                </div>
+                            {% endif %}
+                        </form>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-3"></i>
+                            <h5>Select a routine to manage attendance</h5>
+                            <p class="text-muted">Choose a class from the list on the left to take attendance.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extrahead %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Select/Deselect all buttons
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deselectAllBtn = document.getElementById('deselectAllBtn');
+
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', function() {
+                document.querySelectorAll('input[name^="student_"]').forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+            });
+        }
+
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener('click', function() {
+                document.querySelectorAll('input[name^="student_"]').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            });
+        }
+
+        // Date change handler
+        const datePicker = document.getElementById('datePicker');
+        if (datePicker) {
+            datePicker.max = new Date().toISOString().split('T')[0]; // Set max date to today
+        }
+    });
+    </script>
+{% endblock %}

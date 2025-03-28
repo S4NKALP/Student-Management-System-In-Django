@@ -5,12 +5,12 @@ from .models import Staff, Student
 class MultiModelBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         """
-        Authenticate the user based on username (phone for Student and Staff) and password.
+        Authenticate the user based on username (email or phone) and password.
         """
         if username is None or password is None:
             return None
         
-        # Try authenticating as Staff
+        # Try authenticating as Staff by phone
         try:
             staff = Staff.objects.get(phone=username)
             if staff.check_password(password):
@@ -18,13 +18,27 @@ class MultiModelBackend(ModelBackend):
         except Staff.DoesNotExist:
             pass
 
-        # Try authenticating as Student
+        # Try authenticating as Staff by email
+        try:
+            staff = Staff.objects.get(email=username)
+            if staff.check_password(password):
+                return staff
+        except Staff.DoesNotExist:
+            pass
+
+        # Try authenticating as Student by phone
         try:
             student = Student.objects.get(phone=username)
             if student.check_password(password):
                 return student
         except Student.DoesNotExist:
             pass
+
+        # Try authenticating as Student by email
+        # Use filter().first() to handle multiple students with same email
+        student = Student.objects.filter(email=username).first()
+        if student and student.check_password(password):
+            return student
 
         # Return None if no match
         return None

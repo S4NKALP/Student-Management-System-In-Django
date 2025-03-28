@@ -1,250 +1,1386 @@
-{% extends 'admin/base_site.html' %}
+{% extends 'base.html' %}
 {% load static %}
+{% load tz %}
+{% load app_filters %}
+
+{% block extrastyle %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- Custom CSS -->
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+<!-- Responsive overrides -->
+<style>
+  @media (max-width: 768px) {
+    .welcome-section h2 {
+      font-size: 1.5rem;
+    }
+    .summary-card .card-body {
+      padding: 0.75rem;
+    }
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .bottom-nav {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+  @media (max-width: 576px) {
+    .container-fluid {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    .col-md-6, .col-lg-3 {
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+    .row {
+      margin-left: -5px;
+      margin-right: -5px;
+    }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- Welcome Section -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card bg-primary text-white">
-                <div class="card-body d-flex align-items-center">
-                    {% if teacher.image %}
-                        <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
-                    {% endif %}
-                    <div>
-                        <h2 class="mb-0">Welcome, {{ teacher.name }}!</h2>
-                        <p class="mb-0">{{ teacher.designation }}</p>
-                    </div>
-                </div>
-            </div>
+  <!-- Welcome Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="content-card welcome-section">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+          {% if teacher.image %}
+            <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+          {% else %}
+            <img src="{% static 'img/user.png' %}" alt="Default User" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+          {% endif %}
+          <div class="flex-grow-1">
+            <h2 class="mb-1">Welcome, {{ teacher.name }}!</h2>
+            <p class="text-muted mb-0">{{ teacher.designation }} <span class="ms-2 badge bg-info text-white">ID: {{ teacher.id }}</span></p>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div class="bottom-nav">
+    <div class="nav-container">
+      <a href="#" class="nav-item active" data-section="dashboard">
+        <i class="fas fa-home"></i>
+        <span class="d-none d-sm-block">Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-section="schedule">
+        <i class="fas fa-calendar-alt"></i>
+        <span class="d-none d-sm-block">Schedule</span>
+      </a>
+      <a href="#" class="nav-item" data-section="attendance">
+        <i class="fas fa-clipboard-list"></i>
+        <span class="d-none d-sm-block">Attendance</span>
+      </a>
+      <a href="#" class="nav-item" data-section="leave">
+        <i class="fas fa-calendar-minus"></i>
+        <span class="d-none d-sm-block">Leaves</span>
+      </a>
+      <a href="#" class="nav-item" data-section="notice">
+        <i class="fas fa-bell"></i>
+        <span class="d-none d-sm-block">Notices</span>
+      </a>
+      <a href="#" class="nav-item" data-section="feedback">
+        <i class="fas fa-comment-alt"></i>
+        <span class="d-none d-sm-block">Feedback</span>
+      </a>
+      <a href="#" class="nav-item" data-section="profile">
+        <i class="fas fa-user"></i>
+        <span class="d-none d-sm-block">Profile</span>
+      </a>
+      <a href="#" class="nav-item" onclick="document.getElementById('logoutForm').submit(); return false;">
+        <i class="fas fa-sign-out-alt"></i>
+        <span class="d-none d-sm-block">Logout</span>
+      </a>
+      <form id="logoutForm" method="post" action="{% url 'logout' %}" style="display: none;">
+        {% csrf_token %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard Section -->
+  <div id="dashboardSection" class="content-section active">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i> Students</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ total_students }}</h2>
+              <p class="text-muted">Total Students</p>
+            </div>
+            <div class="text-center">
+              <div class="d-flex justify-content-around">
+                <div>
+                  <h4 class="fw-bold mb-0">{{ present_students }}</h4>
+                  <p class="text-muted">Present Today</p>
+                </div>
+                <div>
+                  <h4 class="fw-bold mb-0">{{ absent_students }}</h4>
+                  <p class="text-muted">Absent Today</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-chalkboard me-2"></i> Today's Classes</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ today_classes }}</h2>
+              <p class="text-muted">Total Classes</p>
+            </div>
+            <div class="text-center">
+              {% if today_routines %}
+                <div class="text-center mb-2">
+                 
+                </div>
+              {% else %}
+                <p class="text-muted">No classes scheduled for today</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-star me-2"></i> Feedback Rating</h5>
+          </div>
+          <div class="card-body text-center">
+            <h2 class="fw-bold mb-3">{{ avg_rating|floatformat:1 }}/5.0</h2>
+            <div class="rating-stars mb-3">
+              {% for i in "12345"|make_list %}
+                {% if forloop.counter <= avg_rating_rounded %}
+                  <i class="fas fa-star"></i>
+                {% else %}
+                  <i class="far fa-star"></i>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <p class="text-muted">Based on {{ recent_feedback.count }} student feedbacks</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-calendar-minus me-2"></i> Leave Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between mb-3">
+              <p class="mb-0">Pending</p>
+              <span class="badge leave-pending">{{ pending_leaves }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+              <p class="mb-0">Approved</p>
+              <span class="badge leave-approved">{{ approved_leaves }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+              <p class="mb-0">Rejected</p>
+              <span class="badge leave-rejected">{{ rejected_leaves }}</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-2" id="requestLeaveBtn" onclick="openLeaveModal()">
+              <i class="fas fa-plus-circle me-2"></i> Request Leave
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Quick Stats Row -->
+    <!-- Today's Classes -->
     <div class="row mb-4">
-        <!-- Today's Classes Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Today's Classes</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_classes }}</div>
-                            <div class="mt-2 small">
-                                <span>Completed: {{ completed_classes }}</span>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+      <div class="col-12">
+        <div class="content-card">
+          <h5 class="mb-3"><i class="fas fa-chalkboard-teacher me-2"></i> Today's Classes</h5>
+          
+          {% if today_routines %}
+            <!-- Display a single table with all routines -->
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Course</th>
+                    <th class="d-none d-md-table-cell">Semester/Year</th>
+                    <th>Time</th>
+                    <th class="d-none d-sm-table-cell">Attendance</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for routine in today_routines %}
+                    <tr>
+                      <td>{{ routine.name }}</td>
+                      <td>{{ routine.course_name }}</td>
+                      <td class="d-none d-md-table-cell">{{ routine.semester_or_year }}</td>
+                      <td>{{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }}</td>
+                      <td class="d-none d-sm-table-cell">{{ routine.attendance_count }}/{{ routine.total_students }}</td>
+                      <td>
+                        {% if routine.is_completed %}
+                          <span class="status-badge completed">Completed</span>
+                        {% elif routine.is_ongoing %}
+                          <span class="status-badge ongoing">In Progress</span>
+                        {% else %}
+                          <span class="status-badge upcoming">Upcoming</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if routine.has_attendance %}
+                          <button disabled class="btn btn-sm btn-secondary">
+                            <i class="fas fa-check-circle"></i> <span class="d-none d-sm-inline">Recorded</span>
+                          </button>
+                        {% else %}
+                          <button type="button" class="btn btn-sm btn-primary" onclick="openAttendance('{{ routine.id }}')">
+                            <i class="fas fa-clipboard-check"></i> <span class="d-none d-sm-inline">Attendance</span>
+                          </button>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
             </div>
-        </div>
-
-        <!-- Students Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Students</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_students }}</div>
-                            <div class="mt-2 small">
-                                <span>Present Today: {{ present_students }}</span>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No classes scheduled for today.
             </div>
+          {% endif %}
         </div>
-
-        <!-- Feedback Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Average Rating</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ avg_rating|floatformat:1 }}/5.0
-                            </div>
-                            <div class="mt-2">
-                                <div class="rating">
-                                    {% with ''|center:avg_rating_rounded as range %}
-                                    {% for _ in range %}
-                                        <i class="fas fa-star text-warning"></i>
-                                    {% endfor %}
-                                    {% endwith %}
-                                    {% with ''|center:remaining_stars as range %}
-                                    {% for _ in range %}
-                                        <i class="fas fa-star text-muted"></i>
-                                    {% endfor %}
-                                    {% endwith %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-star fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Leave Status Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Leave Requests</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_leaves }}</div>
-                            <div class="mt-2 small">
-                                <span class="text-success">Approved: {{ approved_leaves }}</span> |
-                                <span class="text-danger">Rejected: {{ rejected_leaves }}</span>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <!-- Today's Schedule and Recent Activity -->
+    <!-- Recent Activities Section -->
     <div class="row">
-        <!-- Today's Schedule -->
-        <div class="col-xl-8 col-lg-7">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="m-0 font-weight-bold text-primary">Today's Schedule</h6>
-                </div>
-                <div class="card-body">
-                    {% if today_routines %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        <th>Course</th>
-                                        <th>Status</th>
-                                        <th>Attendance</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for routine in today_routines %}
-                                    <tr>
-                                        <td>{{ routine.start_time|time:"g:i A" }} - {{ routine.end_time|time:"g:i A" }}</td>
-                                        <td>{{ routine.name }}</td>
-                                        <td>
-                                            {% if routine.is_completed %}
-                                                <span class="badge bg-success">Completed</span>
-                                            {% elif routine.is_ongoing %}
-                                                <span class="badge bg-warning">Ongoing</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">Upcoming</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ routine.attendance_count }}/{{ routine.total_students }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-muted">No classes scheduled for today.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="col-xl-4 col-lg-5">
-            <!-- Recent Leave Requests -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent Leave Requests</h6>
-                </div>
-                <div class="card-body">
-                    {% for leave in recent_leaves %}
-                    <div class="leave-item mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted small">{{ leave.date }}</span>
-                            <span class="badge {% if leave.status == 1 %}bg-success{% elif leave.status == 2 %}bg-danger{% else %}bg-warning{% endif %}">
-                                {{ leave.get_status_display }}
-                            </span>
-                        </div>
-                        <p class="mb-0 small">{{ leave.message|truncatechars:100 }}</p>
-                        <hr>
-                    </div>
-                    {% empty %}
-                    <p class="text-muted">No recent leave requests.</p>
+      <!-- Recent Feedback -->
+      <div class="col-lg-6 mb-4">
+        <div class="content-card h-100">
+          <h5 class="mb-3"><i class="fas fa-comment-dots me-2"></i> Recent Feedback</h5>
+          {% if recent_feedback %}
+            <div class="list-group">
+              {% for feedback in recent_feedback %}
+                <div class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between flex-wrap">
+                    <h6 class="mb-1">{{ feedback.student.name }}</h6>
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
+                  <div class="mb-2">
+                    {% for i in "12345"|make_list %}
+                      {% if forloop.counter <= feedback.rating %}
+                        <i class="fas fa-star text-warning" style="font-size: 0.8rem;"></i>
+                      {% else %}
+                        <i class="far fa-star text-warning" style="font-size: 0.8rem;"></i>
+                      {% endif %}
                     {% endfor %}
+                  </div>
+                  <p class="mb-1">{{ feedback.feedback_text }}</p>
                 </div>
+              {% endfor %}
             </div>
-
-            <!-- Recent Feedback -->
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent Feedback</h6>
-                </div>
-                <div class="card-body">
-                    {% for feedback in recent_feedback %}
-                    <div class="feedback-item mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted small">{{ feedback.created_at|date:"M d, Y" }}</span>
-                            <div class="rating">
-                                {% for i in "12345"|make_list %}
-                                <i class="fas fa-star {% if forloop.counter <= feedback.rating %}text-warning{% else %}text-muted{% endif %}"></i>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <p class="mb-1 small"><strong>{{ feedback.subject.name }}</strong> - {{ feedback.student.name }}</p>
-                        <p class="mb-0 small">{{ feedback.feedback_text|truncatechars:100 }}</p>
-                        <hr>
-                    </div>
-                    {% empty %}
-                    <p class="text-muted">No recent feedback.</p>
-                    {% endfor %}
-                </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No recent feedback.
             </div>
+          {% endif %}
         </div>
+      </div>
+
+      <!-- Notices -->
+      <div class="col-lg-6 mb-4">
+        <div class="content-card h-100">
+          <h5 class="mb-3"><i class="fas fa-bullhorn me-2"></i> Recent Notices</h5>
+          {% if notices %}
+            <div class="list-group">
+              {% for notice in notices %}
+                <div class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between flex-wrap">
+                    <h6 class="mb-1">{{ notice.title }}</h6>
+                    <small class="text-muted">{{ notice.created_at|timesince }} ago</small>
+                  </div>
+                  <p class="mb-1">{{ notice.message }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No recent notices.
+            </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Schedule Section -->
+  <div id="scheduleSection" class="content-section">
+    <div class="content-card">
+      <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i> Your Class Schedule</h5>
+      
+      {% if all_routines %}
+        <div class="row">
+          <div class="col-12">
+            {% for routine in all_routines %}
+              <div class="schedule-item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="mb-0">{{ routine.subject.name }}</h6>
+                  <span class="badge bg-info">{{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }}</span>
+                </div>
+                <p class="text-muted mb-0 small">{{ routine.course.name }} - Semester {{ routine.semester_or_year }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i> No class schedules found.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Attendance Section -->
+  <div id="attendanceSection" class="content-section">
+    <div class="content-card mb-4">
+      <!-- Header Section -->
+      <div id="attendanceHeader">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> Attendance Management</h5>
+          <button type="button" class="btn btn-primary" onclick="toggleAttendanceView('manage')">
+            <i class="fas fa-edit me-2"></i> Manage Attendance
+          </button>
+        </div>
+      
+        <!-- Recent Attendance Records -->
+        <div id="recentAttendanceView">
+          {% if recent_attendance %}
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Present/Total</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for attendance in recent_attendance %}
+                    <tr>
+                      <td>{{ attendance.date|date:"M d, Y" }}</td>
+                      <td>{{ attendance.routine.subject.name }}</td>
+                      <td>{{ attendance.routine.start_time|time:"h:i A" }} - {{ attendance.routine.end_time|time:"h:i A" }}</td>
+                      <td>
+                        <span class="badge 
+                          {% if attendance.class_status == 'Conducted' %}bg-success
+                          {% elif attendance.class_status == 'Cancelled' %}bg-danger
+                          {% elif attendance.class_status == 'Rescheduled' %}bg-warning
+                          {% else %}bg-info{% endif %}">
+                          {{ attendance.class_status }}
+                        </span>
+                      </td>
+                      <td>
+                        {{ attendance.present_count|default:"0" }}/{{ attendance.total_count|default:"0" }}
+                      </td>
+                      <td>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="editAttendance('{{ attendance.routine.id }}', '{{ attendance.date|date:'Y-m-d' }}')">
+                          <i class="fas fa-edit me-1"></i> Edit
+                        </button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No recent attendance records found.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Manage Attendance View -->
+      <div id="manageAttendanceView" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">Manage Attendance</h5>
+          <button type="button" class="btn btn-outline-secondary" onclick="toggleAttendanceView('recent')">
+            <i class="fas fa-arrow-left me-2"></i> Back to Records
+          </button>
+        </div>
+
+        <!-- Routine Selection -->
+        <div class="mb-4" id="routineSelectionForm">
+          <form id="routineSelectForm" class="row g-3">
+            <div class="col-md-6">
+              <label for="routineSelect" class="form-label">Select Class</label>
+              <select class="form-select" id="routineSelect" name="routine_id" onchange="loadAttendanceData()">
+                <option value="">Choose a class...</option>
+                {% for routine in routines %}
+                  <option value="{{ routine.id }}" {% if selected_routine and selected_routine.id == routine.id %}selected{% endif %}>
+                    {{ routine.subject.name }} - {{ routine.course.name }} ({{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="dateSelect" class="form-label">Select Date</label>
+              <input type="date" class="form-control" id="dateSelect" name="date" value="{{ selected_date|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" onchange="loadAttendanceData()">
+            </div>
+          </form>
+        </div>
+
+        <div id="attendanceFormContainer">
+          <form method="post" action="/app/save-attendance/" id="attendanceForm">
+            {% csrf_token %}
+            <input type="hidden" name="routine_id" value="">
+            <input type="hidden" name="date" value="">
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="teacherAttend" name="teacher_attend">
+                  <label class="form-check-label" for="teacherAttend">Teacher Present</label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <select class="form-select" id="classStatus" name="class_status">
+                  <option value="True">Conducted</option>
+                  <option value="False">Not Conducted</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th width="5%">#</th>
+                    <th width="40%">Name</th>
+                    <th width="40%">Student ID</th>
+                    <th width="15%">Present</th>
+                  </tr>
+                </thead>
+                <tbody id="studentList">
+                  <!-- Students will be loaded here -->
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="mt-3 d-flex justify-content-between">
+              <div>
+                <button type="button" class="btn btn-outline-success me-2" id="selectAllBtn">
+                  <i class="fas fa-check-double me-1"></i> Mark All Present
+                </button>
+                <button type="button" class="btn btn-outline-danger" id="deselectAllBtn">
+                  <i class="fas fa-times-circle me-1"></i> Mark All Absent
+                </button>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Save Attendance
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notices Section -->
+  <div id="noticeSection" class="content-section">
+    <div class="content-card">
+      <h5 class="mb-3"><i class="fas fa-bullhorn me-2"></i> Notices & Announcements</h5>
+      
+      {% if notices %}
+        <div class="list-group">
+          {% for notice in notices %}
+            <div class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ notice.title }}</h5>
+                <small class="text-muted">{{ notice.created_at|date:"M d, Y" }}</small>
+              </div>
+              <p class="mb-1">{{ notice.message }}</p>
+              <small class="text-muted">Posted {{ notice.created_at|timesince }} ago</small>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i> No notices available.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Feedback Section -->
+  <div id="feedbackSection" class="content-section">
+    <div class="row">
+      <!-- Give Feedback -->
+      <div class="col-md-6 mb-4">
+        <div class="content-card">
+          <h5 class="mb-3"><i class="fas fa-comment-alt me-2"></i> Give Feedback to Institute</h5>
+          <form action="{% url 'submit_staff_institute_feedback' %}" method="post" class="feedback-form">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="feedback_type" class="form-label">Feedback Type</label>
+              <select class="form-select" id="feedback_type" name="feedback_type" required>
+                <option value="">Select Type</option>
+                {% for value, name in feedback_types %}
+                  <option value="{{ value }}">{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Rating</label>
+              <div class="rating-stars d-flex">
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="1"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="2"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="3"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="4"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="5"></i>
+                <input type="hidden" name="rating" id="selected_rating" value="" required>
+                <div class="invalid-feedback d-block" id="rating-error" style="display: none;">Please select a rating</div>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="feedback_text" class="form-label">Feedback</label>
+              <textarea class="form-control" id="feedback_text" name="feedback_text" rows="4" required></textarea>
+            </div>
+            
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="is_anonymous" name="is_anonymous">
+              <label class="form-check-label" for="is_anonymous">Submit anonymously</label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="fas fa-paper-plane me-1"></i> Submit Feedback
+            </button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Recent Institute Feedback -->
+      <div class="col-md-6 mb-4">
+        <div class="content-card">
+          <h5 class="mb-3"><i class="fas fa-history me-2"></i> Your Recent Feedback</h5>
+          
+          {% if institute_feedback %}
+            <div class="list-group">
+              {% for feedback in institute_feedback %}
+                <div class="list-group-item">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">{{ feedback.get_feedback_type_display }}</h6>
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
+                  <div class="mb-2">
+                    {% for i in "12345"|make_list %}
+                      {% if forloop.counter <= feedback.rating %}
+                        <i class="fas fa-star text-warning" style="font-size: 0.8rem;"></i>
+                      {% else %}
+                        <i class="far fa-star text-warning" style="font-size: 0.8rem;"></i>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                  <p class="mb-1">{{ feedback.feedback_text }}</p>
+                  <small class="text-muted">
+                    {% if feedback.is_anonymous %}
+                      <i class="fas fa-user-secret me-1"></i> Anonymous
+                    {% else %}
+                      <i class="fas fa-user me-1"></i> Public
+                    {% endif %}
+                  </small>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> You haven't submitted any feedback yet.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Section -->
+  <div id="profileSection" class="content-section">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-user mr-2"></i> Profile Information
+      </h3>
+      <div class="row">
+        <!-- Profile Header with Image and Actions -->
+        <div class="col-12 mb-4">
+          <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex align-items-center mb-3 mb-md-0">
+              {% if teacher.image %}
+                <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+              {% else %}
+                <img src="{% static 'img/user.png' %}" alt="Default User" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+              {% endif %}
+              <div>
+                <h4 class="mb-1">{{ teacher.name }}</h4>
+                <p class="mb-0 text-muted">
+                  <span class="me-3"><i class="fas fa-id-card me-1"></i> {{ teacher.id }}</span>
+                  <span class="me-3"><i class="fas fa-envelope me-1"></i> {{ teacher.email }}</span>
+                  <span><i class="fas fa-phone me-1"></i> {{ teacher.phone }}</span>
+                </p>
+                <div class="mt-2">
+                  <span class="badge {% if teacher.is_active %}bg-success{% else %}bg-danger{% endif %} me-2">
+                    {{ teacher.is_active|yesno:"Active,Inactive" }}
+                  </span>
+                  <span class="badge bg-info">{{ teacher.designation }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="profile-actions d-flex gap-2">
+              <button class="btn btn-sm btn-primary" onclick="openProfileModal()">
+                <i class="fas fa-camera me-1"></i> Update Photo
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="openPasswordModal()">
+                <i class="fas fa-key me-1"></i> Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Information Section -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-user-circle me-2"></i>Personal Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Full Name</small>
+                  <p class="mb-0 fw-medium">{{ teacher.name }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Gender</small>
+                  <p class="mb-0 fw-medium">{{ teacher.gender|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Birth Date</small>
+                  <p class="mb-0 fw-medium">{{ teacher.birth_date|date:"M d, Y"|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Marital Status</small>
+                  <p class="mb-0 fw-medium">{{ teacher.marital_status|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Citizenship No.</small>
+                  <p class="mb-0 fw-medium">{{ teacher.citizenship_no|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Passport</small>
+                  <p class="mb-0 fw-medium">{{ teacher.passport|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-address-book me-2"></i>Contact Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Email Address</small>
+                  <p class="mb-0 fw-medium">{{ teacher.email|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Phone Number</small>
+                  <p class="mb-0 fw-medium">{{ teacher.phone|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Parent Name</small>
+                  <p class="mb-0 fw-medium">{{ teacher.parent_name|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Parent Phone</small>
+                  <p class="mb-0 fw-medium">{{ teacher.parent_phone|default:"Not provided" }}</p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Temporary Address</small>
+                  <p class="mb-0 fw-medium">{{ teacher.temporary_address|default:"Not provided" }}</p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Permanent Address</small>
+                  <p class="mb-0 fw-medium">{{ teacher.permanent_address|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Employment Information -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-briefcase me-2"></i>Employment Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Employee ID</small>
+                  <p class="mb-0 fw-medium">{{ teacher.id }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Designation</small>
+                  <p class="mb-0 fw-medium">{{ teacher.designation|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Joining Date</small>
+                  <p class="mb-0 fw-medium">{{ teacher.joining_date|date:"M d, Y"|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Status</small>
+                  <p class="mb-0 fw-medium">
+                    <span class="badge {% if teacher.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                      {{ teacher.is_active|yesno:"Active,Inactive" }}
+                    </span>
+                  </p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Permissions</small>
+                  <p class="mb-0 fw-medium">
+                    {% for group in teacher.groups.all %}
+                      <span class="badge bg-info me-1 mb-1">{{ group.name }}</span>
+                    {% empty %}
+                      No specific permissions
+                    {% endfor %}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Qualifications -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-graduation-cap me-2"></i>Qualifications</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-12">
+                  <small class="text-muted d-block mb-2">Educational Background</small>
+                  {% if teacher.education_set.all %}
+                    {% for education in teacher.education_set.all %}
+                      <div class="mb-2 pb-2 border-bottom">
+                        <p class="mb-0 fw-medium">{{ education.degree }}, {{ education.institution }} ({{ education.year }})</p>
+                        <small>{{ education.specialization }}</small>
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <p class="mb-2 fw-medium">No educational qualifications recorded</p>
+                  {% endif %}
+                  
+                  {% if teacher.qualification %}
+                    <div class="mt-2">
+                      <small class="text-muted d-block mb-1">Additional Qualifications</small>
+                      <p class="mb-0 fw-medium">{{ teacher.qualification }}</p>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                {% if teacher.skills %}
+                <div class="col-12 mt-2">
+                  <small class="text-muted d-block mb-2">Skills & Specialization</small>
+                  <p class="mb-2 fw-medium">{{ teacher.specialization|default:"No specialization information available" }}</p>
+                  
+                  <div>
+                    {% for skill in teacher.skills %}
+                      <span class="badge bg-primary me-1 mb-1">{{ skill.strip }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leave Section -->
+  <div id="leaveSection" class="content-section">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-calendar-minus mr-2"></i> Leave Management
+      </h3>
+      <div class="row mb-4">
+        <div class="col-12">
+          <button class="btn btn-primary" onclick="openLeaveModal()">
+            <i class="fas fa-plus-circle me-2"></i>Request Leave
+          </button>
+        </div>
+      </div>
+      
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+              <i class="fas fa-clock text-warning mb-3" style="font-size: 2rem;"></i>
+              <h3 class="text-warning mb-2">{{ pending_leaves }}</h3>
+              <p class="mb-0">Pending Requests</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+              <i class="fas fa-check-circle text-success mb-3" style="font-size: 2rem;"></i>
+              <h3 class="text-success mb-2">{{ approved_leaves }}</h3>
+              <p class="mb-0">Approved Requests</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+              <i class="fas fa-times-circle text-danger mb-3" style="font-size: 2rem;"></i>
+              <h3 class="text-danger mb-2">{{ rejected_leaves }}</h3>
+              <p class="mb-0">Rejected Requests</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="content-card">
+        <h5 class="mb-3"><i class="fas fa-history me-2"></i> Leave History</h5>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Applied On</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_leaves %}
+                {% for leave in recent_leaves %}
+                  <tr>
+                    <td>{{ leave.date|date:"M d, Y" }}</td>
+                    <td>{{ leave.message }}</td>
+                    <td>
+                      <span class="badge 
+                        {% if leave.status == 0 %}leave-pending
+                        {% elif leave.status == 1 %}leave-approved
+                        {% else %}leave-rejected{% endif %}">
+                        {{ leave.get_status_display }}
+                      </span>
+                    </td>
+                    <td>{{ leave.created_at|date:"M d, Y" }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="4" class="text-center">No leave history available</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- Custom styles -->
-<style>
-    .border-left-primary {
-        border-left: 4px solid #4e73df !important;
+<!-- Custom Modal (No Bootstrap) -->
+<div id="customLeaveModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeLeaveModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Request Leave</h5>
+      <button id="closeCustomModal" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeLeaveModal()">&times;</button>
+    </div>
+    <form action="{% url 'request_staff_leave' %}" method="post">
+      {% csrf_token %}
+      <div style="padding: 20px;">
+        <div style="margin-bottom: 15px;">
+          <label for="customLeaveDate" style="display: block; margin-bottom: 8px; font-weight: 500;">Date</label>
+          <input type="date" id="customLeaveDate" name="date" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label for="customLeaveMessage" style="display: block; margin-bottom: 8px; font-weight: 500;">Reason</label>
+          <textarea id="customLeaveMessage" name="message" rows="3" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required></textarea>
+        </div>
+      </div>
+      <div style="padding: 15px; border-top: 1px solid #EEEEEE; text-align: right; display: flex; flex-wrap: wrap; justify-content: flex-end;">
+        <button type="button" id="cancelCustomModal" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; margin-bottom: 10px; cursor: pointer; font-size: 14px;" onclick="closeLeaveModal()">Cancel</button>
+        <button type="submit" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 10px;">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Profile Photo Update Modal -->
+<div id="profileModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeProfileModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Update Profile Picture</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeProfileModal()">&times;</button>
+    </div>
+    <div style="padding: 20px;">
+      <!-- Profile Picture Upload Form -->
+      <form action="{% url 'teacher_update_profile_picture' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="text-align: center; margin-bottom: 20px;">
+          {% if teacher.image %}
+            <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #3F51B5;">
+          {% else %}
+            <img src="{% static 'img/user.png' %}" alt="Default User" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #3F51B5;">
+          {% endif %}
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select New Profile Picture</label>
+          <input type="file" name="profile_picture" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <button type="button" onclick="closeProfileModal()" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancel</button>
+          <button type="submit" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Update Picture</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Password Change Modal -->
+<div id="passwordModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closePasswordModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Change Password</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closePasswordModal()">&times;</button>
+    </div>
+    <div style="padding: 20px;">
+      <!-- Change Password Form -->
+      <form action="{% url 'teacher_change_password' %}" method="post">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+          <label for="current_password" style="display: block; margin-bottom: 8px; font-weight: 500;">Current Password</label>
+          <input type="password" id="current_password" name="current_password" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label for="new_password" style="display: block; margin-bottom: 8px; font-weight: 500;">New Password</label>
+          <input type="password" id="new_password" name="new_password" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label for="confirm_password" style="display: block; margin-bottom: 8px; font-weight: 500;">Confirm New Password</label>
+          <input type="password" id="confirm_password" name="confirm_password" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <button type="submit" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; width: 100%;">Change Password</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Attendance Modal -->
+<div id="attendanceModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAttendanceModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Take Attendance</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAttendanceModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: 80vh; overflow-y: auto;">
+      <form method="post" action="/app/save-attendance/" id="quickAttendanceForm">
+        {% csrf_token %}
+        <input type="hidden" name="routine_id" id="modalRoutineId">
+        <input type="hidden" name="date" id="modalDate">
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="modalTeacherAttend" name="teacher_attend">
+              <label class="form-check-label" for="modalTeacherAttend">Teacher Present</label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <select class="form-select" id="modalClassStatus" name="class_status">
+              <option value="True" selected>Conducted</option>
+              <option value="False">Not Conducted</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th width="5%">#</th>
+                <th width="40%">Name</th>
+                <th width="40%">Student ID</th>
+                <th width="15%">Present</th>
+              </tr>
+            </thead>
+            <tbody id="modalStudentList">
+              <!-- Students will be loaded here -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="mt-3 d-flex justify-content-between">
+          <div>
+            <button type="button" class="btn btn-outline-success me-2" onclick="markAllPresent()">
+              <i class="fas fa-check-double me-1"></i> Mark All Present
+            </button>
+            <button type="button" class="btn btn-outline-danger" onclick="markAllAbsent()">
+              <i class="fas fa-times-circle me-1"></i> Mark All Absent
+            </button>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i> Save Attendance
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleAttendanceView(view) {
+    const headerSection = document.getElementById('attendanceHeader');
+    const manageView = document.getElementById('manageAttendanceView');
+    const routineSelectionForm = document.getElementById('routineSelectionForm');
+
+    if (view === 'recent') {
+      headerSection.style.display = 'block';
+      manageView.style.display = 'none';
+      // Show the selection form when going back to recent view
+      if (routineSelectionForm) {
+        routineSelectionForm.style.display = 'block';
+      }
+    } else {
+      headerSection.style.display = 'none';
+      manageView.style.display = 'block';
     }
-    .border-left-success {
-        border-left: 4px solid #1cc88a !important;
+  }
+
+  function editAttendance(routineId, date) {
+    // Switch to manage attendance view
+    toggleAttendanceView('manage');
+    
+    // Hide the routine selection form when editing
+    document.getElementById('routineSelectionForm').style.display = 'none';
+    
+    // Update the hidden inputs in the attendance form
+    const attendanceForm = document.getElementById('attendanceForm');
+    if (attendanceForm) {
+      const routineInput = attendanceForm.querySelector('input[name="routine_id"]');
+      const dateInput = attendanceForm.querySelector('input[name="date"]');
+      if (routineInput) routineInput.value = routineId;
+      if (dateInput) dateInput.value = date;
     }
-    .border-left-info {
-        border-left: 4px solid #36b9cc !important;
+    
+    // First get the attendance data
+    fetch(`/app/get-attendance-form/?routine_id=${routineId}&date=${date}`)
+      .then(response => response.json())
+      .then(attendanceData => {
+        if (attendanceData.error) {
+          console.error('Error:', attendanceData.error);
+          return;
+        }
+        
+        // Then get students and populate with attendance data
+        fetch(`/app/get-students/?routine_id=${routineId}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              alert(data.error);
+              return;
+            }
+            
+            const studentList = document.getElementById('studentList');
+            if (!studentList) {
+              console.error('Student list table not found');
+              return;
+            }
+
+            // Clear existing content
+            studentList.innerHTML = '';
+            
+            // Add each student row
+            data.students.forEach((student, index) => {
+              const isPresent = attendanceData.records && attendanceData.records[student.id] === true;
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${student.name}</td>
+                <td>${student.id}</td>
+                <td>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" 
+                      id="student_${student.id}" 
+                      name="student_${student.id}"
+                      ${isPresent ? 'checked' : ''}>
+                  </div>
+                </td>
+              `;
+              studentList.appendChild(tr);
+            });
+            
+            // Set teacher attendance and class status
+            const teacherAttend = document.getElementById('teacherAttend');
+            const classStatus = document.getElementById('classStatus');
+            
+            if (teacherAttend) {
+              teacherAttend.checked = attendanceData.teacher_attend === true;
+            }
+            if (classStatus) {
+              classStatus.value = attendanceData.class_status.toString();
+            }
+
+            // Show the form container
+            document.getElementById('attendanceFormContainer').style.display = 'block';
+          })
+          .catch(error => {
+            console.error('Error loading students:', error);
+            alert('Error loading students. Please try again.');
+          });
+      })
+      .catch(error => {
+        console.error('Error loading attendance data:', error);
+        alert('Error loading attendance data. Please try again.');
+      });
+  }
+
+  function closeAttendanceModal() {
+    const modal = document.getElementById('attendanceModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function loadAttendanceData() {
+    const routineId = document.getElementById('routineSelect').value;
+    const date = document.getElementById('dateSelect').value;
+    const attendanceFormContainer = document.getElementById('attendanceFormContainer');
+    
+    if (!routineId || !date) {
+      if (attendanceFormContainer) {
+        attendanceFormContainer.style.display = 'none';
+      }
+      return;
     }
-    .border-left-warning {
-        border-left: 4px solid #f6c23e !important;
+
+    // Show loading indicator
+    attendanceFormContainer.innerHTML = `
+      <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading attendance data...</p>
+      </div>
+    `;
+    attendanceFormContainer.style.display = 'block';
+
+    // First get the attendance data
+    fetch(`/app/get-attendance-form/?routine_id=${routineId}&date=${date}`)
+      .then(response => response.json())
+      .then(attendanceData => {
+        // Then get students and populate with attendance data
+        fetch(`/app/get-students/?routine_id=${routineId}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              attendanceFormContainer.innerHTML = `
+                <div class="alert alert-danger">
+                  <i class="fas fa-exclamation-circle me-2"></i> ${data.error}
+                </div>
+              `;
+              return;
+            }
+
+            // Create the attendance form HTML
+            attendanceFormContainer.innerHTML = `
+              <form method="post" action="/app/save-attendance/" id="attendanceForm">
+                {% csrf_token %}
+                <input type="hidden" name="routine_id" value="${routineId}">
+                <input type="hidden" name="date" value="${date}">
+                
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="teacherAttend" name="teacher_attend" ${attendanceData.teacher_attend ? 'checked' : ''}>
+                      <label class="form-check-label" for="teacherAttend">Teacher Present</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <select class="form-select" id="classStatus" name="class_status">
+                      <option value="True" ${attendanceData.class_status ? 'selected' : ''}>Conducted</option>
+                      <option value="False" ${!attendanceData.class_status ? 'selected' : ''}>Not Conducted</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th width="5%">#</th>
+                        <th width="40%">Name</th>
+                        <th width="40%">Student ID</th>
+                        <th width="15%">Present</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${data.students.map((student, index) => {
+                        const isPresent = attendanceData.records && attendanceData.records[student.id] === true;
+                        return `
+                          <tr>
+                            <td>${index + 1}</td>
+                            <td>${student.name}</td>
+                            <td>${student.id}</td>
+                            <td>
+                              <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                  id="student_${student.id}" 
+                                  name="student_${student.id}"
+                                  ${isPresent ? 'checked' : ''}>
+                              </div>
+                            </td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div class="mt-3 d-flex justify-content-between">
+                  <div>
+                    <button type="button" class="btn btn-outline-success me-2" onclick="markAllPresent()">
+                      <i class="fas fa-check-double me-1"></i> Mark All Present
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="markAllAbsent()">
+                      <i class="fas fa-times-circle me-1"></i> Mark All Absent
+                    </button>
+                  </div>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Save Attendance
+                  </button>
+                </div>
+              </form>
+            `;
+          })
+          .catch(error => {
+            console.error('Error loading students:', error);
+            attendanceFormContainer.innerHTML = `
+              <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i> Error loading students. Please try again.
+              </div>
+            `;
+          });
+      })
+      .catch(error => {
+        console.error('Error loading attendance data:', error);
+        attendanceFormContainer.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i> Error loading attendance data. Please try again.
+          </div>
+        `;
+      });
+  }
+
+  function markAllPresent() {
+    const checkboxes = document.querySelectorAll('#attendanceForm input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+      if (checkbox.id !== 'teacherAttend') {
+        checkbox.checked = true;
+      }
+    });
+  }
+
+  function markAllAbsent() {
+    const checkboxes = document.querySelectorAll('#attendanceForm input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+      if (checkbox.id !== 'teacherAttend') {
+        checkbox.checked = false;
+      }
+    });
+  }
+
+  // Initialize the form when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    const routineSelect = document.getElementById('routineSelect');
+    const dateSelect = document.getElementById('dateSelect');
+    
+    // Set today's date as default
+    if (dateSelect && !dateSelect.value) {
+      dateSelect.value = new Date().toISOString().split('T')[0];
     }
-    .progress {
-        height: 0.5rem;
-        border-radius: 0.25rem;
+
+    // Load data if both values are present
+    if (routineSelect && dateSelect && routineSelect.value && dateSelect.value) {
+      loadAttendanceData();
     }
-    .card {
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+  });
+</script>
+{% endblock %}
+
+{% block extrahead %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle Mark All Present button
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', function() {
+        const checkboxes = document.querySelectorAll('#quickAttendanceForm input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+          if (checkbox.id !== 'teacherAttend') { // Don't affect teacher attendance checkbox
+            checkbox.checked = true;
+          }
+        });
+      });
     }
-    .card-header {
-        background-color: #f8f9fc;
-        border-bottom: 1px solid #e3e6f0;
+
+    // Handle Mark All Absent button
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+    if (deselectAllBtn) {
+      deselectAllBtn.addEventListener('click', function() {
+        const checkboxes = document.querySelectorAll('#quickAttendanceForm input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+          if (checkbox.id !== 'teacherAttend') { // Don't affect teacher attendance checkbox
+            checkbox.checked = false;
+          }
+        });
+      });
     }
-    .rating {
-        color: #f6c23e;
-    }
-</style>
-{% endblock %} 
+  });
+</script>
+{% endblock %}

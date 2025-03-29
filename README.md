@@ -195,10 +195,10 @@ GitHub: https://github.com/S4NKALP
 If you're using this project in an academic context, you can cite it as:
 
 ```bibtex
-@software{StudentManagementSystem2024,
+@software{StudentManagementSystem2025,
   author = {Sankalp},
   title = {Student Management System},
-  year = {2024},
+  year = {2025},
   publisher = {GitHub},
   url = {https://github.com/S4NKALP/Student-Management-System-In-Django}
 }

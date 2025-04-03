@@ -1,94 +1,19 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
 {% load tz %}
 {% load app_filters %}
 
-{% block extrastyle %}
-{{ block.super }}
-<!-- Bootstrap CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<!-- Font Awesome -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-<!-- Viewport meta tag for responsiveness -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<!-- Custom Dashboard CSS -->
-<link href="{% static 'css/dashboard.css' %}" rel="stylesheet" />
-<!-- Responsive overrides -->
-<style>
-  @media (max-width: 768px) {
-    .welcome-section h2 {
-      font-size: 1.5rem;
-    }
-    .summary-card .card-body {
-      padding: 0.75rem;
-    }
-    .table-responsive {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .bottom-nav {
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    .profile-actions {
-      margin-top: 1rem;
-      width: 100%;
-      justify-content: center;
-    }
-  }
-  @media (max-width: 576px) {
-    .container-fluid {
-      padding-left: 10px;
-      padding-right: 10px;
-    }
-    .col-md-6, .col-lg-3, .col-md-4, .col-md-3 {
-      padding-left: 5px;
-      padding-right: 5px;
-    }
-    .row {
-      margin-left: -5px;
-      margin-right: -5px;
-    }
-    .modal-body {
-      padding: 10px;
-    }
-  }
-</style>
-{% endblock %}
-
-{% block extrahead %}
-{{ block.super }}
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- Bootstrap JS Bundle with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Custom Dashboard JS -->
-<script src="{% static 'js/dashboard.js' %}"></script>
-{% endblock %}
 
 {% block content %}
+<!-- Add CSRF token to the page -->
+{% csrf_token %}
 
 <div class="container-fluid py-4">
   <!-- Welcome Section -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="content-card welcome-section">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-          {% if student.image %}
-            <img src="{{ student.image.url }}" alt="{{ student.name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
-          {% else %}
-            <img src="{% static 'img/user.png' %}" alt="Default User" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
-          {% endif %}
-          <div class="flex-grow-1">
-            <h2 class="mb-1">Welcome, {{ student.name }}!</h2>
-            <p class="text-muted mb-0">Student <span class="ms-2 badge bg-info text-white">ID: {{ student.id }}</span></p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  {% include 'components/welcome_section.html' with user=student %}
 
-  <!-- Content Sections -->
-  <div class="content-section active" id="dashboardSection">
+  <!-- Dashboard Content -->
+  <div id="dashboardSection" class="content-section" style="display: block;">
     <!-- Summary Cards -->
     <div class="row mb-4">
       <!-- Attendance Summary Card -->
@@ -98,20 +23,48 @@
             <h5 class="card-title mb-0 small"><i class="fas fa-calendar-check me-1"></i> Attendance Summary</h5>
           </div>
           <div class="card-body p-2">
-            <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-3">
               <div>
-                <small class="text-muted d-block mb-1">Total Classes</small>
-                <h3 class="fw-bold mb-0">{{ attendance_summary.total_classes }}</h3>
+                <span class="d-block text-muted small">Days Attended</span>
+                <h3>{{ attendance_summary.classes_attended }}</h3>
+                {% if attendance_summary.actual_classes %}
+                <span class="d-block text-muted small mt-2">Classes Recorded</span>
+                <h5>{{ attendance_summary.actual_classes }}</h5>
+                {% endif %}
               </div>
               <div class="text-end">
-                <small class="text-muted d-block mb-1">Attendance Rate</small>
-                <h3 class="fw-bold text-primary mb-0">{{ attendance_summary.attendance_percentage|floatformat:1 }}%</h3>
+                <span class="d-block text-muted small">Attendance Rate</span>
+                <h3 class="text-primary">{{ attendance_summary.attendance_percentage|floatformat:1 }}%</h3>
+                {% if attendance_summary.actual_percentage %}
+                <span class="d-block text-muted small mt-2">Rate (Recorded Only)</span>
+                <h5 class="text-primary">{{ attendance_summary.actual_percentage|floatformat:1 }}%</h5>
+                {% endif %}
               </div>
             </div>
-            <div class="d-flex justify-content-between mt-3">
-              <span class="badge bg-success p-2"><i class="fas fa-fire me-1"></i> Current: {{ attendance_summary.current_streak }} days</span>
-              <span class="badge bg-info p-2"><i class="fas fa-trophy me-1"></i> Best: {{ attendance_summary.longest_streak }} days</span>
+            <div class="d-flex justify-content-between mb-1">
+              <div><small>0%</small></div>
+              <div><small>100%</small></div>
             </div>
+            <div class="progress mb-2 position-relative" style="height: 15px; border-radius: 20px; background-color: #f0f0f0;">
+              <!-- Target marker at 75% -->
+              <div class="position-absolute" style="left: 75%; top: -10px; bottom: -10px; width: 2px; background-color: #dc3545;"></div>
+              <div class="progress-bar {% if attendance_summary.attendance_percentage < 75 %}bg-danger{% else %}bg-success{% endif %}" 
+                   role="progressbar" 
+                   style="width: {{ attendance_summary.attendance_percentage }}%;"
+                   aria-valuenow="{{ attendance_summary.attendance_percentage }}" 
+                   aria-valuemin="0" 
+                   aria-valuemax="100"></div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">Minimum required: 75%</small>
+              {% if attendance_summary.attendance_percentage < 75 %}
+              <small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Below minimum requirement</small>
+              {% endif %}
+            </div>
+            <!-- <small class="text-muted d-block text-center">
+              Based on attendance out of {% if student.course and student.course.duration_type == "Year" %}365 days per year{% else %}180 days per semester{% endif %}
+            </small> -->
           </div>
         </div>
       </div>
@@ -348,7 +301,7 @@
     </div>
   </div>
 
-  <div class="content-section" id="subjectsSection">
+  <div class="content-section" id="subjectsSection" style="display: none;">
     <div class="content-card">
       <h3 class="text-xl font-semibold mb-4">
         <i class="fas fa-book me-2"></i>Current Semester Subjects
@@ -381,7 +334,7 @@
     </div>
   </div>
 
-  <div class="content-section" id="routineSection">
+  <div class="content-section" id="routineSection" style="display: none;">
     <div class="content-card">
       <h3 class="text-xl font-semibold mb-4">
         <i class="fas fa-calendar-alt mr-2"></i> Class Routine
@@ -416,47 +369,10 @@
           </tbody>
         </table>
       </div>
-
-      <!-- Attendance Record Section -->
-      <div class="content-card mt-4">
-        <h3 class="text-xl font-semibold mb-4">
-          <i class="fas fa-history mr-2"></i> Attendance Record
-        </h3>
-        <div class="table-responsive">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Subject</th>
-                <th>Teacher</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for record in attendance_records %}
-              <tr>
-                <td>{{ record.attendance.date|date:"M d, Y" }}</td>
-                <td>{{ record.attendance.routine.name }}</td>
-                <td>{{ record.attendance.teacher.name }}</td>
-                <td>
-                  <span class="status-badge {% if record.student_attend %}bg-success{% else %}bg-danger{% endif %}">
-                    {% if record.student_attend %}Present{% else %}Absent{% endif %}
-                  </span>
-                </td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="4" class="text-center">No attendance records found.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   </div>
 
-  <div class="content-section" id="leaveSection">
+  <div class="content-section" id="leaveSection" style="display: none;">
     <div class="content-card">
       <h3 class="text-xl font-semibold mb-4">
         <i class="fas fa-calendar-times mr-2"></i> Leave Management
@@ -472,7 +388,8 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Date</th>
+              <th>Start Date</th>
+              <th>End Date</th>
               <th>Message</th>
               <th>Status</th>
               <th>Created At</th>
@@ -481,7 +398,8 @@
           <tbody>
             {% for leave in student_leaves %}
             <tr>
-              <td>{{ leave.date|date:"M d, Y" }}</td>
+              <td>{{ leave.start_date|date:"M d, Y" }}</td>
+              <td>{{ leave.end_date|date:"M d, Y" }}</td>
               <td>{{ leave.message }}</td>
               <td>
                 <span class="status-badge {% if leave.status == 1 %}bg-success{% elif leave.status == 2 %}bg-danger{% else %}bg-warning{% endif %}">
@@ -492,7 +410,7 @@
             </tr>
             {% empty %}
             <tr>
-              <td colspan="4" class="text-center">No leave requests found.</td>
+              <td colspan="5" class="text-center">No leave requests found.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -501,7 +419,7 @@
     </div>
   </div>
 
-  <div class="content-section" id="feedbackSection">
+  <div class="content-section" id="feedbackSection" style="display: none;">
     <div class="content-card">
       <h3 class="text-xl font-semibold mb-4">
         <i class="fas fa-comments mr-2"></i> Feedback
@@ -589,7 +507,7 @@
     </div>
   </div>
 
-  <div class="content-section" id="noticeSection">
+  <div class="content-section" id="noticeSection" style="display: none;">
     <div class="content-card">
       <h3 class="text-xl font-semibold mb-4">
         <i class="fas fa-bullhorn mr-2"></i> Notices
@@ -624,7 +542,7 @@
     </div>
   </div>
 
-  <div class="content-section" id="profileSection">
+  <div class="content-section" id="profileSection" style="display: none;">
     <div class="content-card">
       <h3 class="text-xl font-semibold mb-4">
         <i class="fas fa-user mr-2"></i> Profile Information
@@ -635,9 +553,13 @@
           <div class="d-flex flex-wrap align-items-center justify-content-between">
             <div class="d-flex align-items-center mb-3 mb-md-0">
               {% if student.image %}
-                <img src="{{ student.image.url }}" alt="{{ student.name }}" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                <div class="profile-picture-container profile-md">
+                  <img src="{{ student.image.url }}" alt="{{ student.name }}" class="profile-picture">
+                </div>
               {% else %}
-                <img src="{% static 'img/user.png' %}" alt="Default User" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                <div class="profile-picture-container profile-md">
+                  <img src="{% static 'img/user.png' %}" alt="Default User" class="profile-picture">
+                </div>
               {% endif %}
               <div>
                 <h4 class="mb-1">{{ student.name }}</h4>
@@ -779,319 +701,143 @@
       </div>
     </div>
   </div>
-
-  <!-- Edit Profile Modal -->
-  <div id="profileModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeProfileModal();">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-      <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-        <h5 style="margin: 0; font-size: 18px;">Update Profile Picture</h5>
-        <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeProfileModal()">&times;</button>
-      </div>
-      <div style="padding: 20px;">
-        <!-- Profile Picture Upload Form -->
-        <form action="{% url 'update_profile' %}" method="post" enctype="multipart/form-data">
-          {% csrf_token %}
-          <div style="text-align: center; margin-bottom: 20px;">
-            {% if student.image %}
-              <img src="{{ student.image.url }}" alt="{{ student.name }}" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #3F51B5;">
-            {% else %}
-              <img src="{% static 'img/user.png' %}" alt="Default User" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #3F51B5;">
-            {% endif %}
-          </div>
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select New Profile Picture</label>
-            <input type="file" name="image" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <button type="button" onclick="closeProfileModal()" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancel</button>
-            <button type="submit" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Update Picture</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Change Password Modal -->
-  <div id="passwordModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closePasswordModal();">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-      <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-        <h5 style="margin: 0; font-size: 18px;">Change Password</h5>
-        <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closePasswordModal()">&times;</button>
-      </div>
-      <div style="padding: 20px;">
-        <!-- Change Password Form -->
-        <form action="{% url 'change_password' %}" method="post">
-          {% csrf_token %}
-          <div style="margin-bottom: 15px;">
-            <label for="current_password" style="display: block; margin-bottom: 8px; font-weight: 500;">Current Password</label>
-            <input type="password" id="current_password" name="current_password" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
-          </div>
-          <div style="margin-bottom: 15px;">
-            <label for="new_password" style="display: block; margin-bottom: 8px; font-weight: 500;">New Password</label>
-            <input type="password" id="new_password" name="new_password" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
-          </div>
-          <div style="margin-bottom: 15px;">
-            <label for="confirm_password" style="display: block; margin-bottom: 8px; font-weight: 500;">Confirm New Password</label>
-            <input type="password" id="confirm_password" name="confirm_password" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
-          </div>
-          <button type="submit" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; width: 100%;">Change Password</button>
-        </form>
-      </div>
-    </div>
-  </div>
 </div>
 
-<!-- Leave Request Modal -->
-<div id="customLeaveModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeLeaveModal();">
-  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-      <h5 style="margin: 0; font-size: 18px;">Request Leave</h5>
-      <button id="closeCustomModal" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeLeaveModal()">&times;</button>
-    </div>
-    <form action="{% url 'request_leave' %}" method="post">
-      {% csrf_token %}
-      <div style="padding: 20px;">
-        <div style="margin-bottom: 15px;">
-          <label for="customLeaveDate" style="display: block; margin-bottom: 8px; font-weight: 500;">Date</label>
-          <input type="date" id="customLeaveDate" name="date" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required>
-        </div>
-        <div style="margin-bottom: 15px;">
-          <label for="customLeaveMessage" style="display: block; margin-bottom: 8px; font-weight: 500;">Reason</label>
-          <textarea id="customLeaveMessage" name="message" rows="3" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required></textarea>
-        </div>
-      </div>
-      <div style="padding: 15px; border-top: 1px solid #EEEEEE; text-align: right; display: flex; flex-wrap: wrap; justify-content: flex-end;">
-        <button type="button" id="cancelCustomModal" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; margin-bottom: 10px; cursor: pointer; font-size: 14px;" onclick="closeLeaveModal()">Cancel</button>
-        <button type="submit" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 10px;">Submit Request</button>
-      </div>
-    </form>
-  </div>
-</div>
+<!-- Common Modals -->
+{% include 'components/common_modals.html' with user=student %}
 
-<!-- Feedback Modal -->
-<div id="feedbackModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeFeedbackModal();">
-  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-      <h5 style="margin: 0; font-size: 18px;">Give Feedback</h5>
-      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeFeedbackModal()">&times;</button>
-    </div>
-    <div style="padding: 20px;">
-      <!-- Custom Tab Navigation -->
-      <div class="feedback-tabs d-flex mb-4">
-        <div id="teacher-tab-btn" class="feedback-tab-btn active" onclick="switchFeedbackTab('teacher')" style="background-color: #3F51B5; color: white;">
-          Teacher Feedback
-        </div>
-        <div id="institute-tab-btn" class="feedback-tab-btn" onclick="switchFeedbackTab('institute')" style="border-color: #3F51B5;">
-          Institute Feedback
-        </div>
-      </div>
-      
-      <!-- Tab Content -->
-      <div class="tab-content">
-        <!-- Teacher Feedback Form -->
-        <div id="teacher-tab-content" class="tab-pane active">
-          <form method="post" action="{% url 'submit_feedback' %}" id="teacherFeedbackForm">
-            {% csrf_token %}
-            <input type="hidden" name="feedback_type" value="teacher">
-            <div class="mb-3">
-              <label for="teacher_select" class="form-label">Select Teacher</label>
-              <select class="form-select" id="teacher_select" name="teacher_id" required style="border-color: #BDBDBD;">
-                <option value="">Select Teacher</option>
-                {% for teacher in teachers %}
-                  <option value="{{ teacher.id }}">{{ teacher.name }} - {{ teacher.designation }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Rating</label>
-              <div id="teacher-rating" class="rating-container d-flex justify-content-start gap-2">
-                {% for i in "12345"|make_list %}
-                <div class="form-check">
-                  <input class="form-check-input visually-hidden" type="radio" name="rating" value="{{ i }}" id="teacherStar{{ i }}" required>
-                  <label class="form-check-label" for="teacherStar{{ i }}">
-                    <i class="far fa-star fs-4" style="color: #FFC107;"></i>
-                  </label>
-                </div>
-                {% endfor %}
-              </div>
-            </div>
-            <div class="mb-3">
-              <label for="teacher_feedback" class="form-label">Your Feedback</label>
-              <textarea class="form-control" id="teacher_feedback" name="feedback_text" rows="3" required style="border-color: #BDBDBD;"></textarea>
-            </div>
-            <div class="d-flex justify-content-end gap-2">
-              <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeFeedbackModal()">Cancel</button>
-              <button type="submit" class="btn" style="background-color: #3F51B5; color: white;">Submit Feedback</button>
-            </div>
-          </form>
-        </div>
-        
-        <!-- Institute Feedback Form -->
-        <div id="institute-tab-content" class="tab-pane">
-          <form method="post" action="{% url 'submit_feedback' %}" id="instituteFeedbackForm">
-            {% csrf_token %}
-            <input type="hidden" name="feedback_type" value="institute">
-            <div class="mb-3">
-              <label for="feedback_type_select" class="form-label">Feedback Category</label>
-              <select class="form-select" id="feedback_type_select" name="category" required style="border-color: #BDBDBD;">
-                <option value="">Select Category</option>
-                <option value="General">General</option>
-                <option value="Facilities">Facilities</option>
-                <option value="Teaching">Teaching Quality</option>
-                <option value="Infrastructure">Infrastructure</option>
-                <option value="Administration">Administration</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Rating</label>
-              <div id="institute-rating" class="rating-container d-flex justify-content-start gap-2">
-                {% for i in "12345"|make_list %}
-                <div class="form-check">
-                  <input class="form-check-input visually-hidden" type="radio" name="rating" value="{{ i }}" id="instituteStar{{ i }}" required>
-                  <label class="form-check-label" for="instituteStar{{ i }}">
-                    <i class="far fa-star fs-4" style="color: #FFC107;"></i>
-                  </label>
-                </div>
-                {% endfor %}
-              </div>
-            </div>
-            <div class="mb-3">
-              <label for="institute_feedback" class="form-label">Your Feedback</label>
-              <textarea class="form-control" id="institute_feedback" name="feedback_text" rows="3" required placeholder="Please provide your feedback about the institute" style="border-color: #BDBDBD;"></textarea>
-            </div>
-            <div class="mb-3">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="is_anonymous" id="isAnonymous" style="border-color: #BDBDBD;">
-                <label class="form-check-label" for="isAnonymous">
-                  Submit anonymously
-                </label>
-              </div>
-            </div>
-            <div class="d-flex justify-content-end gap-2">
-              <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeFeedbackModal()">Cancel</button>
-              <button type="submit" class="btn" style="background-color: #3F51B5; color: white;">Submit Feedback</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- Student-specific Modals -->
+{% include 'components/student_modals.html' %}
+{% include 'components/student_feedback_modal.html' %}
 
-<!-- PDF Viewer Modal -->
-<div id="pdfViewerModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closePdfViewerModal();">
-  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95%; max-width: 1000px; height: 90vh; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-      <h5 style="margin: 0; font-size: 18px;">Subject Syllabus</h5>
-      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closePdfViewerModal()">&times;</button>
-    </div>
-    <div style="height: calc(90vh - 60px); padding: 0;">
-      <iframe id="pdfViewer" style="width: 100%; height: 100%; border: none;"></iframe>
-    </div>
-  </div>
-</div>
-
-<!-- Subject Files Modal -->
-<div id="subjectFilesModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeSubjectFilesModal();">
-  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-      <h5 style="margin: 0; font-size: 18px;">Subject Files</h5>
-      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeSubjectFilesModal()">&times;</button>
-    </div>
-    <div style="padding: 20px;">
-      <div id="subjectFilesList" class="list-group">
-        <!-- Files will be loaded here -->
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Additional responsive scripts -->
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // Make all tables responsive
-    const tables = document.querySelectorAll('table:not(.table-responsive)');
-    tables.forEach(table => {
-      const wrapper = document.createElement('div');
-      wrapper.classList.add('table-responsive');
-      table.parentNode.insertBefore(wrapper, table);
-      wrapper.appendChild(table);
-    });
-    
-    // Adjust card layout on small screens
-    function adjustLayout() {
-      const windowWidth = window.innerWidth;
-      if (windowWidth < 768) {
-        // Smaller screens adjustments
-        document.querySelectorAll('.card-title').forEach(title => {
-          title.style.fontSize = '1rem';
-        });
-      } else {
-        // Reset for larger screens
-        document.querySelectorAll('.card-title').forEach(title => {
-          title.style.fontSize = '';
-        });
-      }
-    }
-    
-    // Run on load and resize
-    adjustLayout();
-    window.addEventListener('resize', adjustLayout);
-  });
-</script>
+<!-- Add fix script -->
+<script src="{% static 'js/navigation.js' %}"></script>
+<script src="{% static 'js/rating.js' %}"></script>
 
 <!-- Bottom Navigation -->
-<div class="bottom-nav">
-  <div class="nav-container">
-    <a href="#" class="nav-item active" data-section="dashboard">
-      <i class="fas fa-home"></i>
-      <span class="d-none d-sm-block">Dashboard</span>
-    </a>
-    <a href="#" class="nav-item" data-section="subjects">
-      <i class="fas fa-book"></i>
-      <span class="d-none d-sm-block">Subjects</span>
-    </a>
-    <a href="#" class="nav-item" data-section="routine">
-      <i class="fas fa-calendar-alt"></i>
-      <span class="d-none d-sm-block">Routine</span>
-    </a>
-    <a href="#" class="nav-item" data-section="leave">
-      <i class="fas fa-calendar-times"></i>
-      <span class="d-none d-sm-block">Leaves</span>
-    </a>
-    <a href="#" class="nav-item" data-section="feedback">
-      <i class="fas fa-comments"></i>
-      <span class="d-none d-sm-block">Feedback</span>
-    </a>
-    <a href="#" class="nav-item" data-section="notice">
-      <i class="fas fa-bullhorn"></i>
-      <span class="d-none d-sm-block">Notices</span>
-    </a>
-    <a href="#" class="nav-item" data-section="profile">
-      <i class="fas fa-user"></i>
-      <span class="d-none d-sm-block">Profile</span>
-    </a>
-    <a href="#" class="nav-item" onclick="document.getElementById('logoutForm').submit(); return false;">
-      <i class="fas fa-sign-out-alt"></i>
-      <span class="d-none d-sm-block">Logout</span>
-    </a>
-    <form id="logoutForm" method="post" action="{% url 'logout' %}" style="display: none;">
-      {% csrf_token %}
-    </form>
+{% include 'components/bottom_nav.html' with user=student %}
+
+<!-- Add a new attendance section -->
+<div class="content-section" id="attendanceSection" style="display: none;">
+  <div class="content-card">
+    <h3 class="text-xl font-semibold mb-4">
+      <i class="fas fa-clipboard-check me-2"></i> Attendance Record
+    </h3>
+    
+    <!-- Attendance Summary -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body">
+            <h5 class="card-title mb-3"><i class="fas fa-chart-pie text-primary me-2"></i>Attendance Summary</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <span class="d-block text-muted small">Days Attended</span>
+                <h3>{{ attendance_summary.classes_attended }}</h3>
+                {% if attendance_summary.actual_classes %}
+                <span class="d-block text-muted small mt-2">Classes Recorded</span>
+                <h5>{{ attendance_summary.actual_classes }}</h5>
+                {% endif %}
+              </div>
+              <div class="text-end">
+                <span class="d-block text-muted small">Attendance Rate</span>
+                <h3 class="text-primary">{{ attendance_summary.attendance_percentage|floatformat:1 }}%</h3>
+                {% if attendance_summary.actual_percentage %}
+                <span class="d-block text-muted small mt-2">Rate (Recorded Only)</span>
+                <h5 class="text-primary">{{ attendance_summary.actual_percentage|floatformat:1 }}%</h5>
+                {% endif %}
+              </div>
+            </div>
+            <div class="progress mb-2 position-relative" style="height: 15px; border-radius: 20px; background-color: #f0f0f0;">
+              <!-- Target marker at 75% -->
+              <div class="position-absolute" style="left: 75%; top: -10px; bottom: -10px; width: 2px; background-color: #dc3545;"></div>
+              <div class="progress-bar {% if attendance_summary.attendance_percentage < 75 %}bg-danger{% else %}bg-success{% endif %}" 
+                   role="progressbar" 
+                   style="width: {{ attendance_summary.attendance_percentage }}%;"
+                   aria-valuenow="{{ attendance_summary.attendance_percentage }}" 
+                   aria-valuemin="0" 
+                   aria-valuemax="100"></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">Minimum required: 75%</small>
+              {% if attendance_summary.attendance_percentage < 75 %}
+              <small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Below minimum requirement</small>
+              {% endif %}
+            </div>
+            <!-- <small class="text-muted d-block text-center">
+              Based on attendance out of {% if student.course and student.course.duration_type == "Year" %}365 days per year{% else %}180 days per semester{% endif %}
+            </small> -->
+          </div>
+        </div>
+      </div>
+      <div class="col-md-8">
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body">
+            <h5 class="card-title mb-3"><i class="fas fa-info-circle text-info me-2"></i>Attendance Details</h5>
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <div class="text-center p-3 bg-light rounded">
+                  <div class="display-6 text-success mb-1">{{ attendance_summary.present_count }}</div>
+                  <div class="small text-muted">Present</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="text-center p-3 bg-light rounded">
+                  <div class="display-6 text-danger mb-1">{{ attendance_summary.absent_count }}</div>
+                  <div class="small text-muted">Absent</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="text-center p-3 bg-light rounded">
+                  <div class="display-6 text-success mb-1">{{ attendance_summary.current_streak }}</div>
+                  <div class="small text-muted">Current Streak</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="text-center p-3 bg-light rounded">
+                  <div class="display-6 text-info mb-1">{{ attendance_summary.longest_streak }}</div>
+                  <div class="small text-muted">Best Streak</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Attendance Records Table -->
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Subject</th>
+            <th>Teacher</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in attendance_records %}
+          <tr>
+            <td>{{ record.attendance.date|date:"M d, Y" }}</td>
+            <td>{{ record.attendance.routine.subject.name }}</td>
+            <td>{{ record.attendance.teacher.name }}</td>
+            <td>
+              <span class="status-badge {% if record.student_attend %}bg-success{% else %}bg-danger{% endif %}">
+                {% if record.student_attend %}Present{% else %}Absent{% endif %}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center">No attendance records found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
-<!-- Toast Notification -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11000">
-  <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="toast-header">
-      <i class="fas fa-bell me-2"></i>
-      <strong class="me-auto" id="toastTitle">Notification</strong>
-      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-    <div class="toast-body" id="toastMessage">
-      <!-- Notification message will appear here -->
-    </div>
-  </div>
-</div>
 {% endblock %}
+

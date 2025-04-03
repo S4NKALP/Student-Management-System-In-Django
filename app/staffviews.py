@@ -1,11 +1,11 @@
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
-from django.db.models import Avg, Q
+from django.contrib import messages
+from django.db.models import Count, Q, Avg
 from django.utils import timezone
 from datetime import timedelta, datetime
 from django.views.decorators.http import require_http_methods, require_GET
-from django.contrib import messages
 from django.contrib.auth.hashers import check_password, make_password
 from .models import (
     Staff,
@@ -19,7 +19,10 @@ from .models import (
     Institute,
     StaffInstituteFeedback,
     Subject,
-    InstituteFeedback
+    SubjectFile,
+    InstituteFeedback,
+    CourseTracking,
+    FEEDBACK_TYPE_CHOICES
 )
 from app.admin import custom_admin_site
 
@@ -27,7 +30,11 @@ from app.admin import custom_admin_site
 @login_required
 def teacherDashboard(request):
     """View to display the teacher dashboard with their classes and student information"""
-    teacher = Staff.objects.get(phone=request.user.phone)  # Get the Staff object
+    teacher = Staff.objects.filter(phone=request.user.phone).first()
+    if not teacher:
+        messages.error(request, "Teacher profile not found. Please contact administrator.")
+        return redirect('dashboard')
+        
     today = timezone.now().date()
     current_time = timezone.now().time()
     last_week = today - timedelta(days=7)
@@ -43,8 +50,13 @@ def teacherDashboard(request):
     for routine in today_routines:
         attendance = routine.attendances.filter(date=today).first()
 
-        # Get total students from the course associated with the subject
-        total_students = Student.objects.filter(course=routine.subject.course).count()
+        # Get total students from active course trackings
+        total_students = CourseTracking.objects.filter(
+            course=routine.subject.course,
+            current_semester=routine.semester_or_year,
+            progress_status="In Progress"
+        ).count()
+
         attendance_count = (
             0
             if not attendance
@@ -56,17 +68,18 @@ def teacherDashboard(request):
         # Add routine to processed_routines
         processed_routines.append(
             {
-                "id": routine.id,  # Add the routine ID for use in the template
+                "id": routine.id,
                 "name": routine.subject.name,
                 "start_time": routine.start_time,
                 "end_time": routine.end_time,
-                "is_completed": attendance is not None,  # Only mark as completed if attendance exists
+                "is_completed": attendance is not None,
                 "is_ongoing": routine.start_time <= current_time <= routine.end_time,
                 "total_students": total_students,
                 "attendance_count": attendance_count,
                 "semester_or_year": routine.semester_or_year,
                 "course_name": routine.subject.course.name,
-                "has_attendance": attendance is not None,  # Flag to check if attendance has been taken
+                "has_attendance": attendance is not None,
+                "subject_id": routine.subject.id,
             }
         )
 
@@ -75,8 +88,11 @@ def teacherDashboard(request):
     completed_classes = len([r for r in processed_routines if r["is_completed"]])
     remaining_classes = total_classes - completed_classes
 
-    # Get student statistics - count unique students from teacher's assigned subjects and semesters
-    total_students = Student.objects.filter(status="Active").count()
+    # Get student statistics from course tracking
+    total_students = CourseTracking.objects.filter(
+        course__in=today_routines.values_list('subject__course', flat=True),
+        progress_status="In Progress"
+    ).values('student').distinct().count()
     
     # Get present and absent students for today
     present_students = AttendanceRecord.objects.filter(
@@ -88,14 +104,16 @@ def teacherDashboard(request):
     # Calculate absent students based on teacher's classes today
     today_class_students = set()
     for routine in today_routines:
-        students = Student.objects.filter(
+        students = CourseTracking.objects.filter(
             course=routine.subject.course,
             current_semester=routine.semester_or_year,
-            status="Active"
-        )
-        today_class_students.update(students.values_list('id', flat=True))
+            progress_status="In Progress"
+        ).values_list('student', flat=True)
+        today_class_students.update(students)
     
-    absent_students = len(today_class_students) - present_students if today_class_students else 0
+    # Make sure absent students doesn't go negative
+    total_today_students = len(today_class_students)
+    absent_students = max(0, total_today_students - present_students) if total_today_students else 0
 
     # Get average rating from student feedback
     avg_rating = StudentFeedback.objects.filter(
@@ -119,7 +137,7 @@ def teacherDashboard(request):
     notices = Notice.objects.all().order_by('-created_at')[:5]
 
     # Get feedback types for institute feedback
-    feedback_types = InstituteFeedback.FEEDBACK_TYPE_CHOICES
+    feedback_types = FEEDBACK_TYPE_CHOICES
 
     # Get institute feedback
     institute_feedback = StaffInstituteFeedback.objects.filter(staff=teacher).order_by('-created_at')[:5]
@@ -128,9 +146,9 @@ def teacherDashboard(request):
     all_routines = Routine.objects.filter(
         teacher=teacher,
         is_active=True,
-        semester_or_year__in=Student.objects.filter(status="Active")
-        .values_list('current_semester', flat=True)
-        .distinct()
+        semester_or_year__in=CourseTracking.objects.filter(
+            progress_status="In Progress"
+        ).values_list('current_semester', flat=True).distinct()
     ).order_by('start_time')
 
     # Get all attendance records for quick access
@@ -155,6 +173,26 @@ def teacherDashboard(request):
         is_active=True
     ).order_by('start_time')
 
+    # Get all subjects taught by this teacher for the subjects section
+    subject_ids = Routine.objects.filter(
+        teacher=teacher,
+        is_active=True
+    ).values_list('subject', flat=True).distinct()
+    
+    teacher_subjects = Routine.objects.filter(
+        teacher=teacher,
+        is_active=True,
+        subject_id__in=subject_ids
+    ).select_related('subject', 'course').order_by('subject__name')
+    
+    # Add student count to each routine
+    for routine in teacher_subjects:
+        routine.students_count = CourseTracking.objects.filter(
+            course=routine.course,
+            current_semester=routine.semester_or_year,
+            progress_status="In Progress"
+        ).count()
+
     context = {
         "teacher": teacher,
         "title": "Teacher Dashboard",
@@ -178,9 +216,9 @@ def teacherDashboard(request):
         "institute_feedback": institute_feedback,
         "all_routines": all_routines,
         "recent_attendance": recent_attendance,
-        # Attendance Management Context
         "routines": routines,
         "today": today,
+        "teacher_subjects": teacher_subjects,
     }
 
     return render(request, "teacher_dashboard.html", context)
@@ -191,34 +229,44 @@ def request_staff_leave(request):
     """View to handle leave requests from staff"""
     if request.method == "POST":
         staff = request.user
-        date = request.POST.get("date")
+        start_date = request.POST.get("start_date")
+        end_date = request.POST.get("end_date")
         message = request.POST.get("message")
 
         try:
-            # Convert date string to timezone-aware datetime
-            leave_date = timezone.datetime.strptime(date, "%Y-%m-%d")
-            leave_date = timezone.make_aware(leave_date)
+            # Convert date strings to timezone-aware datetime
+            start_date = timezone.datetime.strptime(start_date, "%Y-%m-%d")
+            end_date = timezone.datetime.strptime(end_date, "%Y-%m-%d")
+            start_date = timezone.make_aware(start_date)
+            end_date = timezone.make_aware(end_date)
             today = timezone.now()
 
-            if leave_date.date() < today.date():
-                messages.error(request, "Leave date cannot be in the past.")
+            if start_date.date() < today.date():
+                messages.error(request, "Start date cannot be in the past.")
                 return redirect("teacherDashboard")
 
-            # Check if leave already exists for this date
+            if end_date.date() < start_date.date():
+                messages.error(request, "End date cannot be before start date.")
+                return redirect("teacherDashboard")
+
+            # Check if leave already exists for these dates
             existing_leave = Staff_leave.objects.filter(
-                staff=staff, date=leave_date.date()
+                staff=staff,
+                start_date__lte=end_date.date(),
+                end_date__gte=start_date.date()
             ).first()
 
             if existing_leave:
                 messages.error(
-                    request, "You have already requested leave for this date."
+                    request, "You have already requested leave for these dates."
                 )
                 return redirect("teacherDashboard")
 
             # Create leave request
             leave = Staff_leave.objects.create(
                 staff=staff,
-                date=leave_date.date(),
+                start_date=start_date.date(),
+                end_date=end_date.date(),
                 message=message,
                 status=0,  # Pending status
             )
@@ -264,8 +312,12 @@ def submit_staff_institute_feedback(request):
                     email="default@example.com",
                 )
 
-            # Get the staff object
-            teacher = Staff.objects.get(phone=staff.phone)
+            # Get the staff object - FIX: Use filter().first() instead of get() to avoid MultipleObjectsReturned error
+            teacher = Staff.objects.filter(phone=staff.phone).first()
+            
+            if not teacher:
+                messages.error(request, "Staff account not found")
+                return redirect("teacherDashboard")
 
             # Check if feedback already exists for this type
             existing_feedback = StaffInstituteFeedback.objects.filter(
@@ -304,7 +356,9 @@ def submit_staff_institute_feedback(request):
 def save_attendance(request):
     """View to save attendance data"""
     if request.method == "POST":
-        teacher = Staff.objects.get(phone=request.user.phone)
+        teacher = Staff.objects.filter(phone=request.user.phone).first()
+        if not teacher:
+            return redirect('login')
         routine_id = request.POST.get("routine_id")
         date_str = request.POST.get("date")
 
@@ -393,7 +447,9 @@ def save_attendance(request):
 @require_GET
 def get_subject_schedule(request):
     """View to get schedule for a subject"""
-    teacher = Staff.objects.get(phone=request.user.phone)
+    teacher = Staff.objects.filter(phone=request.user.phone).first()
+    if not teacher:
+        return JsonResponse({"success": False, "message": "Teacher account not found"})
     subject_id = request.GET.get("subject_id")
 
     if not subject_id:
@@ -413,7 +469,9 @@ def get_subject_schedule(request):
 def teacher_update_profile_picture(request):
     """View to handle profile picture update for teachers"""
     if request.method == "POST":
-        teacher = Staff.objects.get(phone=request.user.phone)
+        teacher = Staff.objects.filter(phone=request.user.phone).first()
+        if not teacher:
+            return redirect('login')
         profile_picture = request.FILES.get("profile_picture")
 
         if profile_picture:
@@ -494,7 +552,12 @@ def get_attendance_form(request):
         })
     
     try:
-        routine = Routine.objects.get(id=routine_id, teacher=request.user)
+        teacher = Staff.objects.filter(phone=request.user.phone).first()
+        if not teacher:
+            return JsonResponse({
+                'error': 'Teacher account not found'
+            }, status=404)
+        routine = Routine.objects.get(id=routine_id, teacher=teacher)
         date = datetime.strptime(date_str, '%Y-%m-%d').date()
         
         # Get existing attendance data if any
@@ -555,7 +618,10 @@ def get_students(request):
         return JsonResponse({'error': 'Missing routine_id parameter'}, status=400)
     
     try:
-        routine = Routine.objects.get(id=routine_id, teacher=request.user)
+        teacher = Staff.objects.filter(phone=request.user.phone).first()
+        if not teacher:
+            return JsonResponse({'error': 'Teacher account not found'}, status=404)
+        routine = Routine.objects.get(id=routine_id, teacher=teacher)
         
         # Get students for this routine
         students = Student.objects.filter(
@@ -583,3 +649,376 @@ def get_students(request):
         return JsonResponse({'error': 'Invalid routine selected'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def manage_subject_files(request):
+    """View to manage files for subjects taught by the teacher"""
+    teacher = Staff.objects.filter(phone=request.user.phone).first()
+    if not teacher:
+        return JsonResponse({
+            "success": False, 
+            "message": "Staff account not found"
+        }, status=404)
+    
+    # Get all subjects taught by this teacher
+    subject_filter = request.GET.get("subject")
+    
+    subjects_query = Routine.objects.filter(
+        teacher=teacher,
+        is_active=True
+    ).values_list('subject', flat=True).distinct()
+    
+    # Apply subject filter if provided
+    try:
+        if subject_filter:
+            subjects = Subject.objects.filter(
+                id=subject_filter,
+                id__in=subjects_query
+            ).order_by('course__name', 'semester_or_year', 'name')
+            
+            # If no subject found with the provided ID, return a helpful error
+            if not subjects.exists():
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        "success": False,
+                        "message": f"Subject with ID {subject_filter} not found or you don't have permission to access it"
+                    }, status=404)
+                else:
+                    return render(request, 'subject_files.html', {
+                        "subjects": [],
+                        "teacher": teacher,
+                        "selected_subject": None,
+                        "error_message": f"Subject with ID {subject_filter} not found or you don't have permission to access it"
+                    })
+        else:
+            subjects = Subject.objects.filter(
+                id__in=subjects_query
+            ).order_by('course__name', 'semester_or_year', 'name')
+            
+            # If no subjects found at all, return a message
+            if not subjects.exists():
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        "success": False,
+                        "message": "You are not assigned to any subjects yet"
+                    })
+                else:
+                    return render(request, 'subject_files.html', {
+                        "subjects": [],
+                        "teacher": teacher,
+                        "selected_subject": None,
+                        "error_message": "You are not assigned to any subjects yet"
+                    })
+    except Exception as e:
+        # Handle any unexpected errors
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                "success": False,
+                "message": f"Error loading subjects: {str(e)}"
+            }, status=500)
+        else:
+            return render(request, 'subject_files.html', {
+                "subjects": [],
+                "teacher": teacher,
+                "selected_subject": None,
+                "error_message": f"Error loading subjects: {str(e)}"
+            })
+    
+    if request.method == "POST":
+        subject_id = request.POST.get("subject_id")
+        title = request.POST.get("title")
+        description = request.POST.get("description")
+        file = request.FILES.get("file")
+        
+        if not subject_id or not title or not file:
+            return JsonResponse({
+                "success": False, 
+                "message": "Subject, title and file are required"
+            })
+        
+        try:
+            subject = Subject.objects.get(id=subject_id)
+            
+            # Check if subject is taught by this teacher
+            if not Routine.objects.filter(teacher=teacher, subject=subject, is_active=True).exists():
+                return JsonResponse({
+                    "success": False, 
+                    "message": "You don't have permission to upload files to this subject"
+                })
+            
+            # Create new subject file
+            subject_file = SubjectFile.objects.create(
+                subject=subject,
+                title=title,
+                description=description,
+                file=file,
+                uploaded_by=teacher
+            )
+            
+            return JsonResponse({
+                "success": True, 
+                "message": "File uploaded successfully",
+                "file": {
+                    "id": subject_file.id,
+                    "title": subject_file.title,
+                    "description": subject_file.description,
+                    "file_url": subject_file.file.url,
+                    "uploaded_at": subject_file.uploaded_at.strftime("%b %d, %Y %H:%M")
+                }
+            })
+        except Subject.DoesNotExist:
+            return JsonResponse({
+                "success": False, 
+                "message": "Subject not found"
+            })
+        except Exception as e:
+            return JsonResponse({
+                "success": False, 
+                "message": f"Error uploading file: {str(e)}"
+            })
+    
+    # For GET requests, return a list of subjects and their files
+    subjects_data = []
+    for subject in subjects:
+        try:
+            subject_files = subject.get_all_files()
+            subjects_data.append({
+                "id": subject.id,
+                "name": subject.name,
+                "course": subject.course.name,
+                "semester_or_year": subject.semester_or_year,
+                "files": subject_files,
+                "files_count": len(subject_files)
+            })
+        except Exception as e:
+            # If there's an error with a specific subject, log it but continue
+            print(f"Error loading files for subject {subject.id}: {str(e)}")
+    
+    return render(request, 'subject_files.html', {
+        "subjects": subjects_data,
+        "teacher": teacher,
+        "selected_subject": subject_filter
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_subject_file(request):
+    """View to delete a subject file"""
+    teacher = Staff.objects.filter(phone=request.user.phone).first()
+    if not teacher:
+        return JsonResponse({
+            "success": False, 
+            "message": "Staff account not found"
+        }, status=404)
+    
+    file_id = request.POST.get("file_id")
+    
+    if not file_id:
+        return JsonResponse({
+            "success": False, 
+            "message": "File ID is required"
+        })
+    
+    try:
+        # Check if the file exists and is owned by this teacher or from their subject
+        subject_file = SubjectFile.objects.get(id=file_id)
+        
+        # Check if the file is from a subject taught by this teacher
+        if not Routine.objects.filter(
+            teacher=teacher, 
+            subject=subject_file.subject, 
+            is_active=True
+        ).exists() and subject_file.uploaded_by != teacher:
+            return JsonResponse({
+                "success": False, 
+                "message": "You don't have permission to delete this file"
+            })
+        
+        # Delete the file
+        subject_file.delete()
+        
+        return JsonResponse({
+            "success": True, 
+            "message": "File deleted successfully"
+        })
+    except SubjectFile.DoesNotExist:
+        return JsonResponse({
+            "success": False, 
+            "message": "File not found"
+        })
+    except Exception as e:
+        return JsonResponse({
+            "success": False, 
+            "message": f"Error deleting file: {str(e)}"
+        })
+
+
+@login_required
+@require_GET
+def get_teacher_subjects(request):
+    """View to get a list of subjects taught by the teacher"""
+    teacher = Staff.objects.filter(phone=request.user.phone).first()
+    if not teacher:
+        return JsonResponse({
+            "success": False,
+            "message": "Staff account not found"
+        }, status=404)
+    
+    # Get all subjects taught by the teacher
+    subjects_query = Subject.objects.filter(
+        routine__teacher=teacher,
+        routine__is_active=True
+    ).distinct()
+    
+    # Prepare results with additional has_syllabus field
+    subjects_data = []
+    for subject in subjects_query:
+        subjects_data.append({
+            'id': subject.id,
+            'name': subject.name,
+            'course__name': subject.course.name,
+            'semester_or_year': subject.semester_or_year,
+            'has_syllabus': bool(subject.syllabus_pdf)
+        })
+    
+    return JsonResponse({
+        "success": True,
+        "subjects": subjects_data
+    })
+
+
+@login_required
+@require_GET
+def view_subject_syllabus(request, subject_id):
+    """View to display syllabus PDF for a subject"""
+    teacher = Staff.objects.filter(phone=request.user.phone).first()
+    
+    if not teacher:
+        return JsonResponse({
+            "success": False,
+            "message": "Staff account not found"
+        }, status=404)
+    
+    try:
+        # Check if the subject_id is valid
+        if not subject_id or not str(subject_id).isdigit():
+            return JsonResponse({
+                "success": False,
+                "message": "Invalid subject ID provided"
+            }, status=400)
+            
+        subject_id = int(subject_id)
+        
+        # First check if the teacher teaches this subject
+        if not Routine.objects.filter(
+            teacher=teacher,
+            subject_id=subject_id,
+            is_active=True
+        ).exists():
+            return JsonResponse({
+                "success": False,
+                "message": "You don't have permission to view this subject's syllabus"
+            }, status=403)
+        
+        try:
+            subject = Subject.objects.filter(id=subject_id).first()
+        except Subject.DoesNotExist:
+            return JsonResponse({
+                "success": False,
+                "message": "Subject not found"
+            }, status=404)
+            
+        if not subject.syllabus_pdf:
+            return JsonResponse({
+                "success": False,
+                "message": "No syllabus available for this subject"
+            }, status=404)
+        
+        # Return JSON with the file URL
+        return JsonResponse({
+            "success": True,
+            "file_url": subject.syllabus_pdf.url,
+            "file_name": f"{subject.name} Syllabus.pdf"
+        })
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": f"Error retrieving syllabus: {str(e)}"
+        }, status=500)
+
+
+@login_required
+def staffDashboard(request):
+    """View to display the staff dashboard with their personal information and progress"""
+    staff = Staff.objects.get(phone=request.user.phone)  # Get the Staff object
+    today = timezone.now().date()
+    last_week = today - timedelta(days=7)
+    last_month = today - timedelta(days=30)
+
+    # Clear section states on page load
+    if request.method == 'GET':
+        request.session.pop('active_section', None)
+        request.session.pop('active_subsection', None)
+
+    # Get feedback types for institute feedback
+    feedback_types = FEEDBACK_TYPE_CHOICES
+
+    # Get institute feedback
+    institute_feedback = StaffInstituteFeedback.objects.filter(staff=staff).order_by("-created_at")[:5]
+
+    # Get recent notices
+    recent_notices = Notice.objects.all().order_by("-created_at")[:5]
+
+    # Get recent feedback
+    recent_feedback = StudentFeedback.objects.filter(teacher=staff).order_by("-created_at")[:5]
+
+    # Get leave requests
+    leave_requests = Staff_leave.objects.filter(staff=staff).order_by("-created_at")[:5]
+
+    # Get routines assigned to this teacher
+    routines = Routine.objects.filter(teacher=staff, is_active=True).order_by("start_time")
+
+    # Get today's routines
+    today_routines = routines.filter(start_time__lte=timezone.now().time(), end_time__gte=timezone.now().time())
+
+    # Get attendance records for today's routines
+    today_attendance = Attendance.objects.filter(
+        routine__in=today_routines,
+        date=today
+    ).select_related("routine")
+
+    # Calculate attendance statistics
+    total_students = 0
+    present_students = 0
+    absent_students = 0
+
+    for attendance in today_attendance:
+        records = attendance.records.all()
+        total_students += records.count()
+        present_students += records.filter(student_attend=True).count()
+        absent_students += records.filter(student_attend=False).count()
+
+    # Get average rating from student feedback
+    avg_rating = StudentFeedback.objects.filter(teacher=staff).aggregate(Avg("rating"))["rating__avg"] or 0
+
+    context = {
+        "staff": staff,
+        "recent_notices": recent_notices,
+        "recent_feedback": recent_feedback,
+        "institute_feedback": institute_feedback,
+        "leave_requests": leave_requests,
+        "today_routines": today_routines,
+        "today_attendance": today_attendance,
+        "total_students": total_students,
+        "present_students": present_students,
+        "absent_students": absent_students,
+        "avg_rating": avg_rating,
+        "feedback_types": feedback_types,
+        "last_week": last_week,
+        "last_month": last_month,
+    }
+
+    return render(request, "app/staff/dashboard.html", context)

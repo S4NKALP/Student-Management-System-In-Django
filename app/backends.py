@@ -11,28 +11,22 @@ class MultiModelBackend(ModelBackend):
             return None
         
         # Try authenticating as Staff by phone
-        try:
-            staff = Staff.objects.get(phone=username)
-            if staff.check_password(password):
-                return staff
-        except Staff.DoesNotExist:
-            pass
+        # Use filter().first() to avoid MultipleObjectsReturned error
+        staff = Staff.objects.filter(phone=username).first()
+        if staff and staff.check_password(password):
+            return staff
 
         # Try authenticating as Staff by email
-        try:
-            staff = Staff.objects.get(email=username)
-            if staff.check_password(password):
-                return staff
-        except Staff.DoesNotExist:
-            pass
+        # Use filter().first() to avoid MultipleObjectsReturned error
+        staff = Staff.objects.filter(email=username).first()
+        if staff and staff.check_password(password):
+            return staff
 
         # Try authenticating as Student by phone
-        try:
-            student = Student.objects.get(phone=username)
-            if student.check_password(password):
-                return student
-        except Student.DoesNotExist:
-            pass
+        # Use filter().first() to avoid MultipleObjectsReturned error
+        student = Student.objects.filter(phone=username).first()
+        if student and student.check_password(password):
+            return student
 
         # Try authenticating as Student by email
         # Use filter().first() to handle multiple students with same email

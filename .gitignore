@@ -1,4 +1,3 @@
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -62,6 +61,7 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 */migrations/*.py
+*/migrations/*
 !*/migrations/__init__.py
 
 # Flask stuff:
@@ -157,3 +157,4 @@ dump.rdb
 # Firebase configuration
 firebase-config.json
 firebase.json
+static/js/firebase-config.js

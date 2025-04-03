@@ -34,10 +34,12 @@ pyasn1_modules==0.4.1
 pycparser==2.22
 PyJWT==2.10.1
 pyparsing==3.2.3
+python-dotenv==1.0.1
 pytz==2025.2
 requests==2.32.3
 rsa==4.9
 sqlparse==0.5.3
 uritemplate==4.1.1
 urllib3==2.3.0
-python-dotenv==1.0.1
+whitenoise==6.9.0
+pyotp==2.9.0

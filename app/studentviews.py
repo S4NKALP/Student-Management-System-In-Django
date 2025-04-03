@@ -20,6 +20,7 @@ from .models import (
     Institute,
     InstituteFeedback,
     Subject,
+    FEEDBACK_TYPE_CHOICES,
 )
 
 
@@ -31,6 +32,11 @@ def studentDashboard(request):
     last_week = today - timedelta(days=7)
     last_month = today - timedelta(days=30)
 
+    # Clear section states on page load
+    if request.method == 'GET':
+        request.session.pop('active_section', None)
+        request.session.pop('active_subsection', None)
+
     # Get all teachers for feedback form
     teachers = Staff.objects.filter(
         Q(designation__icontains="Teacher")
@@ -41,7 +47,7 @@ def studentDashboard(request):
     ).order_by("name")
 
     # Get feedback types for institute feedback
-    feedback_types = InstituteFeedback.FEEDBACK_TYPE_CHOICES
+    feedback_types = FEEDBACK_TYPE_CHOICES
 
     # Course Progress and Tracking
     course_trackings = CourseTracking.objects.filter(student=student).select_related(
@@ -71,51 +77,84 @@ def studentDashboard(request):
     # Course Details with enhanced information
     course_details = []
     for tracking in course_trackings:
-        # Calculate expected end date based on course duration
-        if tracking.start_date:
-            if tracking.course.duration_type == "Year":
-                duration_days = tracking.course.duration * 365  # Years to days
-            else:  # Semester based
-                duration_days = (
-                    tracking.course.duration * 365
-                )  # Use full years for total duration
-
-            expected_end_date = tracking.start_date + timedelta(days=duration_days)
-        else:
-            expected_end_date = None
-
-        course_details.append(
-            {
-                "name": tracking.course.name,
-                "start_date": tracking.start_date,
-                "expected_end_date": expected_end_date,
-                "actual_end_date": tracking.actual_end_date,
-                "completion_percentage": tracking.completion_percentage,
-                "progress_status": tracking.progress_status,
-                "current_semester": tracking.current_semester,
-                "semester_start_date": tracking.semester_start_date,
-                "semester_end_date": tracking.semester_end_date,
-                "remaining_days": tracking.remaining_days,
-                "is_completed": tracking.is_completed,
-                "is_active": tracking.is_active,
-                "duration_type": tracking.course.duration_type,
-                "duration": tracking.course.duration,
-                "total_duration_days": tracking.total_duration_days,
-                "notes": tracking.notes,
-                "book": tracking.course.book
-                if hasattr(tracking.course, "book")
-                else None,
-                "topics": [],  # This will be populated if you have topic tracking
-            }
-        )
+        course_details.append({
+            "name": tracking.course.name,
+            "start_date": tracking.start_date,
+            "expected_end_date": tracking.expected_end_date,
+            "actual_end_date": tracking.actual_end_date,
+            "completion_percentage": tracking.completion_percentage,
+            "progress_status": tracking.progress_status,
+            "current_semester": tracking.current_semester,
+            "semester_start_date": tracking.semester_start_date,
+            "semester_end_date": tracking.semester_end_date,
+            "remaining_days": tracking.remaining_days,
+            "is_completed": tracking.is_completed,
+            "is_active": tracking.is_active,
+            "duration_type": tracking.course.duration_type,
+            "duration": tracking.course.duration,
+            "total_duration_days": tracking.total_duration_days,
+            "notes": tracking.notes,
+        })
 
     # Get current subjects based on current semester
-    current_subjects = student.get_current_subjects()
+    current_subjects = []
+    active_tracking = course_trackings.filter(progress_status="In Progress").first()
+    if active_tracking:
+        current_subjects = Subject.objects.filter(
+            course=active_tracking.course,
+            semester_or_year=active_tracking.current_semester
+        )
 
     # Attendance Statistics with enhanced information
     attendance_records = AttendanceRecord.objects.filter(student=student)
-    total_classes = attendance_records.count()
-    classes_attended = attendance_records.filter(student_attend=True).count()
+    
+    # Get the current semester start and end dates from student's course tracking
+    current_semester_start = None
+    current_semester_end = None
+    
+    # Try to get course tracking for current student
+    try:
+        if active_tracking and active_tracking.semester_start_date:
+            current_semester_start = active_tracking.semester_start_date
+            current_semester_end = active_tracking.semester_end_date or today
+    except Exception:
+        pass
+    
+    # Filter attendance by current semester date range if available
+    if current_semester_start:
+        semester_attendance = attendance_records.filter(
+            attendance__date__gte=current_semester_start,
+            attendance__date__lte=current_semester_end
+        )
+        
+        # Count the actual classes and attendance
+        actual_classes = semester_attendance.count()
+        classes_attended = semester_attendance.filter(student_attend=True).count()
+        
+        # Check if the course is semester-based or year-based
+        is_semester_based = active_tracking.course.duration_type == "Semester" if active_tracking else True
+            
+        # Set the denominator based on semester/year
+        if is_semester_based:
+            # For a 6-month semester, use 180 days as denominator
+            total_classes = 180
+        else:
+            # For a full year, use 365 days as denominator
+            total_classes = 365  # Or use 317 (365 - 48) if excluding Saturdays
+        
+        # Keep track of actual records for display purposes
+        if actual_classes > 0:
+            attendance_summary_actual = (classes_attended / actual_classes * 100)
+        else:
+            attendance_summary_actual = 0
+    else:
+        # Fall back to overall attendance if semester dates aren't available
+        actual_classes = attendance_records.count()
+        classes_attended = attendance_records.filter(student_attend=True).count()
+        total_classes = 180  # Default to semester-based
+        attendance_summary_actual = 0
+        
+    # Calculate attendance percentage using the fixed formula
     attendance_percentage = (
         (classes_attended / total_classes * 100) if total_classes > 0 else 0
     )
@@ -149,10 +188,17 @@ def studentDashboard(request):
     attendance_summary = {
         "total_classes": total_classes,
         "classes_attended": classes_attended,
+        "present_count": classes_attended,
+        "absent_count": total_classes - classes_attended,
         "attendance_percentage": attendance_percentage,
         "current_streak": current_streak,
-        "longest_streak": longest_streak,
+        "longest_streak": longest_streak
     }
+    
+    # Add actual recorded classes info if different from expected
+    if current_semester_start and actual_classes != total_classes:
+        attendance_summary["actual_classes"] = actual_classes
+        attendance_summary["actual_percentage"] = attendance_summary_actual
 
     # Get attendance records with related information
     attendance_records = attendance_records.select_related(
@@ -180,23 +226,16 @@ def studentDashboard(request):
     rejected_leaves = student_leaves.filter(status=2).count()
 
     # Get current semester routines
-    try:
-        # Get routines that match the student's course and current semester directly
+    current_semester_routines = []
+    if active_tracking:
         current_semester_routines = Routine.objects.filter(
-            course=student.course,
-            semester_or_year=student.current_semester,
+            course=active_tracking.course,
+            semester_or_year=active_tracking.current_semester,
             is_active=True,
         )
-    except Exception as e:
-        current_semester_routines = []
 
-    # Check if student has any routines for any semester
-    has_routines = False
-    try:
-        if student.course:
-            has_routines = Routine.objects.filter(course=student.course).exists()
-    except Exception as e:
-        has_routines = False
+    # Check if student has any routines
+    has_routines = current_semester_routines.exists()
 
     context = {
         "student": student,
@@ -241,34 +280,44 @@ def studentDashboard(request):
 def request_leave(request):
     if request.method == "POST":
         student = request.user
-        date = request.POST.get("date")
+        start_date = request.POST.get("start_date")
+        end_date = request.POST.get("end_date")
         message = request.POST.get("message")
 
         try:
-            # Convert date string to timezone-aware datetime
-            leave_date = timezone.datetime.strptime(date, "%Y-%m-%d")
-            leave_date = timezone.make_aware(leave_date)
+            # Convert date strings to timezone-aware datetime
+            start_date = timezone.datetime.strptime(start_date, "%Y-%m-%d")
+            end_date = timezone.datetime.strptime(end_date, "%Y-%m-%d")
+            start_date = timezone.make_aware(start_date)
+            end_date = timezone.make_aware(end_date)
             today = timezone.now()
 
-            if leave_date.date() < today.date():
-                messages.error(request, "Leave date cannot be in the past.")
+            if start_date.date() < today.date():
+                messages.error(request, "Start date cannot be in the past.")
                 return redirect("studentDashboard")
 
-            # Check if leave already exists for this date
+            if end_date.date() < start_date.date():
+                messages.error(request, "End date cannot be before start date.")
+                return redirect("studentDashboard")
+
+            # Check if leave already exists for these dates
             existing_leave = Student_Leave.objects.filter(
-                student=student, date=leave_date.date()
+                student=student,
+                start_date__lte=end_date.date(),
+                end_date__gte=start_date.date()
             ).first()
 
             if existing_leave:
                 messages.error(
-                    request, "You have already requested leave for this date."
+                    request, "You have already requested leave for these dates."
                 )
                 return redirect("studentDashboard")
 
             # Create leave request
             leave = Student_Leave.objects.create(
                 student=student,
-                date=leave_date.date(),
+                start_date=start_date.date(),
+                end_date=end_date.date(),
                 message=message,
                 status=0,  # Pending status
             )
@@ -291,21 +340,18 @@ def submit_feedback(request):
 
             # Validate rating range (1 to 5)
             if not (1 <= rating <= 5):
-                return JsonResponse(
-                    {"success": False, "message": "Rating must be between 1 and 5"}
-                )
+                messages.error(request, "Rating must be between 1 and 5")
+                return redirect("studentDashboard")
 
             if not feedback_text:
-                return JsonResponse(
-                    {"success": False, "message": "Please provide feedback text"}
-                )
+                messages.error(request, "Please provide feedback text")
+                return redirect("studentDashboard")
 
             if feedback_type == "teacher":
                 teacher_id = request.POST.get("teacher_id")
                 if not teacher_id:
-                    return JsonResponse(
-                        {"success": False, "message": "Please select a teacher"}
-                    )
+                    messages.error(request, "Please select a teacher")
+                    return redirect("studentDashboard")
 
                 try:
                     teacher = Staff.objects.get(id=teacher_id)
@@ -319,6 +365,7 @@ def submit_feedback(request):
                         existing_feedback.rating = rating
                         existing_feedback.feedback_text = feedback_text
                         existing_feedback.save()
+                        messages.success(request, "Teacher feedback updated successfully")
                     else:
                         # Create new feedback
                         StudentFeedback.objects.create(
@@ -327,85 +374,20 @@ def submit_feedback(request):
                             rating=rating,
                             feedback_text=feedback_text,
                         )
-
-                    return JsonResponse(
-                        {
-                            "success": True,
-                            "message": "Teacher feedback submitted successfully",
-                        }
-                    )
+                        messages.success(request, "Teacher feedback submitted successfully")
 
                 except Staff.DoesNotExist:
-                    return JsonResponse(
-                        {"success": False, "message": "Selected teacher does not exist"}
-                    )
-
-            elif feedback_type == "institute":
-                category = request.POST.get("category")
-                is_anonymous = request.POST.get("is_anonymous") == "on"
-
-                if not category:
-                    return JsonResponse(
-                        {
-                            "success": False,
-                            "message": "Please select a feedback category",
-                        }
-                    )
-
-                try:
-                    institute = Institute.objects.first()  # Assuming single institute
-                    # Check if feedback already exists for this category - use new structure
-                    existing_feedback = InstituteFeedback.objects.filter(
-                        user_type="student",
-                        content_object_id=request.user.id,
-                        institute=institute,
-                        feedback_type=category,
-                    ).first()
-
-                    if existing_feedback:
-                        # Update existing feedback
-                        existing_feedback.rating = rating
-                        existing_feedback.feedback_text = feedback_text
-                        existing_feedback.is_anonymous = is_anonymous
-                        existing_feedback.save()
-                    else:
-                        # Create new feedback - use new structure
-                        InstituteFeedback.objects.create(
-                            user_type="student",
-                            content_object_id=request.user.id,
-                            user=request.user,
-                            institute=institute,
-                            feedback_type=category,
-                            rating=rating,
-                            feedback_text=feedback_text,
-                            is_anonymous=is_anonymous,
-                        )
-
-                    return JsonResponse(
-                        {
-                            "success": True,
-                            "message": "Institute feedback submitted successfully",
-                        }
-                    )
-
-                except Institute.DoesNotExist:
-                    return JsonResponse(
-                        {"success": False, "message": "Institute not found"}
-                    )
+                    messages.error(request, "Selected teacher does not exist")
 
             else:
-                return JsonResponse(
-                    {"success": False, "message": "Invalid feedback type"}
-                )
+                messages.error(request, "Invalid feedback type")
 
         except ValueError:
-            return JsonResponse({"success": False, "message": "Invalid rating value"})
+            messages.error(request, "Invalid rating value")
         except Exception as e:
-            return JsonResponse(
-                {"success": False, "message": f"An error occurred: {str(e)}"}
-            )
+            messages.error(request, f"An error occurred: {str(e)}")
 
-    return JsonResponse({"success": False, "message": "Invalid request method"})
+    return redirect("studentDashboard")
 
 
 @login_required
@@ -418,6 +400,11 @@ def submit_institute_feedback(request):
         is_anonymous = request.POST.get("is_anonymous") == "on"
 
         try:
+            # Validate feedback type
+            if not feedback_type or feedback_type not in dict(InstituteFeedback.FEEDBACK_TYPE_CHOICES):
+                messages.error(request, "Please select a valid feedback type")
+                return redirect("studentDashboard")
+
             # Convert to float first to handle half-stars
             rating_value = float(rating)
             if rating_value < 0.5 or rating_value > 5:
@@ -440,10 +427,9 @@ def submit_institute_feedback(request):
                     email="default@example.com",
                 )
 
-            # Check if feedback already exists for this type - using new structure
+            # Check if feedback already exists for this type
             existing_feedback = InstituteFeedback.objects.filter(
-                user_type="student",
-                content_object_id=student.id,
+                user=student,
                 institute=institute,
                 feedback_type=feedback_type,
             ).first()
@@ -454,26 +440,24 @@ def submit_institute_feedback(request):
                 existing_feedback.feedback_text = feedback_text
                 existing_feedback.is_anonymous = is_anonymous
                 existing_feedback.save()
-                messages.success(request, "Institute feedback updated successfully.")
+                messages.success(request, "Institute feedback updated successfully")
             else:
-                # Create new feedback with new structure
-                feedback = InstituteFeedback.objects.create(
-                    user_type="student",
-                    content_object_id=student.id,
+                # Create new feedback
+                InstituteFeedback.objects.create(
                     user=student,
                     institute=institute,
                     feedback_type=feedback_type,
                     rating=rating_value,
                     feedback_text=feedback_text,
                     is_anonymous=is_anonymous,
+                    is_public=True,  # Default to public feedback
                 )
-                messages.success(request, "Institute feedback submitted successfully.")
+                messages.success(request, "Institute feedback submitted successfully")
+
         except ValueError:
             messages.error(request, "Invalid rating value")
         except Exception as e:
             messages.error(request, f"Error submitting institute feedback: {str(e)}")
-
-        return redirect("studentDashboard")
 
     return redirect("studentDashboard")
 
@@ -481,31 +465,25 @@ def submit_institute_feedback(request):
 @login_required
 @require_http_methods(["GET"])
 def get_subject_files(request, subject_id):
-    """View to get syllabus PDF for a subject"""
+    """View to get all files for a subject"""
     try:
         subject = Subject.objects.get(id=subject_id)
-        pdf_url = subject.get_pdf_url()
-
-        if not pdf_url:
+        files = subject.get_all_files()
+        
+        if not files:
             return JsonResponse(
-                {"success": False, "message": "No syllabus available for this subject"}
+                {"success": False, "message": "No files available for this subject"}
             )
 
         return JsonResponse(
             {
                 "success": True,
-                "files": [
-                    {
-                        "title": f"{subject.name} Syllabus",
-                        "description": f"Syllabus PDF for {subject.name}",
-                        "file_url": pdf_url,
-                    }
-                ],
+                "files": files,
             }
         )
     except Subject.DoesNotExist:
         return JsonResponse({"success": False, "message": "Subject not found"})
     except Exception as e:
         return JsonResponse(
-            {"success": False, "message": f"Error retrieving syllabus: {str(e)}"}
+            {"success": False, "message": f"Error retrieving files: {str(e)}"}
         )

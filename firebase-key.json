@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "student-management-syste-2e040",
+  "private_key_id": "7f69c11c5fc3912654719387119959fa65ae1905",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDIDfN2l9xkXdVw\nv2kVlN5TSkWgYdWSBBqT6ji+CSWmasNfzyez4cr/yEriFBTXVD+tlxUHRGQTwUf7\nAR5i5j1fyr7/RCybp0x3go7ZQb0zI4vOXXTkGOEsZNItJG8Ca+mW5KW/PRSGbHll\nzbcLmmq7eH7Q5UfQvIBD8BgvdZFeqrsLNLjKQ9pi3z+jzZAFzYSRRT8sQeojqRnm\n4huaylg9u27sUroJ30n2Y3Q7SGFQKeu+DTVTdzr8+vcsp9wuASOHJ6lUhkmCApPu\n0iWH0fGPa11gyscCEMngwXqdAw7wC5BfMs5KtMwfI+zClschAga9EqXiFswcehaY\nTZtkRgovAgMBAAECggEAHbvabcv7GSfL1irSPD+YyRmxk47hprGEHxahlw0rqA/C\nOMvvWLsR6EZ6wB4VTZPbYGT43nr5wj3orD6UUkVqOyyairzf7G/x25QaFeHBdIev\nUIgaHDTecty2qGL75N4+emDtiaj9vfpYE3DUk0hA3jBLQ6fFrsP1mc4Q/4IijcaL\nKQn+NRUpbGrvQ95WupyLPEBlNSG1RhWHR1uFAfShZpjsMWtm9c7jdAmc356Xuvaj\n5FlRAqlTaHqDNnPwyRXfgDzegodgOaPKKjdXZi26/OQ+L80rSggippAjs5xvuugw\n+hfPVJwwdefCP1Ew/n8v6pPEH+Gx3qamhQ2gLIA0cQKBgQDk3ukGzFoG+V/gdqXO\nXzBZrNe72qXgMlzQU3nnMsZS73/3IwOUebSCEOTsxVdkM83mVg6BsQ+eVBsiyzWj\npt0fDr7sTsDHfJoX58nRoiGt9HRglq/zO8vobMAXgJaX3qhcYt6O9jpwcByNnZ/g\nSE6Y7i1CyUE/xmgeCV6VVrY4rQKBgQDfxJxhyYrCxzVNF1EkmizzA6j1ZKp3LJpp\nuJ5IV27LGnvxLkIwTomJW2aAWY3EP8b7baPWPTHAHCE+aQCiZevG6n8X1Rnek1z+\n7VMZooSomQpI6tDlEjzofur0CL5yJOzwZkaUHu3CNuGXnxnUnYKRxH80FGxyKw9U\nW9+gHLmdywKBgGDWFACFXB4RS0i8ysC7s8htgkYAaCipBm46s5xn9lPG8/zL+srK\nh950aXfos2Y5KQgpJzAmi3YxHd4l3sckZfCrG4r+c0C0brponxKsp9VjVg48E6w1\ng7wOr2QCSzVsxw1347TXZ7iFJv+gTrHlxiOcutfEMXBbcVgsHLHRI35tAoGAKeh2\nqVHHrScF8oQ1bDd7x5+d2yeZTWyLFtW+vymw1FUHdWoGd2meFJ2LmuoqxOB08c3c\n61jWonYiO8AKoF+aQszUNLBygd7zgcMM1zY6xiCzbmib6ur5gUmT01R35oTH41Yk\nTcVlHgSNR4pCmjFNrOMyN5zDmrY5zsDOJvx6PvUCgYB5iD0STmUSFDwOLSRD28LD\nW8STN3gvzcF9HCK2bzfkbr0PMA2QLn6VNueoe2mXKs3aJcWOmBoB0lMEqY3GKEW6\nA8MKEhT2ZFPAHYg3sm2e8cPAfPTei9PfB0yvdbKdMWwVCg9Jh8xSinWKMGvOpTTQ\nnYZC/nI+43nC3H8nKJzAqg==\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@student-management-syste-2e040.iam.gserviceaccount.com",
+  "client_id": "110491093306637942148",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40student-management-syste-2e040.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

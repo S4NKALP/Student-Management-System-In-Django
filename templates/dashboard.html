@@ -1,0 +1,1048 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load app_filters %}
+{% block extrahead %}
+{{ block.super }}
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+{% endblock %}
+{% block extrastyle %}
+{{ block.super }}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+<style>
+    :root {
+        --primary: #2196F3;
+        --primary-light: #BBDEFB;
+        --primary-dark: #1976D2;
+        --secondary: #607D8B;
+        --success: #4CAF50;
+        --info: #00BCD4;
+        --warning: #FFC107;
+        --danger: #F44336;
+        --light: #FAFAFA;
+        --dark: #212121;
+        --gray: #9E9E9E;
+    }
+
+    body {
+        background-color: var(--light);
+        color: var(--dark);
+    }
+
+    .content-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 24px;
+        margin-bottom: 24px;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .content-card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .welcome-section {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 32px;
+        border-radius: 8px;
+        margin-bottom: 32px;
+    }
+
+    .summary-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .summary-card .card-header {
+        background: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 16px;
+    }
+
+    .summary-card .card-body {
+        padding: 24px;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .stat-label {
+        color: var(--secondary);
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 16px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .completed {
+        background: #E8F5E9;
+        color: #2E7D32;
+    }
+
+    .ongoing {
+        background: #FFF3E0;
+        color: #E65100;
+    }
+
+    .upcoming {
+        background: #E3F2FD;
+        color: #1565C0;
+    }
+
+    .leave-pending {
+        background: #FFF8E1;
+        color: #F57F17;
+    }
+
+    .leave-approved {
+        background: #E8F5E9;
+        color: #2E7D32;
+    }
+
+    .leave-rejected {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+
+    .btn-primary {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .btn-success {
+        background-color: var(--success);
+        border-color: var(--success);
+    }
+
+    .btn-info {
+        background-color: var(--info);
+        border-color: var(--info);
+    }
+
+    .btn-warning {
+        background-color: var(--warning);
+        border-color: var(--warning);
+    }
+
+    .btn-danger {
+        background-color: var(--danger);
+        border-color: var(--danger);
+    }
+
+    .progress {
+        height: 8px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 5px;
+    }
+
+    .progress-bar {
+        border-radius: 4px;
+    }
+
+    .table th {
+        color: var(--secondary);
+        font-weight: 600;
+        border-bottom-width: 1px;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    /* Teacher Ratings Section */
+    .teacher-rating-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .teacher-rating-card:hover {
+        transform: translateY(-4px);
+    }
+
+    /* Monthly Statistics Section */
+    .stat-box {
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .stat-box:hover {
+        transform: translateY(-4px);
+    }
+
+    .stat-box i {
+        font-size: 2.5rem;
+        margin-bottom: 16px;
+    }
+
+    /* Institute Feedback Section */
+    .feedback-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .rating-stars i {
+        color: var(--warning);
+        margin-right: 2px;
+    }
+
+    /* Activity Scroll */
+    .activity-scroll {
+        max-height: 250px;
+        overflow-y: auto;
+        padding-right: 5px;
+        scrollbar-width: thin;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+        .welcome-section {
+            padding: 28px;
+        }
+        .content-card {
+            padding: 20px;
+        }
+        .stat-number {
+            font-size: 2.2rem;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .welcome-section {
+            padding: 24px;
+        }
+        .content-card {
+            padding: 16px;
+        }
+        .stat-box {
+            padding: 20px;
+        }
+        .stat-box i {
+            font-size: 2rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .welcome-section {
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .welcome-section h2 {
+            font-size: 1.5rem;
+        }
+        .summary-card .card-body {
+            padding: 16px;
+        }
+        .stat-number {
+            font-size: 2rem;
+        }
+        .content-card {
+            padding: 16px;
+        }
+        .teacher-rating-card,
+        .feedback-card {
+            padding: 16px;
+        }
+        .activity-scroll {
+            max-height: 200px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .welcome-section {
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .welcome-section h2 {
+            font-size: 1.3rem;
+        }
+        .welcome-section p {
+            font-size: 0.9rem;
+        }
+        .content-card {
+            padding: 12px;
+        }
+        .stat-number {
+            font-size: 1.8rem;
+        }
+        .stat-box {
+            padding: 16px;
+        }
+        .stat-box i {
+            font-size: 1.8rem;
+        }
+        .teacher-rating-card,
+        .feedback-card {
+            padding: 12px;
+        }
+        .activity-scroll {
+            max-height: 180px;
+        }
+        .table-responsive {
+            margin: 0 -12px;
+        }
+    }
+
+    @media (max-width: 375px) {
+        .welcome-section {
+            padding: 12px;
+        }
+        .welcome-section h2 {
+            font-size: 1.2rem;
+        }
+        .welcome-section p {
+            font-size: 0.8rem;
+        }
+        .content-card {
+            padding: 10px;
+        }
+        .stat-number {
+            font-size: 1.6rem;
+        }
+        .stat-box {
+            padding: 12px;
+        }
+        .stat-box i {
+            font-size: 1.6rem;
+        }
+        .teacher-rating-card,
+        .feedback-card {
+            padding: 10px;
+        }
+        .activity-scroll {
+            max-height: 160px;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+        }
+    }
+
+    /* Touch Device Optimizations */
+    @media (hover: none) {
+        .summary-card:hover,
+        .teacher-rating-card:hover,
+        .stat-box:hover {
+            transform: none;
+        }
+        .btn, .nav-link {
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    /* High Contrast Mode Support */
+    @media (prefers-contrast: high) {
+        .summary-card,
+        .teacher-rating-card,
+        .stat-box,
+        .feedback-card {
+            border: 2px solid currentColor;
+        }
+    }
+
+    /* Reduced Motion Support */
+    @media (prefers-reduced-motion: reduce) {
+        .summary-card,
+        .teacher-rating-card,
+        .stat-box {
+            transition: none;
+        }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card welcome-section">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="flex-grow-1">
+                        <h2 class="mb-1">Welcome, Admin!</h2>
+                        <p class="mb-0">Student Management Dashboard</p>
+                    </div>
+                    
+                    <!-- Logout Button -->
+                    <a href="{% url 'logout' %}" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> <span class="logout-text">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats Row -->
+    <div class="row mb-4">
+        <!-- Student Stats -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="summary-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 small"><i class="fas fa-users text-primary me-2"></i>Students</h5>
+                </div>
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block text-muted small">Total Students</span>
+                            <h3>{{ total_students }}</h3>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Active</small>
+                            <span class="badge bg-success p-2">{{ active_students }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Completed</small>
+                            <span class="badge bg-info p-2">{{ completed_students }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="mb-0">On Leave</small>
+                            <span class="badge bg-warning p-2">{{ on_leave_students }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Stats -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="summary-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 small"><i class="fas fa-book text-success me-2"></i>Courses</h5>
+                </div>
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block text-muted small">Total Courses</span>
+                            <h3>{{ total_courses }}</h3>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Active</small>
+                            <span class="badge bg-success p-2">{{ active_courses }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="mb-0">Completed</small>
+                            <span class="badge bg-info p-2">{{ completed_courses }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff Stats -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="summary-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 small"><i class="fas fa-chalkboard-teacher text-info me-2"></i>Staff</h5>
+                </div>
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block text-muted small">Total Staff</span>
+                            <h3>{{ total_staff }}</h3>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Active</small>
+                            <span class="badge bg-success p-2">{{ active_staff }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="mb-0">On Leave</small>
+                            <span class="badge bg-warning p-2">{{ staff_on_leave }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Stats -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="summary-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 small"><i class="fas fa-calendar-check text-warning me-2"></i>Attendance</h5>
+                </div>
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block text-muted small">Classes Today</span>
+                            <h3>{{ total_classes_today }}</h3>
+                        </div>
+                        <div class="text-end">
+                            <span class="d-block text-muted small">Attendance Rate</span>
+                            <h3 class="text-primary">{{ attendance_rate }}%</h3>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 mt-3">
+                        <div><small>0%</small></div>
+                        <div><small>100%</small></div>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar {% if attendance_rate < 75 %}bg-danger{% else %}bg-success{% endif %}" 
+                            role="progressbar" 
+                            style="width: {{ attendance_rate }}%" 
+                            aria-valuenow="{{ attendance_rate }}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <small class="mb-0">Students Present</small>
+                        <span class="badge bg-success p-2">{{ students_present }}/{{ total_students_today }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="content-card">
+            <h5 class="mb-3">
+                <i class="fas fa-bolt text-warning me-2"></i>Quick Actions
+            </h5>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <a href="/admin/app/student/add/" class="btn btn-primary w-100 py-3">
+                        <i class="fas fa-user-plus mb-2 d-block"></i>
+                        Add New Student
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/admin/app/staff/add/" class="btn btn-success w-100 py-3">
+                        <i class="fas fa-user-tie mb-2 d-block"></i>
+                        Add New Staff
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/admin/app/course/add/" class="btn btn-info w-100 py-3">
+                        <i class="fas fa-book mb-2 d-block"></i>
+                        Add New Course
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/admin/app/batch/add/" class="btn btn-warning w-100 py-3">
+                        <i class="fas fa-users mb-2 d-block"></i>
+                        Add New Batch
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity and Course Progress -->
+<div class="row">
+    <!-- Course Progress -->
+    <div class="col-xl-8 mb-4">
+        <div class="content-card">
+            <h5 class="mb-3">
+                <i class="fas fa-graduation-cap text-primary me-2"></i>Course Progress
+            </h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Students</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for progress in course_progress %}
+                        <tr>
+                            <td>{{ progress.course.name }}</td>
+                            <td>{{ progress.total_students }}</td>
+                            <td>
+                                <div class="progress position-relative" style="height: 8px;">
+                                    <div class="progress-bar {% if progress.average_progress < 50 %}bg-warning{% elif progress.average_progress < 75 %}bg-info{% else %}bg-success{% endif %}" 
+                                        role="progressbar"
+                                        style="width: {{ progress.average_progress }}%"
+                                        aria-valuenow="{{ progress.average_progress }}" 
+                                        aria-valuemin="0"
+                                        aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ progress.average_progress }}%</small>
+                            </td>
+                            <td>
+                                <span
+                                    class="status-badge {% if progress.average_progress == 100 %}completed{% elif progress.average_progress > 0 %}ongoing{% else %}upcoming{% endif %}">
+                                    {% if progress.average_progress == 100 %}
+                                    Completed
+                                    {% elif progress.average_progress > 0 %}
+                                    In Progress
+                                    {% else %}
+                                    Not Started
+                                    {% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3">No course progress data available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Recent Activity -->
+    <div class="col-xl-4 mb-4">
+        <div class="content-card">
+            <h5 class="mb-3">
+                <i class="fas fa-history text-success me-2"></i>Recent Activity
+            </h5>
+            <div class="activity-scroll">
+                {% for activity in recent_activities %}
+                <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
+                    <i class="fas fa-circle-dot text-primary me-2"></i>
+                    <div>
+                        <small class="mb-0 d-block fw-medium">{{ activity.title }}</small>
+                        <small class="text-muted">{{ activity.description|truncatechars:50 }}</small>
+                        <small class="d-block text-muted">{{ activity.timestamp|timesince }} ago</small>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center">
+                    <small class="text-muted">No recent activity</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Leave Requests -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="content-card">
+            <h5 class="mb-3">
+                <i class="fas fa-calendar-alt text-warning me-2"></i>Pending Leave Requests
+            </h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Reason</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for leave in pending_student_leaves %}
+                        <tr>
+                            <td>{{ leave.student.name }}</td>
+                            <td>
+                                <span class="badge bg-info">Student</span>
+                            </td>
+                            <td>{{ leave.start_date|date:"M d, Y" }}</td>
+                            <td>{{ leave.end_date|date:"M d, Y" }}</td>
+                            <td>{{ leave.message }}</td>
+                            <td>
+                                <form method="post" action="{% url 'approve_student_leave' leave.id %}"
+                                    class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success me-1">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'reject_student_leave' leave.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% for leave in pending_staff_leaves %}
+                        <tr>
+                            <td>{{ leave.staff.name }}</td>
+                            <td>
+                                <span class="badge bg-primary">Staff</span>
+                            </td>
+                            <td>{{ leave.start_date|date:"M d, Y" }}</td>
+                            <td>{{ leave.end_date|date:"M d, Y" }}</td>
+                            <td>{{ leave.message }}</td>
+                            <td>
+                                <form method="post" action="{% url 'approve_staff_leave' leave.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success me-1">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'reject_staff_leave' leave.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not pending_student_leaves and not pending_staff_leaves %}
+                        <tr>
+                            <td colspan="6" class="text-center py-3">No pending leave requests</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notice Board -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="content-card">
+            <h5 class="mb-3">
+                <i class="fas fa-bullhorn text-primary me-2"></i>Notice Board
+            </h5>
+            <form method="post" action="{% url 'add_notice' %}" class="mb-4" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" name="title" placeholder="Notice Title" required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" name="message" placeholder="Notice Message" required>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="file" class="form-control" name="image" accept="image/*">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus me-2"></i>Add Notice
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="notices-list activity-scroll" style="max-height: 400px; overflow-y: auto;">
+                {% for notice in notices %}
+                <div class="card mb-3 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">{{ notice.title }}</h6>
+                            <div>
+                                <small class="text-muted me-2">{{ notice.created_at|date:"M d, Y" }}</small>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteNotice({{ notice.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% if notice.image %}
+                        <img src="{{ notice.image.url }}" alt="Notice Image" class="img-fluid rounded mb-2"
+                            style="max-height: 200px;">
+                        {% endif %}
+                        <p class="mb-0">{{ notice.message }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-center text-muted">No notices available</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Teacher Ratings Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="content-card">
+            <h5 class="mb-3">
+                <i class="fas fa-star text-warning me-2"></i>Teacher Ratings
+            </h5>
+            <div class="row">
+                {% for teacher in teacher_ratings %}
+                <div class="col-md-4 mb-4">
+                    <div class="teacher-rating-card">
+                        <div class="d-flex align-items-center mb-3">
+                            {% if teacher.image %}
+                            <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle me-3"
+                                style="width: 60px; height: 60px; object-fit: cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3"
+                                style="width: 60px; height: 60px;">
+                                <i class="fas fa-user text-secondary"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h6 class="mb-1">{{ teacher.name }}</h6>
+                                <small class="text-muted">{{ teacher.designation }}</small>
+                            </div>
+                        </div>
+                        <div class="rating-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Average Rating</span>
+                                <span class="fw-bold">{{ teacher.avg_rating|floatformat:1 }}/5.0</span>
+                            </div>
+                            <div class="rating-stars mb-2">
+                                {% for i in "12345"|make_list %}
+                                <i
+                                    class="{% if forloop.counter <= teacher.avg_rating %}fas{% else %}far{% endif %} fa-star"></i>
+                                {% endfor %}
+                            </div>
+                            <div class="progress position-relative">
+                                <div class="progress-bar bg-warning" role="progressbar"
+                                    style="width: {{ teacher.avg_rating|multiply:20 }}%"
+                                    aria-valuenow="{{ teacher.avg_rating }}" aria-valuemin="0" aria-valuemax="5">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rating-stats">
+                            <div class="d-flex justify-content-between mb-2">
+                                <small class="text-muted">Total Reviews</small>
+                                <small>{{ teacher.total_reviews }}</small>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">Students Taught</small>
+                                <small>{{ teacher.total_students }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <p class="text-center text-muted">No teacher ratings available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Statistics -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="content-card">
+            <h5 class="mb-3">
+                <i class="fas fa-chart-bar text-info me-2"></i>Monthly Statistics
+            </h5>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="stat-box">
+                        <i class="fas fa-user-plus text-primary"></i>
+                        <h3 class="mb-2">{{ monthly_stats.new_students }}</h3>
+                        <p class="text-muted mb-0">New Students</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-box">
+                        <i class="fas fa-user-tie text-success"></i>
+                        <h3 class="mb-2">{{ monthly_stats.new_staff }}</h3>
+                        <p class="text-muted mb-0">New Staff</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-box">
+                        <i class="fas fa-calendar-check text-warning"></i>
+                        <h3 class="mb-2">{{ monthly_stats.attendance_rate }}%</h3>
+                        <p class="text-muted mb-0">Attendance Rate</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-box">
+                        <i class="fas fa-calendar-alt text-danger"></i>
+                        <h3 class="mb-2">{{ monthly_stats.leave_requests }}</h3>
+                        <p class="text-muted mb-0">Leave Requests</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Institute Feedback -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="content-card">
+            <h5 class="mb-3">
+                <i class="fas fa-comments text-primary me-2"></i>Institute Feedback
+            </h5>
+            <div class="feedback-table-container" style="max-height: 420px; overflow-y: auto;">
+                <table class="table">
+                    <thead class="sticky-top bg-white">
+                        <tr>
+                            <th>S.N</th>
+                            <th>User</th>
+                            <th>Category</th>
+                            <th>Rating</th>
+                            <th>Feedback</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for feedback in recent_institute_feedback %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if feedback.is_anonymous %}
+                                        <div class="student-avatar me-2">
+                                            <i class="fas fa-user-secret"></i>
+                                        </div>
+                                        <div>
+                                            <span class="d-block fw-medium">Anonymous User</span>
+                                        </div>
+                                    {% else %}
+                                        {% if feedback.user %}
+                                            <!-- This is a student feedback -->
+                                            {% if feedback.user.image %}
+                                                <img src="{{ feedback.user.image.url }}" alt="{{ feedback.display_name }}" class="profile-image-small rounded-circle me-2" 
+                                                     style="width: 40px; height: 40px;">
+                                            {% else %}
+                                                <div class="student-avatar me-2">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <span class="d-block fw-medium">{{ feedback.display_name }}</span>
+                                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                                    <span class="status-badge bg-info">Student</span>
+                                                    {% if feedback.user.course %}
+                                                        <span class="status-badge" style="background-color: var(--secondary);">
+                                                            {{ feedback.user.course.name }}
+                                                        </span>
+                                                    {% endif %}
+                                                    {% if feedback.user.current_semester %}
+                                                        <span class="status-badge upcoming">
+                                                            Semester {{ feedback.user.current_semester }}
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% elif feedback.staff %}
+                                            <!-- This is a staff feedback -->
+                                            {% if feedback.staff.image %}
+                                                <img src="{{ feedback.staff.image.url }}" alt="{{ feedback.display_name }}" class="profile-image-small rounded-circle me-2"
+                                                     style="width: 40px; height: 40px;">
+                                            {% else %}
+                                                <div class="student-avatar me-2">
+                                                    <i class="fas fa-user-tie"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <span class="d-block fw-medium">{{ feedback.display_name }}</span>
+                                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                                    <span class="status-badge bg-primary">Staff</span>
+                                                    {% if feedback.staff.designation %}
+                                                        <span class="status-badge" style="background-color: var(--secondary);">
+                                                            {{ feedback.staff.designation }}
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <!-- Fallback for any other feedback type -->
+                                            <div class="student-avatar me-2">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div>
+                                                <span class="d-block fw-medium">{{ feedback.display_name }}</span>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>{{ feedback.feedback_type }}</td>
+                            <td>
+                                <div class="rating-stars">
+                                    {% for i in "12345"|make_list %}
+                                    <i class="{% if forloop.counter <= feedback.rating %}fas{% else %}far{% endif %} fa-star"></i>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="feedback-message p-2">
+                                    {{ feedback.feedback_text|truncatechars:100 }}
+                                </div>
+                            </td>
+                            <td>{{ feedback.created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-3">
+                                <div class="empty-state">
+                                    <i class="fas fa-comments fa-2x mb-2"></i>
+                                    <p>No institute feedback available</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+{% endblock %}
+{% block extrajs %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function deleteNotice(noticeId) {
+        if (confirm('Are you sure you want to delete this notice?')) {
+            fetch(`/app/delete-notice/${noticeId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Failed to delete notice');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the notice');
+                });
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+Dear {{ user_name }},
+
+Your OTP for secure access is: {{ otp }}. Valid for {{ expiry_time }} minutes.
+
+For security, do not share this OTP. If you didn't request this, please ignore.
+
+Best regards,
+Student Management System
+support@sms.com 

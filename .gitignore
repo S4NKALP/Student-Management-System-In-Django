@@ -1,3 +1,4 @@
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -60,6 +61,9 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+*/migrations/*.py
+*/migrations/*
+!*/migrations/__init__.py
 
 # Flask stuff:
 instance/
@@ -137,16 +141,12 @@ docs/
 !media/
 media/*
 
-!media/default.png
-
-!media/registration_form/
-media/registration_form/*
-!media/registration_form/README.txt
-
-!media/result_sheet/
-media/result_sheet/*
-!media/result_sheet/README.txt
 
 # Custom
 dump.rdb
 *.DS_Store
+
+# Firebase configuration
+firebase-config.json
+firebase.json
+static/js/firebase-config.js

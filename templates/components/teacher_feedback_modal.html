@@ -1,0 +1,109 @@
+<!-- Teacher Feedback Modal -->
+<div id="feedbackModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeFeedbackModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Give Institute Feedback</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeFeedbackModal()">&times;</button>
+    </div>
+    <div style="padding: 20px;">
+      <form method="post" action="{% url 'submit_staff_institute_feedback' %}" id="instituteFeedbackForm">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="feedback_type" class="form-label">Feedback Type</label>
+          <select class="form-select" id="feedback_type" name="feedback_type" required>
+            <option value="">Select Type</option>
+            {% for value, name in feedback_types %}
+              <option value="{{ value }}">{{ name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label">Rating</label>
+          <div class="rating-stars d-flex">
+            <i class="far fa-star fs-4 text-warning rating-star" data-value="1" onclick="selectRatingTeacher(this, 'teacher_modal_rating')"></i>
+            <i class="far fa-star fs-4 text-warning rating-star" data-value="2" onclick="selectRatingTeacher(this, 'teacher_modal_rating')"></i>
+            <i class="far fa-star fs-4 text-warning rating-star" data-value="3" onclick="selectRatingTeacher(this, 'teacher_modal_rating')"></i>
+            <i class="far fa-star fs-4 text-warning rating-star" data-value="4" onclick="selectRatingTeacher(this, 'teacher_modal_rating')"></i>
+            <i class="far fa-star fs-4 text-warning rating-star" data-value="5" onclick="selectRatingTeacher(this, 'teacher_modal_rating')"></i>
+            <input type="hidden" name="rating" id="teacher_modal_rating" value="" required>
+            <div class="invalid-feedback d-block" id="teacher-modal-rating-error" style="display: none;">Please select a rating</div>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="feedback_text" class="form-label">Feedback</label>
+          <textarea class="form-control" id="feedback_text" name="feedback_text" rows="4" required></textarea>
+        </div>
+        
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="is_anonymous" name="is_anonymous">
+          <label class="form-check-label" for="is_anonymous">Submit anonymously</label>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeFeedbackModal()">Cancel</button>
+          <button type="submit" class="btn" style="background-color: #3F51B5; color: white;">Submit Feedback</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Teacher Feedback Modal Scripts -->
+<script>
+  function openFeedbackModal() {
+    document.getElementById('feedbackModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeFeedbackModal() {
+    document.getElementById('feedbackModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  
+  function selectRatingTeacher(star, inputId) {
+    const value = parseInt(star.getAttribute('data-value'));
+    document.getElementById(inputId).value = value;
+    
+    // Update star display
+    const allStars = star.parentNode.querySelectorAll('.rating-star');
+    allStars.forEach(s => {
+      const starValue = parseInt(s.getAttribute('data-value'));
+      if (starValue <= value) {
+        s.classList.remove('far');
+        s.classList.add('fas');
+        s.classList.add('selected');
+      } else {
+        s.classList.remove('fas');
+        s.classList.add('far');
+        s.classList.remove('selected');
+      }
+    });
+    
+    // Hide error message if any
+    const errorId = 'teacher-modal-rating-error';
+    document.getElementById(errorId).style.display = 'none';
+  }
+</script>
+
+<!-- Additional Feedback Styles -->
+<style>
+  .rating-stars {
+    display: flex;
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .rating-star {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .rating-star:hover,
+  .rating-star.active,
+  .rating-star.selected {
+    color: #FFD700 !important;
+    transform: scale(1.1);
+  }
+</style> 

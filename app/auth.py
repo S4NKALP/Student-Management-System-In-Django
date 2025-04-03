@@ -3,17 +3,20 @@ from django.contrib.auth import login
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
-from django.core.cache import cache
 import uuid
 from .models import Student, Staff
 from .utils import (
     generate_otp,
-    store_otp,
+    generate_secret_key,
+    store_secret_key,
     verify_otp,
     send_otp_sms,
     send_password_reset_email,
-    verify_reset_code
+    verify_reset_code,
+    store_reset_token,
+    verify_reset_token
 )
+from django.contrib import messages
 
 def reset_password_options(request):
     """View for selecting between phone and email password reset"""
@@ -35,11 +38,12 @@ def password_reset_phone(request):
         if not student and not staff:
             return render(request, "login/password_reset_phone.html", {"error": "No account found with this phone number", "is_email": False})
         
-        # Generate and store OTP
-        otp = generate_otp()
-        store_otp(phone, otp)
+        # Generate secret key and store it
+        secret_key = generate_secret_key()
+        store_secret_key(phone, secret_key)
         
-        # Send OTP via SMS
+        # Generate and send OTP
+        otp = generate_otp(secret_key)
         send_result = send_otp_sms(phone, otp)
         
         if send_result:
@@ -67,8 +71,8 @@ def password_reset_phone_verify(request):
         if verify_otp(phone, otp):
             # Generate a secure token for this reset
             token = str(uuid.uuid4())
-            # Store token with phone in cache for 15 minutes
-            cache.set(f"reset_token_{token}", phone, 60 * 15)
+            # Store token in database
+            store_reset_token(token, phone)
             
             # Redirect to set new password
             return render(request, "login/password_reset_set.html", {
@@ -94,11 +98,12 @@ def resend_phone_otp(request):
         if not phone:
             return redirect("phone_reset_password")
         
-        # Generate and store new OTP
-        otp = generate_otp()
-        store_otp(phone, otp)
+        # Generate new secret key and store it
+        secret_key = generate_secret_key()
+        store_secret_key(phone, secret_key)
         
-        # Send OTP via SMS
+        # Generate and send new OTP
+        otp = generate_otp(secret_key)
         send_result = send_otp_sms(phone, otp)
         
         if send_result:
@@ -161,8 +166,8 @@ def password_reset_email_verify(request):
         if verify_reset_code(email, code):
             # Generate a secure token for this reset
             token = str(uuid.uuid4())
-            # Store token with email in cache for 15 minutes
-            cache.set(f"reset_token_{token}", email, 60 * 15)
+            # Store token in database
+            store_reset_token(token, email)
             
             # Redirect to set new password
             return render(request, "login/password_reset_set.html", {
@@ -245,8 +250,7 @@ def set_new_password(request):
             })
         
         # Verify token is valid
-        stored_identifier = cache.get(f"reset_token_{token}")
-        if not stored_identifier or stored_identifier != identifier:
+        if not verify_reset_token(token, identifier):
             return render(request, "login/password_reset_set.html", {
                 "error": "Invalid or expired reset session",
                 "phone": phone,
@@ -274,18 +278,7 @@ def set_new_password(request):
             staff = Staff.objects.filter(phone=phone).first()
         
         user = student or staff
-        
-        if user:
-            # Set new password
-            user.password = make_password(new_password1)
-            user.save()
-            
-            # Invalidate reset token
-            cache.delete(f"reset_token_{token}")
-            
-            # Show success message
-            return render(request, "login/password_reset_complete.html")
-        else:
+        if not user:
             return render(request, "login/password_reset_set.html", {
                 "error": "User not found",
                 "phone": phone,
@@ -293,6 +286,13 @@ def set_new_password(request):
                 "token": token,
                 "is_email": is_email
             })
+        
+        # Update password
+        user.password = make_password(new_password1)
+        user.save()
+        
+        # Redirect to login with success message
+        messages.success(request, "Password has been reset successfully. Please login with your new password.")
+        return redirect("login")
     
-    # If GET request, redirect to options page
-    return redirect("reset_password_options") 
+    return render(request, "login/password_reset_set.html", {"is_email": False}) 

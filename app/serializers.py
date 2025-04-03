@@ -3,7 +3,8 @@ from rest_framework import serializers
 from .models import (
     Attendance, AttendanceRecord, Batch, Course, FCMDevice, Institute,
     Notice, Routine, Staff, Student, Subject, Staff_leave, Student_Leave,
-    StudentFeedback, InstituteFeedback, StaffInstituteFeedback, CourseTracking
+    StudentFeedback, InstituteFeedback, StaffInstituteFeedback, CourseTracking,
+    TOTPSecret, ResetToken
 )
 
 class FCMDeviceSerializer(serializers.ModelSerializer):
@@ -112,7 +113,7 @@ class StaffLeaveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Staff_leave
-        fields = ['id', 'staff', 'date', 'message', 'status', 'created_at', 'updated_at']
+        fields = ['id', 'staff', 'start_date', 'end_date', 'message', 'status', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
 class StudentLeaveSerializer(serializers.ModelSerializer):
@@ -122,7 +123,7 @@ class StudentLeaveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student_Leave
-        fields = ['id', 'student', 'date', 'message', 'status', 'created_at', 'updated_at']
+        fields = ['id', 'student', 'start_date', 'end_date', 'message', 'status', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
 class StudentFeedbackSerializer(serializers.ModelSerializer):
@@ -176,4 +177,14 @@ class CourseTrackingSerializer(serializers.ModelSerializer):
             'semester_start_date', 'semester_end_date', 'notes', 'created_at', 'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at', 'enrollment_date']
+
+class TOTPSecretSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TOTPSecret
+        fields = ['id', 'identifier', 'created_at', 'expires_at']
+
+class ResetTokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResetToken
+        fields = ['id', 'token', 'identifier', 'created_at', 'expires_at']
 

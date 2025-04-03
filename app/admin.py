@@ -1,8 +1,9 @@
 from django.contrib import admin
-from app.models import (
+from .models import (
     Institute,
     Course,
     Subject,
+    SubjectFile,
     Student,
     Staff,
     Batch,
@@ -16,8 +17,10 @@ from app.models import (
     CourseTracking,
     InstituteFeedback,
     StaffInstituteFeedback,
-    FCMDevice,
+    TOTPSecret,
+    ResetToken,
 )
+from .firebase import FCMDevice
 from django.forms import ModelForm
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
@@ -47,6 +50,14 @@ class CustomAdminSite(admin.AdminSite):
                 "group": "Authentication",
                 "group_label": "authentication",
             },
+            "TOTPSecret": {
+                "group": "Authentication",
+                "group_label": "authentication",
+            },
+            "ResetToken": {
+                "group": "Authentication",
+                "group_label": "authentication",
+            },
             # Organization Models
             "Institute": {
                 "group": "Organization",
@@ -60,13 +71,22 @@ class CustomAdminSite(admin.AdminSite):
                 "group": "Organization",
                 "group_label": "organization",
             },
+            # Course Management Models
             "Course": {
-                "group": "Organization",
-                "group_label": "organization",
+                "group": "Course Management",
+                "group_label": "course_management",
             },
             "Subject": {
-                "group": "Organization",
-                "group_label": "organization",
+                "group": "Course Management",
+                "group_label": "course_management",
+            },
+            "SubjectFile": {
+                "group": "Course Management",
+                "group_label": "course_management",
+            },
+            "CourseTracking": {
+                "group": "Course Management",
+                "group_label": "course_management",
             },
             # Human Management Models
             "Student": {
@@ -89,25 +109,32 @@ class CustomAdminSite(admin.AdminSite):
                 "group": "Human Management",
                 "group_label": "human_management",
             },
-            "StudentFeedback": {
-                "group": "Human Management",
-                "group_label": "human_management",
-            },
-            "CourseTracking": {
-                "group": "Human Management",
-                "group_label": "human_management",
-            },
+            # Attendance Models
             "Attendance": {
-                "group": "Human Management",
-                "group_label": "human_management",
+                "group": "Attendance",
+                "group_label": "attendance",
+            },
+            "AttendanceRecord": {
+                "group": "Attendance",
+                "group_label": "attendance",
+            },
+            # Feedback Models
+            "StudentFeedback": {
+                "group": "Feedback",
+                "group_label": "feedback",
             },
             "InstituteFeedback": {
-                "group": "Human Management",
-                "group_label": "human_management",
+                "group": "Feedback",
+                "group_label": "feedback",
             },
             "StaffInstituteFeedback": {
-                "group": "Human Management",
-                "group_label": "human_management",
+                "group": "Feedback",
+                "group_label": "feedback",
+            },
+            # Device Management
+            "FCMDevice": {
+                "group": "Device Management",
+                "group_label": "device_management",
             },
         }
 
@@ -194,7 +221,7 @@ class BatchAdmin(admin.ModelAdmin):
 
 @admin.register(Subject, site=custom_admin_site)
 class SubjectModel(admin.ModelAdmin):
-    list_display = ("id", "name", "course", "get_period_display", "has_syllabus")
+    list_display = ("id", "name", "course", "get_period_display", "has_syllabus", "file_count")
     search_fields = ("name", "course__name")
     list_filter = ("course", "semester_or_year")
     advanced_filter_fields = ("name", "course", "semester_or_year")
@@ -204,6 +231,11 @@ class SubjectModel(admin.ModelAdmin):
 
     has_syllabus.boolean = True
     has_syllabus.short_description = "Has Syllabus"
+    
+    def file_count(self, obj):
+        return obj.subjectfile_set.count()
+    
+    file_count.short_description = "Additional Files"
 
     def get_period_display(self, obj):
         if obj.course.duration_type == "Semester":
@@ -588,8 +620,8 @@ class RoutineAdmin(admin.ModelAdmin):
 
 @admin.register(Staff_leave, site=custom_admin_site)
 class StaffLeaveAdmin(admin.ModelAdmin):
-    list_display = ("staff", "date", "get_status_display", "created_at")
-    list_filter = ("status", "date", "created_at")
+    list_display = ("staff", "start_date", "end_date", "get_status_display", "created_at")
+    list_filter = ("status", "start_date", "end_date", "created_at")
     search_fields = ("staff__name", "message")
     readonly_fields = ("created_at", "updated_at")
     ordering = ("-created_at",)
@@ -598,8 +630,8 @@ class StaffLeaveAdmin(admin.ModelAdmin):
 
 @admin.register(Student_Leave, site=custom_admin_site)
 class StudentLeaveAdmin(admin.ModelAdmin):
-    list_display = ("student", "date", "get_status_display", "created_at")
-    list_filter = ("status", "date", "created_at")
+    list_display = ("student", "start_date", "end_date", "get_status_display", "created_at")
+    list_filter = ("status", "start_date", "end_date", "created_at")
     search_fields = ("student__name", "message")
     readonly_fields = ("created_at", "updated_at")
     ordering = ("-created_at",)
@@ -756,12 +788,26 @@ class StaffInstituteFeedbackAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related("staff", "institute")
 
 
-@admin.register(FCMDevice)
+@admin.register(FCMDevice, site=custom_admin_site)
 class FCMDeviceAdmin(admin.ModelAdmin):
-    list_display = ("token",)
+    list_display = ("id", "token", "created_at", "last_active", "is_active")
     search_fields = ("token",)
-    list_filter = ("token",)
-    advanced_filter_fields = ("token",)
+    list_filter = ("is_active", "created_at", "last_active")
+    readonly_fields = ("created_at", "last_active")
+    ordering = ("-last_active",)
+
+    fieldsets = (
+        (None, {"fields": ("token", "is_active")}),
+        ("Metadata", {"fields": ("created_at", "last_active"), "classes": ("collapse",)}),
+    )
+
+
+@admin.register(SubjectFile, site=custom_admin_site)
+class SubjectFileAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "subject", "uploaded_by", "uploaded_at")
+    search_fields = ("title", "subject__name", "uploaded_by__name")
+    list_filter = ("subject__course", "uploaded_at")
+    autocomplete_fields = ["subject", "uploaded_by"]
 
 
 custom_admin_site.register(User, UserAdmin)

@@ -1,3 +1,4 @@
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -140,15 +141,6 @@ docs/
 !media/
 media/*
 
-!media/default.png
-
-!media/registration_form/
-media/registration_form/*
-!media/registration_form/README.txt
-
-!media/result_sheet/
-media/result_sheet/*
-!media/result_sheet/README.txt
 
 # Custom
 dump.rdb

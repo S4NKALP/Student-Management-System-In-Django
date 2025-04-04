@@ -27,7 +27,7 @@ idna==3.10
 msgpack==1.1.0
 pillow==11.1.0
 proto-plus==1.26.1
-protobuf==6.30.2
+protobuf==5.29.4
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pycparser==2.22

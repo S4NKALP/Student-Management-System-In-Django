@@ -150,3 +150,4 @@ dump.rdb
 firebase-config.json
 firebase.json
 static/js/firebase-config.js
+static/firebase-messaging-sw.js

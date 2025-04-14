@@ -8,7 +8,9 @@ cryptography==44.0.2
 Django==5.2
 django-jazzmin==3.0.1
 django-mathfilters==1.0.0
+django-model-utils==5.0.0
 djangorestframework==3.16.0
+Faker==37.1.0
 firebase-admin==6.7.0
 google-api-core==2.24.2
 google-api-python-client==2.166.0
@@ -22,9 +24,11 @@ google-resumable-media==2.7.2
 googleapis-common-protos==1.69.2
 grpcio==1.71.0
 grpcio-status==1.71.0
+gunicorn==23.0.0
 httplib2==0.22.0
 idna==3.10
 msgpack==1.1.0
+packaging==24.2
 pillow==11.1.0
 proto-plus==1.26.1
 protobuf==5.29.4
@@ -39,6 +43,7 @@ pytz==2025.2
 requests==2.32.3
 rsa==4.9
 sqlparse==0.5.3
+tzdata==2025.2
 uritemplate==4.1.1
-urllib3==2.4.0
+urllib3==2.3.0
 whitenoise==6.9.0

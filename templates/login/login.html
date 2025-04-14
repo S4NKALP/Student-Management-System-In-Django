@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "shared/base.html" %}
 {% load static %}
 
 {% block content %}
@@ -8,6 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Student Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --primary-color: #4285f4;
@@ -58,6 +59,7 @@
         .input-group {
             margin-bottom: 20px;
             text-align: left;
+            position: relative;
         }
 
         label {
@@ -69,17 +71,43 @@
 
         input[type="text"],
         input[type="password"] {
-            width: calc(100% - 20px);
-            padding: 12px 10px;
+            width: 100%;
+            padding: 12px 40px 12px 10px;
             border: 1px solid #ddd;
             border-radius: var(--border-radius);
             font-size: 16px;
             transition: border 0.3s;
+            box-sizing: border-box;
         }
 
         input:focus {
             border: 1px solid var(--primary-color);
             outline: none;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(25%);
+            cursor: pointer;
+            color: var(--light-text);
+            background: none;
+            border: none;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary-color);
+        }
+
+        .password-toggle i {
+            font-size: 16px;
         }
 
         .submit-btn {
@@ -107,6 +135,14 @@
             padding: 10px;
             background-color: rgba(234, 67, 53, 0.1);
             border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error-message i {
+            color: var(--error-color);
+            font-size: 16px;
         }
 
         .forgot-password {
@@ -132,12 +168,14 @@
         
         {% if error %}
         <div class="error-message">
-            {{ error }}
+            <i class="fas fa-exclamation-circle"></i>
+            Invalid credentials. Please check your email/phone and password.
         </div>
         {% endif %}
         
         {% if messages %}
         <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
             {% for message in messages %}
                 {{ message }}
             {% endfor %}
@@ -154,7 +192,13 @@
             <div class="input-group">
                 <label for="password">Password</label>
                 <input type="password" name="password" id="password" required placeholder="Enter password">
+                <button type="button" class="password-toggle" id="togglePassword">
+                    <i class="fas fa-eye"></i>
+                </button>
             </div>
+            
+            <!-- Add a hidden next field to ensure proper redirection -->
+            <input type="hidden" name="next" value="{{ next|default:'/app/dashboard/' }}">
             
             <button type="submit" class="submit-btn">Login</button>
         </form>
@@ -163,6 +207,24 @@
             <a href="{% url 'reset_password_options' %}">Forgot Password?</a>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.getElementById('togglePassword');
+            const password = document.getElementById('password');
+            
+            togglePassword.addEventListener('click', function() {
+                // Toggle password visibility
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                
+                // Toggle eye icon
+                const icon = this.querySelector('i');
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            });
+        });
+    </script>
 </body>
 </html>
 {% endblock %}

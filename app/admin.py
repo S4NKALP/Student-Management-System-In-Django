@@ -1,142 +1,203 @@
-from django.contrib import admin
-from .models import (
-    Institute,
-    Course,
-    Subject,
-    SubjectFile,
-    Student,
-    Staff,
-    Batch,
-    Attendance,
-    AttendanceRecord,
-    Notice,
-    Routine,
-    Staff_leave,
-    Student_Leave,
-    StudentFeedback,
-    CourseTracking,
-    InstituteFeedback,
-    StaffInstituteFeedback,
-    TOTPSecret,
-    ResetToken,
-)
-from .firebase import FCMDevice
-from django.forms import ModelForm
-from django.contrib.auth.models import User, Group
-from django.contrib.auth.admin import UserAdmin, GroupAdmin
-from app.forms import StaffAdminForm, StudentAdminForm
-from django.urls import path
-from django.http import JsonResponse
+# Standard library imports
 import json
+from datetime import datetime
+
+# Core Django imports
+from django.contrib import admin
+from django.contrib.auth.admin import GroupAdmin, UserAdmin
+from django.contrib.auth.models import Group, User
 from django.db import transaction
 from django.db.models import Q
-from datetime import datetime
+from django.forms import ModelForm
+from django.http import JsonResponse
+from django.urls import path
+from django.utils.translation import gettext_lazy as _
+
+# Local app imports
+from app.firebase import FCMDevice
+from app.forms import ParentAdminForm, StaffAdminForm, StudentAdminForm
+from app.models import (
+    Attendance,
+    AttendanceRecord,
+    Batch,
+    Course,
+    CourseTracking,
+    Institute,
+    InstituteFeedback,
+    Notice,
+    Parent,
+    ParentFeedback,
+    ParentInstituteFeedback,
+    ResetToken,
+    Routine,
+    Staff,
+    StaffInstituteFeedback,
+    StaffLeave,
+    Student,
+    StudentFeedback,
+    StudentLeave,
+    Subject,
+    SubjectFile,
+    TeacherParentMeeting,
+    TOTPSecret,
+)
 
 # Register your models here.
 
 
 class CustomAdminSite(admin.AdminSite):
-    def get_app_list(self, request):
+    def get_app_list(self, request, app_label=None):
         # Original app list
-        app_list = super().get_app_list(request)
+        app_list = super().get_app_list(request, app_label)
 
         model_map = {
             # Authentication Models
             "User": {
                 "group": "Authentication",
                 "group_label": "authentication",
+                "display_name": "Users",
             },
             "Group": {
                 "group": "Authentication",
                 "group_label": "authentication",
+                "display_name": "Groups",
             },
             "TOTPSecret": {
                 "group": "Authentication",
                 "group_label": "authentication",
+                "display_name": "TOTP Keys",
             },
             "ResetToken": {
                 "group": "Authentication",
                 "group_label": "authentication",
+                "display_name": "Reset Tokens",
             },
             # Organization Models
             "Institute": {
                 "group": "Organization",
                 "group_label": "organization",
+                "display_name": "Institute",
             },
             "Batch": {
                 "group": "Organization",
                 "group_label": "organization",
+                "display_name": "Batches",
             },
             "Notice": {
                 "group": "Organization",
                 "group_label": "organization",
+                "display_name": "Notices",
             },
             # Course Management Models
             "Course": {
                 "group": "Course Management",
                 "group_label": "course_management",
+                "display_name": "Courses",
             },
             "Subject": {
                 "group": "Course Management",
                 "group_label": "course_management",
+                "display_name": "Subjects",
             },
             "SubjectFile": {
                 "group": "Course Management",
                 "group_label": "course_management",
+                "display_name": "Materials",
             },
             "CourseTracking": {
                 "group": "Course Management",
                 "group_label": "course_management",
+                "display_name": "Progress",
             },
             # Human Management Models
+            "Parent": {
+                "group": "Human Management",
+                "group_label": "human_management",
+                "display_name": "Parents",
+            },
             "Student": {
                 "group": "Human Management",
                 "group_label": "human_management",
+                "display_name": "Students",
             },
             "Staff": {
                 "group": "Human Management",
                 "group_label": "human_management",
+                "display_name": "Staff",
             },
+            # Schedule Management
             "Routine": {
-                "group": "Human Management",
-                "group_label": "human_management",
+                "group": "Schedule Management",
+                "group_label": "schedule_management",
+                "display_name": "Classes",
             },
-            "Staff_leave": {
-                "group": "Human Management",
-                "group_label": "human_management",
+            "TeacherParentMeeting": {
+                "group": "Schedule Management",
+                "group_label": "schedule_management",
+                "display_name": "PT Meetings",
             },
-            "Student_Leave": {
-                "group": "Human Management",
-                "group_label": "human_management",
+            # Leave Management
+            "StaffLeave": {
+                "group": "Leave Management",
+                "group_label": "leave_management",
+                "display_name": "Staff Leave",
+            },
+            "StudentLeave": {
+                "group": "Leave Management",
+                "group_label": "leave_management",
+                "display_name": "Student Leave",
             },
             # Attendance Models
             "Attendance": {
                 "group": "Attendance",
                 "group_label": "attendance",
+                "display_name": "Attendance",
             },
             "AttendanceRecord": {
                 "group": "Attendance",
                 "group_label": "attendance",
+                "display_name": "Records",
             },
             # Feedback Models
             "StudentFeedback": {
                 "group": "Feedback",
                 "group_label": "feedback",
+                "display_name": "Student Feedback",
             },
             "InstituteFeedback": {
                 "group": "Feedback",
                 "group_label": "feedback",
+                "display_name": "Student-Institute",
             },
             "StaffInstituteFeedback": {
                 "group": "Feedback",
                 "group_label": "feedback",
+                "display_name": "Staff-Institute",
+            },
+            "ParentFeedback": {
+                "group": "Feedback",
+                "group_label": "feedback",
+                "display_name": "Parent Feedback",
+            },
+            "ParentInstituteFeedback": {
+                "group": "Feedback",
+                "group_label": "feedback",
+                "display_name": "Parent-Institute",
             },
             # Device Management
             "FCMDevice": {
                 "group": "Device Management",
                 "group_label": "device_management",
+                "display_name": "Devices",
             },
         }
+
+        # If app_label is specified, return only that app
+        if app_label:
+            for app in app_list:
+                if app["app_label"] == app_label:
+                    return [app]
+            return []
 
         grouped_app_list = [{"name": "Main", "app_label": "dashboard", "models": []}]
         grouped_models = {}
@@ -152,6 +213,11 @@ class CustomAdminSite(admin.AdminSite):
                             "app_label": model_map[model_name]["group_label"],
                             "models": [],
                         }
+
+                    # Apply custom display name if available
+                    if "display_name" in model_map[model_name]:
+                        model["name"] = model_map[model_name]["display_name"]
+
                     grouped_models[group]["models"].append(model)
 
         dashboard_item = {
@@ -187,10 +253,17 @@ class InstituteModel(admin.ModelAdmin):
 
 @admin.register(Course, site=custom_admin_site)
 class CourseModel(admin.ModelAdmin):
-    list_display = ("id", "name", "duration", "duration_type", "get_total_duration")
+    list_display = (
+        "id",
+        "name",
+        "duration",
+        "duration_type",
+        "get_total_duration",
+        "is_active",
+    )
     search_fields = ("name", "duration", "duration_type")
-    list_filter = ("duration_type", "duration")
-    advanced_filter_fields = ("name", "duration", "duration_type")
+    list_filter = ("duration_type", "duration", "is_active")
+    advanced_filter_fields = ("name", "duration", "duration_type", "is_active")
 
     def get_total_duration(self, obj):
         if obj.duration_type == "Semester":
@@ -213,34 +286,41 @@ class CourseModel(admin.ModelAdmin):
 
 @admin.register(Batch, site=custom_admin_site)
 class BatchAdmin(admin.ModelAdmin):
-    list_display = ("name", "start_date", "end_date")
-    search_fields = ("name", "start_date", "end_date")
-    list_filter = ("name", "start_date", "end_date")
-    advanced_filter_fields = ("name", "start_date", "end_date")
+    list_display = ("name", "year", "is_active")
+    search_fields = ("name", "year")
+    list_filter = ("name", "year", "is_active")
+    advanced_filter_fields = ("name", "year", "is_active")
 
 
 @admin.register(Subject, site=custom_admin_site)
 class SubjectModel(admin.ModelAdmin):
-    list_display = ("id", "name", "course", "get_period_display", "has_syllabus", "file_count")
+    list_display = (
+        "id",
+        "name",
+        "course",
+        "get_period_display",
+        "has_syllabus",
+        "file_count",
+    )
     search_fields = ("name", "course__name")
-    list_filter = ("course", "semester_or_year")
-    advanced_filter_fields = ("name", "course", "semester_or_year")
+    list_filter = ("course", "period_or_year")
+    advanced_filter_fields = ("name", "course", "period_or_year")
 
     def has_syllabus(self, obj):
         return bool(obj.syllabus_pdf)
 
     has_syllabus.boolean = True
     has_syllabus.short_description = "Has Syllabus"
-    
+
     def file_count(self, obj):
         return obj.subjectfile_set.count()
-    
+
     file_count.short_description = "Additional Files"
 
     def get_period_display(self, obj):
         if obj.course.duration_type == "Semester":
-            return f"Semester {obj.semester_or_year}"
-        return f"Year {obj.semester_or_year}"
+            return f"Semester {obj.period_or_year}"
+        return f"Year {obj.period_or_year}"
 
     get_period_display.short_description = "Period"
 
@@ -252,7 +332,7 @@ class SubjectModel(admin.ModelAdmin):
 
     def response_add(self, request, obj, post_url_continue=None):
         if "_addanother" in request.POST:
-            # Pre-fill the course and semester fields for the next entry
+            # Pre-fill the course and period fields for the next entry
             return self.response_post_save_add(request, obj)
         return super().response_add(request, obj, post_url_continue)
 
@@ -260,23 +340,23 @@ class SubjectModel(admin.ModelAdmin):
         form = super().get_form(request, obj, **kwargs)
         if obj and obj.course:
             if obj.course.duration_type == "Semester":
-                form.base_fields["semester_or_year"].label = "Semester"
+                form.base_fields["period_or_year"].label = "Semester"
                 form.base_fields[
-                    "semester_or_year"
+                    "period_or_year"
                 ].help_text = f"Enter semester number (1-{obj.course.duration * 2})"
             else:
-                form.base_fields["semester_or_year"].label = "Year"
+                form.base_fields["period_or_year"].label = "Year"
                 form.base_fields[
-                    "semester_or_year"
+                    "period_or_year"
                 ].help_text = f"Enter year number (1-{obj.course.duration})"
 
         # Keep the last used course selected for next entry
         if not obj and request.method == "GET":
             if "course" in request.GET:
                 form.base_fields["course"].initial = request.GET["course"]
-            if "semester_or_year" in request.GET:
-                form.base_fields["semester_or_year"].initial = request.GET[
-                    "semester_or_year"
+            if "period_or_year" in request.GET:
+                form.base_fields["period_or_year"].initial = request.GET[
+                    "period_or_year"
                 ]
         return form
 
@@ -287,17 +367,17 @@ class SubjectModel(admin.ModelAdmin):
         opts = self.model._meta
         url = reverse(f"admin:{opts.app_label}_{opts.model_name}_add")
         return HttpResponseRedirect(
-            f"{url}?course={obj.course.id}&semester_or_year={obj.semester_or_year}"
+            f"{url}?course={obj.course.id}&period_or_year={obj.period_or_year}"
         )
 
 
 @admin.register(Student, site=custom_admin_site)
 class StudentAdmin(admin.ModelAdmin):
     form = StudentAdminForm
-    list_display = ("id", "name", "phone", "course", "status")
-    search_fields = ("name", "phone", "course__name")
+    list_display = ("id", "name", "phone", "course", "status", "fcm_token")
+    search_fields = ("name", "phone", "course__name", "fcm_token")
     list_filter = ("course", "status", "gender", "joining_date")
-    advanced_filter_fields = ("name", "phone", "course", "batch", "status")
+    advanced_filter_fields = ("name", "phone", "course", "batch", "status", "fcm_token")
 
     def has_view_permission(self, request, obj=None):
         """Check if user has view permission"""
@@ -328,13 +408,16 @@ class StudentAdmin(admin.ModelAdmin):
 @admin.register(Staff, site=custom_admin_site)
 class StaffAdmin(admin.ModelAdmin):
     form = StaffAdminForm
-    list_display = ("id", "name", "phone", "designation", "joining_date")
-    search_fields = ("name", "phone", "designation")
+    list_display = ("id", "name", "phone", "designation", "joining_date", "fcm_token")
+    search_fields = ("name", "phone", "designation", "fcm_token")
     list_filter = ("designation", "joining_date", "gender")
-    advanced_filter_fields = ("name", "phone", "designation")
+    advanced_filter_fields = ("name", "phone", "designation", "fcm_token")
     readonly_fields = ("password",)
     ordering = ("name",)
-    filter_horizontal = ("groups",)
+
+    def save_model(self, request, obj, form, change):
+        """Just save the model, group assignment is handled in the form"""
+        super().save_model(request, obj, form, change)
 
     def has_view_permission(self, request, obj=None):
         """Check if user has view permission"""
@@ -435,10 +518,10 @@ class RoutineAdmin(admin.ModelAdmin):
         "teacher",
         "start_time",
         "end_time",
-        "semester_or_year",
+        "period_or_year",
         "is_active",
     ]
-    list_filter = ["is_active", "course", "subject", "teacher", "semester_or_year"]
+    list_filter = ["is_active", "course", "subject", "teacher", "period_or_year"]
     search_fields = ["course__name", "subject__name", "teacher__name"]
     ordering = ["start_time"]
     change_form_template = "admin/app/routine/change_form.html"
@@ -478,7 +561,7 @@ class RoutineAdmin(admin.ModelAdmin):
                                 "teacher",
                                 "start_time",
                                 "end_time",
-                                "semester_or_year",
+                                "period_or_year",
                             ]
                             missing_fields = [
                                 field
@@ -496,7 +579,7 @@ class RoutineAdmin(admin.ModelAdmin):
                                 course_id = int(routine_data["course"])
                                 subject_id = int(routine_data["subject"])
                                 teacher_id = int(routine_data["teacher"])
-                                semester = int(routine_data["semester_or_year"])
+                                period = int(routine_data["period_or_year"])
 
                             except (ValueError, TypeError) as e:
                                 raise ValueError(f"Error parsing IDs: {str(e)}")
@@ -518,7 +601,7 @@ class RoutineAdmin(admin.ModelAdmin):
                             existing_routine = Routine.objects.filter(
                                 course_id=course_id,
                                 subject_id=subject_id,
-                                semester_or_year=semester,
+                                period_or_year=period,
                                 start_time=start_time,
                                 end_time=end_time,
                             ).first()
@@ -536,7 +619,7 @@ class RoutineAdmin(admin.ModelAdmin):
                                     teacher_id=teacher_id,
                                     start_time=start_time,
                                     end_time=end_time,
-                                    semester_or_year=semester,
+                                    period_or_year=period,
                                     is_active=True,
                                 )
                                 created_routines.append(routine)
@@ -558,7 +641,7 @@ class RoutineAdmin(admin.ModelAdmin):
                                     "teacher": r.teacher.name,
                                     "start_time": r.start_time.strftime("%H:%M"),
                                     "end_time": r.end_time.strftime("%H:%M"),
-                                    "semester_or_year": r.semester_or_year,
+                                    "period_or_year": r.period_or_year,
                                 }
                                 for r in created_routines
                             ],
@@ -581,7 +664,7 @@ class RoutineAdmin(admin.ModelAdmin):
             if request.GET.get("course"):
                 kwargs["queryset"] = Subject.objects.filter(
                     course_id=request.GET.get("course"),
-                    semester_or_year=request.GET.get("semester_or_year", 1),
+                    period_or_year=request.GET.get("period_or_year", 1),
                 )
             else:
                 kwargs["queryset"] = Subject.objects.none()
@@ -601,7 +684,7 @@ class RoutineAdmin(admin.ModelAdmin):
             form.base_fields["course"].widget.attrs["class"] = "select2"
             form.base_fields["subject"].widget.attrs["class"] = "select2"
             form.base_fields["teacher"].widget.attrs["class"] = "select2"
-            form.base_fields["semester_or_year"].initial = 1
+            form.base_fields["period_or_year"].initial = 1
         return form
 
     def add_view(self, request, form_url="", extra_context=None):
@@ -618,9 +701,15 @@ class RoutineAdmin(admin.ModelAdmin):
         js = ("https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js",)
 
 
-@admin.register(Staff_leave, site=custom_admin_site)
+@admin.register(StaffLeave, site=custom_admin_site)
 class StaffLeaveAdmin(admin.ModelAdmin):
-    list_display = ("staff", "start_date", "end_date", "get_status_display", "created_at")
+    list_display = (
+        "staff",
+        "start_date",
+        "end_date",
+        "get_status_display",
+        "created_at",
+    )
     list_filter = ("status", "start_date", "end_date", "created_at")
     search_fields = ("staff__name", "message")
     readonly_fields = ("created_at", "updated_at")
@@ -628,9 +717,15 @@ class StaffLeaveAdmin(admin.ModelAdmin):
     raw_id_fields = ("staff",)
 
 
-@admin.register(Student_Leave, site=custom_admin_site)
+@admin.register(StudentLeave, site=custom_admin_site)
 class StudentLeaveAdmin(admin.ModelAdmin):
-    list_display = ("student", "start_date", "end_date", "get_status_display", "created_at")
+    list_display = (
+        "student",
+        "start_date",
+        "end_date",
+        "get_status_display",
+        "created_at",
+    )
     list_filter = ("status", "start_date", "end_date", "created_at")
     search_fields = ("student__name", "message")
     readonly_fields = ("created_at", "updated_at")
@@ -790,15 +885,25 @@ class StaffInstituteFeedbackAdmin(admin.ModelAdmin):
 
 @admin.register(FCMDevice, site=custom_admin_site)
 class FCMDeviceAdmin(admin.ModelAdmin):
-    list_display = ("id", "token", "created_at", "last_active", "is_active")
+    list_display = (
+        "id",
+        "token",
+        "user_type",
+        "is_active",
+        "created_at",
+        "last_active",
+    )
     search_fields = ("token",)
-    list_filter = ("is_active", "created_at", "last_active")
+    list_filter = ("user_type", "is_active", "created_at", "last_active")
     readonly_fields = ("created_at", "last_active")
     ordering = ("-last_active",)
 
     fieldsets = (
-        (None, {"fields": ("token", "is_active")}),
-        ("Metadata", {"fields": ("created_at", "last_active"), "classes": ("collapse",)}),
+        (None, {"fields": ("token", "user_type", "is_active", "is_fallback")}),
+        (
+            "Metadata",
+            {"fields": ("created_at", "last_active"), "classes": ("collapse",)},
+        ),
     )
 
 
@@ -808,6 +913,167 @@ class SubjectFileAdmin(admin.ModelAdmin):
     search_fields = ("title", "subject__name", "uploaded_by__name")
     list_filter = ("subject__course", "uploaded_at")
     autocomplete_fields = ["subject", "uploaded_by"]
+
+
+@admin.register(Parent, site=custom_admin_site)
+class ParentAdmin(admin.ModelAdmin):
+    form = ParentAdminForm
+    list_display = ("id", "name", "phone", "email", "fcm_token")
+    search_fields = ("name", "phone", "email", "fcm_token")
+    list_filter = ("students",)
+    advanced_filter_fields = ("name", "phone", "email", "students", "fcm_token")
+
+    def has_view_permission(self, request, obj=None):
+        """Check if user has view permission"""
+        return request.user.has_perm("app.view_parent")
+
+    def has_add_permission(self, request):
+        """Check if user has add permission"""
+        return request.user.has_perm("app.add_parent")
+
+    def has_change_permission(self, request, obj=None):
+        """Check if user has change permission"""
+        return request.user.has_perm("app.change_parent")
+
+    def has_delete_permission(self, request, obj=None):
+        """Check if user has delete permission"""
+        return request.user.has_perm("app.delete_parent")
+
+    def has_module_permission(self, request):
+        """Check if user has any permissions for this app"""
+        return request.user.has_module_perms("app")
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return self.readonly_fields + ("password",)
+        return self.readonly_fields
+
+
+@admin.register(ParentFeedback, site=custom_admin_site)
+class ParentFeedbackAdmin(admin.ModelAdmin):
+    list_display = ("parent", "teacher", "student", "rating", "created_at")
+    list_filter = ("rating", "created_at", "teacher", "student")
+    search_fields = ("parent__name", "teacher__name", "student__name", "feedback_text")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-created_at",)
+    raw_id_fields = ("parent", "teacher", "student")
+
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request).select_related("parent", "teacher", "student")
+        )
+
+
+@admin.register(ParentInstituteFeedback, site=custom_admin_site)
+class ParentInstituteFeedbackAdmin(admin.ModelAdmin):
+    list_display = (
+        "parent",
+        "institute",
+        "feedback_type",
+        "rating",
+        "is_anonymous",
+        "created_at",
+    )
+    list_filter = ("feedback_type", "rating", "is_anonymous", "created_at", "institute")
+    search_fields = ("parent__name", "institute__name", "feedback_text")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-created_at",)
+    raw_id_fields = ("parent", "institute")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("parent", "institute")
+
+
+@admin.register(TeacherParentMeeting, site=custom_admin_site)
+class TeacherParentMeetingAdmin(admin.ModelAdmin):
+    list_display = (
+        "meeting_date",
+        "meeting_time",
+        "duration",
+        "status",
+        "is_online",
+        "meeting_link",
+    )
+    list_filter = (
+        "status",
+        "is_online",
+        "meeting_date",
+    )
+    search_fields = (
+        "agenda",
+        "notes",
+        "cancellation_reason",
+    )
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-meeting_date", "-meeting_time")
+
+    fieldsets = (
+        (
+            "Meeting Details",
+            {
+                "fields": (
+                    "meeting_date",
+                    "meeting_time",
+                    "duration",
+                    "status",
+                    "is_online",
+                    "meeting_link",
+                )
+            },
+        ),
+        (
+            "Meeting Content",
+            {
+                "fields": ("agenda", "notes"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Cancellation Details",
+            {
+                "fields": ("cancellation_reason",),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": (
+                    "created_at",
+                    "updated_at",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+
+@admin.register(TOTPSecret, site=custom_admin_site)
+class TOTPSecretAdmin(admin.ModelAdmin):
+    list_display = ("identifier", "created_at", "expires_at", "is_expired")
+    search_fields = ("identifier",)
+    readonly_fields = ("created_at", "expires_at")
+    ordering = ("-created_at",)
+
+    def is_expired(self, obj):
+        return obj.is_expired()
+
+    is_expired.boolean = True
+    is_expired.short_description = "Expired"
+
+
+@admin.register(ResetToken, site=custom_admin_site)
+class ResetTokenAdmin(admin.ModelAdmin):
+    list_display = ("identifier", "token", "created_at", "expires_at", "is_expired")
+    search_fields = ("identifier", "token")
+    readonly_fields = ("created_at", "expires_at")
+    ordering = ("-created_at",)
+
+    def is_expired(self, obj):
+        return obj.is_expired()
+
+    is_expired.boolean = True
+    is_expired.short_description = "Expired"
 
 
 custom_admin_site.register(User, UserAdmin)

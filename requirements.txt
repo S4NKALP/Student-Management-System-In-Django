@@ -28,6 +28,7 @@ gunicorn==23.0.0
 httplib2==0.22.0
 idna==3.10
 msgpack==1.1.0
+pillow==11.2.1
 packaging==24.2
 pillow==11.1.0
 proto-plus==1.26.1

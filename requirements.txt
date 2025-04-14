@@ -11,7 +11,7 @@ django-mathfilters==1.0.0
 djangorestframework==3.16.0
 firebase-admin==6.7.0
 google-api-core==2.24.2
-google-api-python-client==2.166.0
+google-api-python-client==2.167.0
 google-auth==2.38.0
 google-auth-httplib2==0.2.0
 google-cloud-core==2.4.3

@@ -1,11 +1,17 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import login
+# Core Django imports
+from django.contrib.auth import authenticate, login
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
+from django.contrib import messages
+
+
 import uuid
-from .models import Student, Staff
-from .utils import (
+
+# Local app imports
+from app.models import Student, Staff, Parent
+from app.utils import (
     generate_otp,
     generate_secret_key,
     store_secret_key,
@@ -16,7 +22,8 @@ from .utils import (
     store_reset_token,
     verify_reset_token
 )
-from django.contrib import messages
+
+
 
 def reset_password_options(request):
     """View for selecting between phone and email password reset"""
@@ -295,4 +302,24 @@ def set_new_password(request):
         messages.success(request, "Password has been reset successfully. Please login with your new password.")
         return redirect("login")
     
-    return render(request, "login/password_reset_set.html", {"is_email": False}) 
+    return render(request, "login/password_reset_set.html", {"is_email": False})
+
+def custom_login(request):
+    """Custom login view to handle authentication"""
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            next_url = request.POST.get("next", "/app/dashboard/")
+            return redirect(next_url)
+        else:
+            return render(request, "login/login.html", {
+                "error": "Invalid credentials",
+                "username": username
+            })
+    
+    return render(request, "login/login.html") 

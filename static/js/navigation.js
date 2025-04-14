@@ -85,4 +85,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Run initial load before rendering content
     handleInitialLoad();
+    
+    // Expose the showSection function globally for backward compatibility with onclick handlers
+    window.showSection = function(sectionId) {
+        if (typeof sectionId === 'string') {
+            // Remove 'Section' suffix if it exists
+            const cleanSectionId = sectionId.replace('Section', '');
+            switchToSection(cleanSectionId);
+        }
+    };
 });

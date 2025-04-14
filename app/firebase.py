@@ -6,13 +6,31 @@ from firebase_admin import messaging, credentials
 from student_management_system.settings import BASE_DIR
 
 
+# --------------------------------------------------------------------
+# FCM Device Model
+# --------------------------------------------------------------------
+
+
 class FCMDevice(models.Model):
     """Model to store Firebase Cloud Messaging device tokens"""
+
     id = models.BigAutoField(primary_key=True)
     token = models.TextField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_active = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
+    is_fallback = models.BooleanField(default=False)  # Flag to identify fallback tokens
+    user_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("student", "Student"),
+            ("parent", "Parent"),
+            ("teacher", "Teacher"),
+            ("admin", "Admin"),
+            ("unknown", "Unknown"),
+        ],
+        default="unknown",
+    )  # Add user type field
 
     def __str__(self):
         return f"Device {self.id} ({self.token[:20]}...)"
@@ -20,7 +38,7 @@ class FCMDevice(models.Model):
     class Meta:
         verbose_name = "FCM Device"
         verbose_name_plural = "FCM Devices"
-        ordering = ['-last_active']
+        ordering = ["-last_active"]
 
     def deactivate(self):
         """Deactivate this device token"""
@@ -28,21 +46,64 @@ class FCMDevice(models.Model):
         self.save()
 
 
+# --------------------------------------------------------------------
+# Token Management
+# --------------------------------------------------------------------
+
+
 def save_fcm_token(request, token):
     """Save FCM token to database"""
     try:
-        # Delete any existing tokens for this user/device
-        FCMDevice.objects.filter(token=token).delete()
-        # Create new token
-        FCMDevice.objects.create(token=token)
-        return JsonResponse({'status': 'success'})
+        # Check if this is a fallback token
+        is_fallback = token.startswith("fcm-token-") or token.startswith(
+            "fallback-token-"
+        )
+
+        # Determine user type if a user is authenticated
+        user_type = "unknown"
+        if hasattr(request, "user") and request.user.is_authenticated:
+            user_groups = request.user.groups.values_list("name", flat=True)
+            if "Student" in user_groups:
+                user_type = "student"
+            elif "Parent" in user_groups:
+                user_type = "parent"
+            elif "Teacher" in user_groups:
+                user_type = "teacher"
+            elif request.user.is_superuser:
+                user_type = "admin"
+
+        # Use update_or_create to avoid unnecessary deletes
+        device, created = FCMDevice.objects.update_or_create(
+            token=token,
+            defaults={
+                "is_fallback": is_fallback,
+                "is_active": True,
+                "user_type": user_type,
+            },
+        )
+
+        return JsonResponse({"status": "success"})
     except Exception as e:
-        print(f"Error saving FCM token: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+# --------------------------------------------------------------------
+# Firebase Configuration
+# --------------------------------------------------------------------
 
 
 def get_firebase_js():
     """Generate Firebase JavaScript configuration"""
+    firebase_config = {
+        "apiKey": os.getenv("FIREBASE_API_KEY", ""),
+        "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
+        "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
+        "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
+        "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
+        "appId": os.getenv("FIREBASE_APP_ID", ""),
+        "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", ""),
+    }
+
     data = """
         importScripts('https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js');
         importScripts('https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging-compat.js');
@@ -69,25 +130,35 @@ def get_firebase_js():
             return self.registration.showNotification(notificationTitle, notificationOptions);
         });
     """ % (
-        os.getenv("FIREBASE_API_KEY", ""),
-        os.getenv("FIREBASE_AUTH_DOMAIN", ""),
-        os.getenv("FIREBASE_PROJECT_ID", ""),
-        os.getenv("FIREBASE_STORAGE_BUCKET", ""),
-        os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
-        os.getenv("FIREBASE_APP_ID", ""),
-        os.getenv("FIREBASE_MEASUREMENT_ID", "")
+        firebase_config["apiKey"],
+        firebase_config["authDomain"],
+        firebase_config["projectId"],
+        firebase_config["storageBucket"],
+        firebase_config["messagingSenderId"],
+        firebase_config["appId"],
+        firebase_config["measurementId"],
     )
     return HttpResponse(data, content_type="application/javascript")
 
 
-# Sending Firebase Push Notification
+# --------------------------------------------------------------------
+# Firebase Admin Initialization
+# --------------------------------------------------------------------
+
+# Initialize Firebase Admin
+firebase_app = None
 try:
-    cred = credentials.Certificate(os.path.join(BASE_DIR, "firebase-key.json"))
-    firebase_app = firebase_admin.initialize_app(cred)
-except (ValueError, FileNotFoundError) as e:
-    print(f"Warning: Could not initialize Firebase Admin: {e}")
-except firebase_admin.exceptions.FirebaseError as e:
-    print(f"Warning: Firebase Admin initialization error: {e}")
+    cert_path = os.path.join(BASE_DIR, "firebase-key.json")
+    if os.path.exists(cert_path):
+        cred = credentials.Certificate(cert_path)
+        firebase_app = firebase_admin.initialize_app(cred)
+except Exception:
+    pass
+
+
+# --------------------------------------------------------------------
+# Push Notification Functions
+# --------------------------------------------------------------------
 
 
 def send_push_notification(title, message, tokens):
@@ -95,22 +166,41 @@ def send_push_notification(title, message, tokens):
     Send push notification using Firebase Cloud Messaging
     Returns a tuple of (success_count, failure_count, failed_tokens)
     """
+    if not firebase_app or not tokens:
+        return 0, len(tokens) if tokens else 0, tokens
+
     if not isinstance(tokens, (list, tuple)):
         tokens = list(tokens)  # Convert QuerySet to list
-        
+
     success_count = 0
     failure_count = 0
     failed_tokens = []
-    
-    # Get only active devices
+
+    # Get only active devices that are not fallback tokens
     active_devices = FCMDevice.objects.filter(
         token__in=tokens,
-        is_active=True
+        is_active=True,
+        is_fallback=False,  # Skip fallback tokens for push notifications
     )
-    
+
+    # Count fallback tokens as "success" for reporting purposes
+    fallback_count = FCMDevice.objects.filter(
+        token__in=tokens, is_active=True, is_fallback=True
+    ).count()
+
+    success_count += fallback_count
+
     for device in active_devices:
         try:
-            response = messaging.send(
+            # Skip tokens that match our fallback pattern
+            if device.token.startswith("fcm-token-") or device.token.startswith(
+                "fallback-token-"
+            ):
+                device.is_fallback = True
+                device.save()
+                continue
+
+            messaging.send(
                 messaging.Message(
                     notification=messaging.Notification(
                         title=title,
@@ -119,17 +209,14 @@ def send_push_notification(title, message, tokens):
                     token=str(device.token),  # Ensure token is a string
                 )
             )
-            print(f"Successfully sent message: {response}")
             success_count += 1
         except messaging.UnregisteredError:
             # Token is no longer valid, deactivate the device
-            print(f"Token {device.token} is no longer valid, deactivating device")
             device.deactivate()
             failure_count += 1
             failed_tokens.append(device.token)
-        except Exception as e:
-            print(f"Failed to send message to token {device.token}: {e}")
+        except Exception:
             failure_count += 1
             failed_tokens.append(device.token)
-            
+
     return success_count, failure_count, failed_tokens

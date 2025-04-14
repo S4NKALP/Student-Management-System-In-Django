@@ -574,4 +574,101 @@ body {
   a[href]:after {
     content: " (" attr(href) ")";
   }
+}
+
+/* Responsive Form Styles */
+@media (max-width: 768px) {
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-control, .form-select {
+        font-size: 16px; /* Prevents iOS zoom */
+        height: auto;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .input-group {
+        flex-wrap: wrap;
+    }
+    
+    .input-group > .form-control,
+    .input-group > .form-select {
+        flex: 1 1 auto;
+        width: auto;
+    }
+    
+    .btn-block {
+        width: 100%;
+    }
+    
+    textarea.form-control {
+        min-height: 100px;
+    }
+    
+    label {
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .form-row {
+        display: block;
+    }
+    
+    .form-row > .col,
+    .form-row > [class*="col-"] {
+        padding-right: 0;
+        padding-left: 0;
+    }
+    
+    .form-control, .form-select {
+        font-size: 16px;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .form-check-input {
+        width: 1rem;
+        height: 1rem;
+        margin-top: 0.3em;
+    }
+    
+    .form-check-label {
+        margin-left: 0.2rem;
+    }
+}
+
+/* Modal Responsive Fixes */
+@media (max-width: 576px) {
+    .modal-header {
+        padding: 0.75rem 1rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    .modal-footer {
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .modal-footer > * {
+        margin: 0.25rem 0;
+    }
+    
+    /* Fix for iOS modals */
+    .ios-modal-fix {
+        position: absolute;
+        overflow: hidden;
+    }
+}
+
+/* Fix for notched phones */
+@supports (padding: max(0px)) {
+    .fixed-bottom {
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
 } 

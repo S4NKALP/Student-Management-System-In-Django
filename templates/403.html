@@ -1,0 +1,23 @@
+{% extends "shared/base.html" %}
+
+{% block title %}403 Forbidden{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <h1 class="display-1 text-warning mb-4">403</h1>
+                    <h2 class="mb-4">Access Forbidden</h2>
+                    <p class="lead mb-4">Sorry, you don't have permission to access this page.</p>
+                    <div class="mb-4">
+                        <p>Please check your credentials or contact the administrator if you believe this is an error.</p>
+                    </div>
+                    <a href="/" class="btn btn-primary btn-lg">Go to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -9,6 +9,14 @@
 [x] Leave Management
 [x] Course Tracking
 [x] Teacher Study Materials
-[ ] Parent User Roles
-[ ] Parent Roles
+[x] Parent Dashboard
+[x] Parent User Roles
+[x] Parent Roles
+[x] Admission Officer
+[x] Parent Meetings
+[ ] Librarian
+[ ] Refactor Code
+[ ] Better Documentation
+[ ] HOD Roles
 [ ] Library Management
+[ ] Full Rest API Integration

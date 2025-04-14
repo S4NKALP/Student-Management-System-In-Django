@@ -1,0 +1,510 @@
+{% extends 'shared/base.html' %}
+{% load static %}
+{% load tz %}
+{% load app_filters %}
+
+{% block title %}HOD Dashboard - {{ course.name }}{% endblock title %}
+
+{% block content %}
+<!-- Add CSRF token to the page -->
+{% csrf_token %}
+
+<div class="container-fluid py-4">
+  <!-- Welcome Section -->
+  {% include 'shared/welcome_section.html' %}
+
+  <!-- Dashboard Content -->
+  <div id="dashboardSection" class="content-section active">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i> Students</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ total_students }}</h2>
+              <p class="text-muted">Total Students</p>
+            </div>
+            <div class="text-center">
+              <div class="d-flex justify-content-around">
+                <div>
+                  <h4 class="fw-bold mb-0">{{ total_staff }}</h4>
+                  <p class="text-muted">Staff</p>
+                </div>
+                <div>
+                  <h4 class="fw-bold mb-0">{{ total_subjects }}</h4>
+                  <p class="text-muted">Subjects</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-chalkboard me-2"></i> Today's Classes</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ today_classes|length }}</h2>
+              <p class="text-muted">Total Classes</p>
+            </div>
+            <div class="text-center">
+              {% if today_classes %}
+                <div class="text-center mb-2">
+                  <div class="d-flex justify-content-center flex-wrap gap-2">
+                    {% for class in today_classes|slice:":3" %}
+                      <span class="badge bg-primary py-2 px-3">
+                        {{ class.subject.name|truncatechars:15 }}
+                      </span>
+                    {% endfor %}
+                    {% if today_classes|length > 3 %}
+                      <span class="badge bg-info py-2 px-3">
+                        +{{ today_classes|length|add:"-3" }} more
+                      </span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% else %}
+                <p class="text-muted">No classes scheduled for today</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-graduation-cap me-2"></i> Student Progress</h5>
+          </div>
+          <div class="card-body text-center">
+            {% if student_progress %}
+              <div class="progress-stats">
+                {% for progress in student_progress|slice:":3" %}
+                  <div class="mb-2">
+                    <small class="text-muted d-block mb-1">{{ progress.student.name }}</small>
+                    <div class="progress" style="height: 8px;">
+                      <div class="progress-bar {% if progress.completion_percentage >= 75 %}bg-success{% elif progress.completion_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                           role="progressbar"
+                           style="width: {{ progress.completion_percentage }}%"
+                           aria-valuenow="{{ progress.completion_percentage }}"
+                           aria-valuemin="0"
+                           aria-valuemax="100">
+                      </div>
+                    </div>
+                    <small class="text-muted">{{ progress.completion_percentage }}%</small>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-muted">No progress data available</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-calendar-check me-2"></i> Upcoming Meetings</h5>
+          </div>
+          <div class="card-body">
+            {% if upcoming_meetings %}
+              {% for meeting in upcoming_meetings|slice:":3" %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div>
+                    <small class="text-muted d-block">{{ meeting.meeting_date|date:"M d, Y" }}</small>
+                    <small>{{ meeting.meeting_time|time:"h:i A" }}</small>
+                  </div>
+                  <span class="badge bg-primary">{{ meeting.get_status_display }}</span>
+                </div>
+              {% endfor %}
+              {% if upcoming_meetings|length > 3 %}
+                <div class="text-center mt-2">
+                  <small class="text-muted">+{{ upcoming_meetings|length|add:"-3" }} more meetings</small>
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-muted text-center">No upcoming meetings</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Classes -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="content-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i> Today's Classes</h5>
+          </div>
+
+          {% if today_classes %}
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Code</th>
+                    <th>Teacher</th>
+                    <th>Time</th>
+                    <th>Period/Year</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for class in today_classes %}
+                    <tr>
+                      <td>{{ class.subject.name }}</td>
+                      <td>{{ class.subject.code|default:"-" }}</td>
+                      <td>{{ class.teacher.name }}</td>
+                      <td>{{ class.start_time|time:"h:i A" }} - {{ class.end_time|time:"h:i A" }}</td>
+                      <td>{{ class.period_or_year }}</td>
+                      <td>
+                        {% if class.attendance %}
+                          <span class="badge {% if class.attendance.class_status %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if class.attendance.class_status %}Conducted{% else %}Cancelled{% endif %}
+                          </span>
+                        {% else %}
+                          <span class="badge bg-warning">Pending</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No classes scheduled for today.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Progress and Recent Feedback -->
+    <div class="row">
+      <div class="col-lg-6 mb-4">
+        <div class="content-card h-100">
+          <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i> Student Progress</h5>
+          {% if student_progress %}
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Progress</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for progress in student_progress %}
+                    <tr>
+                      <td>{{ progress.student.name }}</td>
+                      <td>
+                        <div class="progress" style="height: 8px;">
+                          <div class="progress-bar {% if progress.completion_percentage >= 75 %}bg-success{% elif progress.completion_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                               role="progressbar"
+                               style="width: {{ progress.completion_percentage }}%"
+                               aria-valuenow="{{ progress.completion_percentage }}"
+                               aria-valuemin="0"
+                               aria-valuemax="100">
+                          </div>
+                        </div>
+                        <small class="text-muted">{{ progress.completion_percentage }}%</small>
+                      </td>
+                      <td>
+                        <span class="badge {% if progress.completion_percentage >= 75 %}bg-success{% elif progress.completion_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                          {% if progress.completion_percentage >= 75 %}On Track
+                          {% elif progress.completion_percentage >= 50 %}Needs Attention
+                          {% else %}At Risk{% endif %}
+                        </span>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No student progress data available.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-lg-6 mb-4">
+        <div class="content-card h-100">
+          <h5 class="mb-3"><i class="fas fa-comment-dots me-2"></i> Recent Feedback</h5>
+          {% if recent_feedback %}
+            <div class="feedback-list">
+              {% for feedback in recent_feedback %}
+                <div class="feedback-card mb-3">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 class="mb-0">{{ feedback.student.name }}</h6>
+                        <small class="text-muted">to {{ feedback.teacher.name }}</small>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                          {% else %}
+                            <i class="far fa-star text-warning"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-body mt-2">
+                    <p class="mb-1">{{ feedback.feedback_text }}</p>
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No recent feedback available.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Students Section -->
+  <div id="studentsSection" class="content-section" style="display: none;">
+    <!-- Students section content will be loaded here -->
+  </div>
+
+  <!-- Staff Section -->
+  <div id="staffSection" class="content-section" style="display: none;">
+    <!-- Staff section content will be loaded here -->
+  </div>
+
+  <!-- Subjects Section -->
+  <div id="subjectsSection" class="content-section" style="display: none;">
+    <div class="content-card mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="fas fa-book me-2"></i> {{ course.name }} Subjects</h5>
+        <button class="btn btn-primary btn-sm" onclick="openAddSubjectModal()">
+          <i class="fas fa-plus-circle me-1"></i> Add Subject
+        </button>
+      </div>
+
+      <!-- Filter Controls -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="input-group">
+            <span class="input-group-text bg-light">
+              <i class="fas fa-filter"></i>
+            </span>
+            <select class="form-select" id="periodFilter" aria-label="Filter by period">
+              <option value="">All Periods/Years</option>
+              {% for i in "1234"|make_list %}
+                {% if i|add:"0" <= course.duration %}
+                  <option value="{{ i }}">
+                    {{ i }}{% if course.duration_type == 'Semester' %}st Semester{% else %}st Year{% endif %}
+                  </option>
+                {% endif %}
+              {% endfor %}
+            </select>
+            <input type="text" class="form-control" placeholder="Search subjects..." id="subjectSearch" aria-label="Search subjects">
+          </div>
+        </div>
+      </div>
+
+      <!-- Subjects Table -->
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Code</th>
+              <th>Period/{{ course.duration_type }}</th>
+              <th>Teacher</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="subjectsTableBody">
+            {% if subjects %}
+              {% for subject in subjects %}
+                <tr>
+                  <td>{{ subject.name }}</td>
+                  <td>{{ subject.code|default:"-" }}</td>
+                  <td data-period="{{ subject.period_or_year }}">
+                    {{ subject.period_or_year }}
+                    {% if course.duration_type == 'Semester' %}
+                      Semester
+                    {% else %}
+                      Year
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if subject.teacher %}
+                      {{ subject.teacher.name }}
+                    {% else %}
+                      <span class="badge bg-warning">Not Assigned</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewSubjectDetails('{{ subject.id }}')">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-success" onclick="editSubject('{{ subject.id }}')">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDeleteSubject('{{ subject.id }}')">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center">No subjects found for {{ course.name }}.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Routine Section -->
+  <div id="routineSection" class="content-section" style="display: none;">
+    <!-- Routine section content will be loaded here -->
+  </div>
+
+  <!-- Progress Section -->
+  <div id="progressSection" class="content-section" style="display: none;">
+    <!-- Progress section content will be loaded here -->
+  </div>
+
+  <!-- Meetings Section -->
+  <div id="meetingsSection" class="content-section" style="display: none;">
+    <!-- Meetings section content will be loaded here -->
+  </div>
+
+  <!-- Profile Section -->
+  <div id="profileSection" class="content-section" style="display: none;">
+    <!-- Profile section content will be loaded here -->
+  </div>
+</div>
+
+<!-- Common Modals -->
+{% include 'shared/common_modals.html' with user=hod %}
+
+<!-- Bottom Navigation -->
+{% include 'shared/bottom_nav.html' with user=hod %}
+
+{% endblock content %}
+
+{% block extrastyle %}
+{{ block.super }}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<style>
+  /* Progress Bar Styles */
+  .progress {
+    background-color: #eef2f7;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .progress-bar {
+    border-radius: 10px;
+    transition: width 0.6s ease;
+  }
+  
+  .progress-bar.bg-success {
+    background-color: #22c55e !important;
+  }
+  
+  .progress-bar.bg-warning {
+    background-color: #f59e0b !important;
+  }
+  
+  .progress-bar.bg-danger {
+    background-color: #ef4444 !important;
+  }
+  
+  /* Feedback Card Styles */
+  .feedback-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .rating-stars {
+    color: #fbbf24;
+  }
+  
+  .rating-stars i {
+    margin-right: 2px;
+  }
+  
+  /* Summary Card Styles */
+  .summary-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .summary-card .card-header {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 15px;
+  }
+  
+  .summary-card .card-body {
+    padding: 15px;
+  }
+  
+  /* Content Card Styles */
+  .content-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  /* Badge Styles */
+  .badge {
+    padding: 6px 12px;
+    font-weight: 500;
+  }
+</style>
+{% endblock extrastyle %}
+
+{% block extrascripts %}
+{{ block.super }}
+<script>
+  // Initialize Firebase and request notification permission when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Call getDeviceToken to initialize Firebase and request notification permission
+    if (typeof getDeviceToken === 'function') {
+      getDeviceToken().catch(error => {
+        console.error('Error initializing Firebase:', error);
+      });
+    }
+  });
+</script>
+<!-- Include HOD dashboard specific scripts -->
+<script src="{% static 'js/hod-dashboard.js' %}"></script>
+{% endblock extrascripts %} 

@@ -1,96 +1,197 @@
+# Standard library imports
 import django.db
+
+# Third-party app imports
 from rest_framework import serializers
-from .models import (
-    Attendance, AttendanceRecord, Batch, Course, FCMDevice, Institute,
-    Notice, Routine, Staff, Student, Subject, Staff_leave, Student_Leave,
-    StudentFeedback, InstituteFeedback, StaffInstituteFeedback, CourseTracking,
-    TOTPSecret, ResetToken
+
+# Local app imports
+from app.firebase import FCMDevice
+from app.models import (
+    Attendance,
+    AttendanceRecord,
+    Batch,
+    Course,
+    CourseTracking,
+    Institute,
+    InstituteFeedback,
+    Notice,
+    Parent,
+    ParentFeedback,
+    ParentInstituteFeedback,
+    Routine,
+    Staff,
+    StaffInstituteFeedback,
+    StaffLeave,
+    Student,
+    StudentFeedback,
+    StudentLeave,
+    Subject,
+    SubjectFile,
+    TeacherParentMeeting,
 )
+
 
 class FCMDeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = FCMDevice
-        fields = ['id', 'token']
+        fields = ["id", "token"]
+
 
 class InstituteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Institute
-        fields = ['id', 'name', 'phone', 'email', 'address', 'pan_no', 'reg_no', 'logo', 'description']
+        fields = [
+            "id",
+            "name",
+            "phone",
+            "email",
+            "address",
+            "pan_no",
+            "reg_no",
+            "logo",
+            "description",
+        ]
+
 
 class SubjectSerializer(serializers.ModelSerializer):
     syllabus_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'course', 'semester_or_year', 'syllabus_pdf', 'syllabus_pdf_url']
+        fields = [
+            "id",
+            "name",
+            "course",
+            "period_or_year",
+            "syllabus_pdf",
+            "syllabus_pdf_url",
+        ]
 
     def get_syllabus_pdf_url(self, obj):
         return obj.get_pdf_url()
 
+
 class CourseSerializer(serializers.ModelSerializer):
     subjects = SubjectSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = Course
-        fields = ['id', 'name', 'duration', 'duration_type', 'subjects']
+        fields = [
+            "id",
+            "name",
+            "code",
+            "duration",
+            "duration_type",
+            "is_active",
+            "description",
+            "subjects",
+        ]
+
 
 class BatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Batch
-        fields = ['id', 'name', 'start_date', 'end_date']
+        fields = ["id", "name", "year"]
+
 
 class StudentSerializer(serializers.ModelSerializer):
     batches = BatchSerializer(many=True, read_only=True)
     course = CourseSerializer(read_only=True)
-    
+
     class Meta:
         model = Student
         fields = [
-            'id', 'name', 'status', 'gender', 'birth_date', 'email', 'phone',
-            'temporary_address', 'permanent_address', 'marital_status', 'parent_name',
-            'parent_phone', 'citizenship_no', 'image', 'batches', 'course',
-            'current_semester', 'joining_date'
+            "id",
+            "name",
+            "status",
+            "gender",
+            "birth_date",
+            "email",
+            "phone",
+            "temporary_address",
+            "permanent_address",
+            "marital_status",
+            "parent_name",
+            "parent_phone",
+            "citizenship_no",
+            "image",
+            "batches",
+            "course",
+            "current_semester",
+            "joining_date",
         ]
-        read_only_fields = ['id']
+        read_only_fields = ["id"]
+
 
 class StaffSerializer(serializers.ModelSerializer):
     class Meta:
         model = Staff
         fields = [
-            'id', 'name', 'gender', 'designation', 'birth_date', 'phone', 'email',
-            'temporary_address', 'permanent_address', 'marital_status', 'parent_name',
-            'parent_phone', 'citizenship_no', 'passport', 'image', 'joining_date',
-            'is_active'
+            "id",
+            "name",
+            "gender",
+            "designation",
+            "birth_date",
+            "phone",
+            "email",
+            "temporary_address",
+            "permanent_address",
+            "marital_status",
+            "parent_name",
+            "parent_phone",
+            "citizenship_no",
+            "passport",
+            "image",
+            "joining_date",
+            "is_active",
         ]
-        read_only_fields = ['id']
+        read_only_fields = ["id"]
+
 
 class RoutineSerializer(serializers.ModelSerializer):
     teacher = StaffSerializer(read_only=True)
     subject = SubjectSerializer(read_only=True)
     course = CourseSerializer(read_only=True)
-    
+
     class Meta:
         model = Routine
         fields = [
-            'id', 'course', 'subject', 'teacher', 'start_time', 'end_time',
-            'semester_or_year', 'is_active'
+            "id",
+            "course",
+            "subject",
+            "teacher",
+            "start_time",
+            "end_time",
+            "period_or_year",
+            "is_active",
         ]
+
 
 class AttendanceRecordSerializer(serializers.ModelSerializer):
     student = StudentSerializer(read_only=True)
-    
+
     class Meta:
         model = AttendanceRecord
-        fields = ['id', 'attendance', 'student', 'student_attend']
+        fields = ["id", "attendance", "student", "student_attend"]
+
 
 class AttendanceSerializer(serializers.ModelSerializer):
     records = AttendanceRecordSerializer(many=True, read_only=True)
     routine = RoutineSerializer(read_only=True)
     teacher = StaffSerializer(read_only=True)
-    
+
     class Meta:
         model = Attendance
-        fields = ['id', 'date', 'routine', 'teacher', 'teacher_attend', 'class_status', 'records']
+        fields = [
+            "id",
+            "date",
+            "routine",
+            "teacher",
+            "teacher_attend",
+            "class_status",
+            "records",
+        ]
+
 
 class NoticeSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
@@ -98,13 +199,14 @@ class NoticeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notice
-        fields = ['id', 'title', 'message', 'image', 'image_url', 'created_at']
-        read_only_fields = ['created_at']
+        fields = ["id", "title", "message", "image", "image_url", "created_at"]
+        read_only_fields = ["created_at"]
 
     def get_image_url(self, obj):
         if obj.image:
             return obj.image.url
         return None
+
 
 class StaffLeaveSerializer(serializers.ModelSerializer):
     staff = StaffSerializer(read_only=True)
@@ -112,9 +214,19 @@ class StaffLeaveSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
     class Meta:
-        model = Staff_leave
-        fields = ['id', 'staff', 'start_date', 'end_date', 'message', 'status', 'created_at', 'updated_at']
-        read_only_fields = ['created_at', 'updated_at']
+        model = StaffLeave
+        fields = [
+            "id",
+            "staff",
+            "start_date",
+            "end_date",
+            "message",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]
+
 
 class StudentLeaveSerializer(serializers.ModelSerializer):
     student = StudentSerializer(read_only=True)
@@ -122,9 +234,19 @@ class StudentLeaveSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
 
     class Meta:
-        model = Student_Leave
-        fields = ['id', 'student', 'start_date', 'end_date', 'message', 'status', 'created_at', 'updated_at']
-        read_only_fields = ['created_at', 'updated_at']
+        model = StudentLeave
+        fields = [
+            "id",
+            "student",
+            "start_date",
+            "end_date",
+            "message",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]
+
 
 class StudentFeedbackSerializer(serializers.ModelSerializer):
     student = StudentSerializer(read_only=True)
@@ -134,8 +256,17 @@ class StudentFeedbackSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentFeedback
-        fields = ['id', 'student', 'teacher', 'rating', 'feedback_text', 'created_at', 'updated_at']
-        read_only_fields = ['created_at', 'updated_at']
+        fields = [
+            "id",
+            "student",
+            "teacher",
+            "rating",
+            "feedback_text",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]
+
 
 class InstituteFeedbackSerializer(serializers.ModelSerializer):
     user = StudentSerializer(read_only=True)
@@ -145,10 +276,19 @@ class InstituteFeedbackSerializer(serializers.ModelSerializer):
     class Meta:
         model = InstituteFeedback
         fields = [
-            'id', 'institute', 'user', 'feedback_type', 'rating', 'feedback_text',
-            'is_anonymous', 'is_public', 'created_at', 'updated_at'
+            "id",
+            "institute",
+            "user",
+            "feedback_type",
+            "rating",
+            "feedback_text",
+            "is_anonymous",
+            "is_public",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ["created_at", "updated_at"]
+
 
 class StaffInstituteFeedbackSerializer(serializers.ModelSerializer):
     staff = StaffSerializer(read_only=True)
@@ -158,33 +298,71 @@ class StaffInstituteFeedbackSerializer(serializers.ModelSerializer):
     class Meta:
         model = StaffInstituteFeedback
         fields = [
-            'id', 'institute', 'staff', 'feedback_type', 'rating', 'feedback_text',
-            'is_anonymous', 'is_public', 'created_at', 'updated_at'
+            "id",
+            "institute",
+            "staff",
+            "feedback_type",
+            "rating",
+            "feedback_text",
+            "is_anonymous",
+            "is_public",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ["created_at", "updated_at"]
+
 
 class CourseTrackingSerializer(serializers.ModelSerializer):
     student = StudentSerializer(read_only=True)
     course = CourseSerializer(read_only=True)
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     updated_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    current_period_display = serializers.CharField(read_only=True)
 
     class Meta:
         model = CourseTracking
         fields = [
-            'id', 'student', 'course', 'enrollment_date', 'start_date', 'expected_end_date',
-            'actual_end_date', 'progress_status', 'completion_percentage', 'current_semester',
-            'semester_start_date', 'semester_end_date', 'notes', 'created_at', 'updated_at'
+            "id",
+            "student",
+            "course",
+            "enrollment_date",
+            "start_date",
+            "expected_end_date",
+            "actual_end_date",
+            "progress_status",
+            "completion_percentage",
+            "current_period",
+            "period_start_date",
+            "period_end_date",
+            "notes",
+            "created_at",
+            "updated_at",
+            "current_period_display",
         ]
-        read_only_fields = ['created_at', 'updated_at', 'enrollment_date']
+        read_only_fields = [
+            "created_at",
+            "updated_at",
+            "enrollment_date",
+            "current_period_display",
+        ]
+
 
 class TOTPSecretSerializer(serializers.ModelSerializer):
     class Meta:
         model = TOTPSecret
-        fields = ['id', 'identifier', 'created_at', 'expires_at']
+        fields = ["id", "identifier", "created_at", "expires_at"]
+
 
 class ResetTokenSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResetToken
-        fields = ['id', 'token', 'identifier', 'created_at', 'expires_at']
+        fields = ["id", "token", "identifier", "created_at", "expires_at"]
 
+
+class ParentSerializer(serializers.ModelSerializer):
+    students = StudentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Parent
+        fields = ["id", "name", "phone", "email", "address", "students"]
+        read_only_fields = ["id"]

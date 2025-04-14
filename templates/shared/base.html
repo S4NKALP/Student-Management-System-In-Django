@@ -16,7 +16,7 @@
         }
     </script>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -34,8 +34,10 @@
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <!-- Custom Dashboard CSS -->
     <link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{% static 'css/custom.css' %}" rel="stylesheet">
 
-    <!-- Common Responsive Styles -->
+    <!-- Responsive Styles -->
     <style>
         /* Base responsive styles */
         html {
@@ -89,9 +91,6 @@
             }
             .summary-card .card-body {
                 padding: 0.75rem;
-            }
-            .bottom-nav {
-                padding-bottom: env(safe-area-inset-bottom);
             }
         }
 
@@ -223,62 +222,26 @@
             }
         }
 
-        /* Responsive embed containers */
-        .embed-responsive {
-            position: relative;
-            display: block;
-            width: 100%;
-            padding: 0;
-            overflow: hidden;
-        }
-        .embed-responsive::before {
-            display: block;
-            content: "";
-        }
-        .embed-responsive .embed-responsive-item,
-        .embed-responsive iframe,
-        .embed-responsive embed,
-        .embed-responsive object,
-        .embed-responsive video {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: 0;
-        }
-        .embed-responsive-16by9::before {
-            padding-top: 56.25%;
+        /* Responsive modals */
+        @media (max-width: 576px) {
+            .modal-dialog {
+                margin: 0;
+                max-width: none;
+                height: 100%;
+            }
+            .modal-content {
+                border-radius: 0;
+                min-height: 100%;
+            }
         }
 
         /* Touch device optimizations */
         @media (hover: none) {
             .btn, .nav-link, .dropdown-item {
-                padding: 0.75rem 1rem; /* Larger touch targets */
+                padding: 0.75rem 1rem;
             }
             .form-control, .form-select {
-                padding: 0.75rem 1rem; /* Larger input fields */
-            }
-        }
-
-        /* High contrast mode support */
-        @media (prefers-contrast: high) {
-            .btn, .nav-link, .dropdown-item {
-                border: 2px solid currentColor;
-            }
-            .form-control, .form-select {
-                border: 2px solid currentColor;
-            }
-        }
-
-        /* Reduced motion support */
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-                scroll-behavior: auto !important;
+                padding: 0.75rem 1rem;
             }
         }
     </style>
@@ -310,6 +273,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
 
+    <!-- Firebase Configuration -->
+    <script src="{% static 'js/firebase-config.js' %}"></script>
+
     <!-- Firebase Initialization -->
     <script src="{% static 'js/firebase-init.js' %}"></script>
 
@@ -327,47 +293,92 @@
     <!-- Common Modal Functions -->
     <script>
         function openLeaveModal() {
-            document.getElementById('customLeaveModal').style.display = 'block';
+            var modal = document.getElementById('customLeaveModal');
+            modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
 
         function closeLeaveModal() {
-            document.getElementById('customLeaveModal').style.display = 'none';
+            var modal = document.getElementById('customLeaveModal');
+            modal.style.display = 'none';
             document.body.style.overflow = '';
         }
 
         function openProfileModal() {
-            document.getElementById('profileModal').style.display = 'block';
+            var modal = document.getElementById('profileModal');
+            modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
 
         function closeProfileModal() {
-            document.getElementById('profileModal').style.display = 'none';
+            var modal = document.getElementById('profileModal');
+            modal.style.display = 'none';
             document.body.style.overflow = '';
         }
 
         function openPasswordModal() {
-            document.getElementById('passwordModal').style.display = 'block';
+            var modal = document.getElementById('passwordModal');
+            modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
 
         function closePasswordModal() {
-            document.getElementById('passwordModal').style.display = 'none';
+            var modal = document.getElementById('passwordModal');
+            modal.style.display = 'none';
             document.body.style.overflow = '';
         }
+
+        // Handle Escape key for all modals
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                var modals = document.querySelectorAll('[id$="Modal"]');
+                modals.forEach(function(modal) {
+                    if (modal.style.display === 'block') {
+                        // Call the appropriate close function
+                        var modalId = modal.id;
+                        var closeFunction = window['close' + modalId.charAt(0).toUpperCase() + modalId.slice(1)];
+                        if (typeof closeFunction === 'function') {
+                            closeFunction();
+                        } else {
+                            // Fallback to basic close
+                            modal.style.display = 'none';
+                            document.body.style.overflow = '';
+                        }
+                    }
+                });
+            }
+        });
+
+        // Handle clicking outside modal to close
+        document.addEventListener('click', function(event) {
+            var modals = document.querySelectorAll('[id$="Modal"]');
+            modals.forEach(function(modal) {
+                if (event.target === modal) {
+                    // Call the appropriate close function
+                    var modalId = modal.id;
+                    var closeFunction = window['close' + modalId.charAt(0).toUpperCase() + modalId.slice(1)];
+                    if (typeof closeFunction === 'function') {
+                        closeFunction();
+                    } else {
+                        // Fallback to basic close
+                        modal.style.display = 'none';
+                        document.body.style.overflow = '';
+                    }
+                }
+            });
+        });
 
         // Auto-hide toasts
         document.addEventListener('DOMContentLoaded', function() {
             var toasts = document.querySelectorAll('.toast');
             toasts.forEach(function(toast) {
                 setTimeout(function() {
-                    var bsToast = new bootstrap.Toast(toast);
-                    bsToast.hide();
+                    toast.style.display = 'none';
                 }, 5000); // Hide after 5 seconds
             });
         });
     </script>
 
-    {% block extrajs %}{% endblock %}
+    {% block extra_js %}{% endblock %}
 </body>
 </html> 

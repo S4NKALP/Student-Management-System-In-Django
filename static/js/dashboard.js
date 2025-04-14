@@ -42,6 +42,28 @@ document.addEventListener("DOMContentLoaded", function() {
             closeAllModals();
         }
     });
+    
+    // Initialize responsive modals
+    initResponsiveModals();
+    
+    // Make all tables responsive
+    makeAllTablesResponsive();
+    
+    // Handle long content
+    handleLongContent();
+    
+    // Process any dynamically added tables
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                makeAllTablesResponsive();
+                handleLongContent();
+            }
+        });
+    });
+    
+    // Start observing the document for added nodes
+    observer.observe(document.body, { childList: true, subtree: true });
 });
 
 // Function to initialize all dashboard components
@@ -485,11 +507,8 @@ function showWeakPasswordModal() {
                 return;
             }
             
-            if (newPassword === '123') {
-                alert('Please choose a stronger password!');
-                passwordArea.focus();
-                return;
-            }
+            // Get CSRF token
+            var csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
             
             // Create form data
             var formData = new FormData();
@@ -503,25 +522,27 @@ function showWeakPasswordModal() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Cache-Control': 'no-cache'
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(function(response) {
-                return response.json();
-            })
+            .then(response => response.json())
             .then(function(data) {
                 if (data.success) {
-                    // Use notification system instead of alert
+                    // Show success message
                     if (typeof window.showNotification === 'function') {
-                        window.showNotification('Password Updated', 'Your password has been changed successfully!', 'success');
+                        window.showNotification('Password Updated', data.message || 'Your password has been changed successfully. Please login again.', 'success');
                     } else {
-                        alert('Password changed successfully!');
+                        alert(data.message || 'Password changed successfully. Please login again.');
                     }
                     
                     // Close the modal
                     document.getElementById('weakPasswordModal')?.remove();
-                    // No redirect to login page
+                    
+                    // Wait a moment for the notification to be visible
+                    setTimeout(function() {
+                        // Redirect to login page
+                        window.location.href = data.redirect || '/login/';
+                    }, 1500);
                 } else if (data.error) {
                     // Show error notification
                     if (typeof window.showNotification === 'function') {
@@ -584,18 +605,6 @@ function setupEventHandlers() {
         }, 5000);
     });
 }
-
-// Function to get device token for notifications
-function getDeviceToken() {
-    // Do nothing - removed to prevent recursion
-    console.log("getDeviceToken called - disabled to prevent recursion");
-}
-
-// Add global function to get device token - but avoid recursion
-window.getDeviceToken = function() {
-    console.log("FCM token function called once");
-    // Implementation depends on your Firebase setup - but don't call itself again
-};
 
 // Function to close all custom modals
 function closeAllModals() {
@@ -730,12 +739,6 @@ function setupDirectPasswordHandlers() {
                 return;
             }
             
-            if (newPassword === '123') {
-                alert('Please choose a stronger password!');
-                passwordArea.focus();
-                return;
-            }
-            
             // Get CSRF token
             var csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
             
@@ -757,16 +760,21 @@ function setupDirectPasswordHandlers() {
             .then(response => response.json())
             .then(function(data) {
                 if (data.success) {
-                    // Use notification system instead of alert
+                    // Show success message
                     if (typeof window.showNotification === 'function') {
-                        window.showNotification('Password Updated', 'Your password has been changed successfully!', 'success');
+                        window.showNotification('Password Updated', data.message || 'Your password has been changed successfully. Please login again.', 'success');
                     } else {
-                        alert('Password changed successfully!');
+                        alert(data.message || 'Password changed successfully. Please login again.');
                     }
                     
                     // Close the modal
                     document.getElementById('weakPasswordModal')?.remove();
-                    // No redirect to login page
+                    
+                    // Wait a moment for the notification to be visible
+                    setTimeout(function() {
+                        // Redirect to login page
+                        window.location.href = data.redirect || '/login/';
+                    }, 1500);
                 } else if (data.error) {
                     // Show error notification
                     if (typeof window.showNotification === 'function') {
@@ -782,4 +790,98 @@ function setupDirectPasswordHandlers() {
             });
         });
     }
+}
+
+// Function to initialize responsive modals
+function initResponsiveModals() {
+    // Function to update modal styles based on screen size
+    function updateModalStyles() {
+        const isMobile = window.innerWidth < 768;
+        const isSmallMobile = window.innerWidth < 576;
+        
+        document.querySelectorAll('.modal-dialog').forEach(function(dialog) {
+            if (isSmallMobile) {
+                dialog.classList.add('modal-fullscreen-sm-down');
+                dialog.classList.remove('modal-dialog-centered');
+            } else if (isMobile) {
+                dialog.classList.remove('modal-fullscreen-sm-down');
+                dialog.classList.add('modal-dialog-centered');
+            } else {
+                dialog.classList.remove('modal-fullscreen-sm-down', 'modal-dialog-centered');
+            }
+        });
+    }
+    
+    // Initial update
+    updateModalStyles();
+    
+    // Update on resize
+    window.addEventListener('resize', debounce(updateModalStyles, 250));
+    
+    // Update when modal is shown
+    document.querySelectorAll('.modal').forEach(function(modal) {
+        modal.addEventListener('show.bs.modal', updateModalStyles);
+    });
+}
+
+// Function to make all tables responsive
+function makeAllTablesResponsive() {
+    document.querySelectorAll('table:not(.table-responsive)').forEach(function(table) {
+        if (!table.parentElement.classList.contains('table-responsive')) {
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('table-responsive');
+            table.parentNode.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+        }
+    });
+}
+
+// Function to handle long content
+function handleLongContent() {
+    const isMobile = window.innerWidth < 768;
+    
+    // Handle text truncation
+    document.querySelectorAll('[data-truncate-mobile]').forEach(function(element) {
+        if (isMobile) {
+            const fullText = element.getAttribute('data-full-text') || element.textContent;
+            const maxLength = parseInt(element.getAttribute('data-truncate-mobile'), 10) || 50;
+            
+            if (!element.getAttribute('data-full-text')) {
+                element.setAttribute('data-full-text', fullText);
+            }
+            
+            if (fullText.length > maxLength) {
+                element.textContent = fullText.substring(0, maxLength) + '...';
+            }
+        } else {
+            // Restore full text on desktop
+            if (element.getAttribute('data-full-text')) {
+                element.textContent = element.getAttribute('data-full-text');
+            }
+        }
+    });
+    
+    // Handle long tables
+    document.querySelectorAll('.table-responsive').forEach(function(table) {
+        if (isMobile) {
+            table.style.maxHeight = '400px';
+            table.style.overflowY = 'auto';
+        } else {
+            table.style.maxHeight = '';
+            table.style.overflowY = '';
+        }
+    });
+}
+
+// Debounce function to limit the rate at which a function can fire
+function debounce(func, wait) {
+    let timeout;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(function() {
+            func.apply(context, args);
+        }, wait);
+    };
 }

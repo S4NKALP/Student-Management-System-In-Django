@@ -1,0 +1,23 @@
+{% extends "shared/base.html" %}
+
+{% block title %}505 HTTP Version Not Supported{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <h1 class="display-1 text-danger mb-4">505</h1>
+                    <h2 class="mb-4">HTTP Version Not Supported</h2>
+                    <p class="lead mb-4">Sorry, the HTTP version used in the request is not supported by this server.</p>
+                    <div class="mb-4">
+                        <p>The server does not support the HTTP protocol version used in the request. Please try accessing the site using a different browser or updating your current one.</p>
+                    </div>
+                    <a href="/" class="btn btn-primary btn-lg">Go to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

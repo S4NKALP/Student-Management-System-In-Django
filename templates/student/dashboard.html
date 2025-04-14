@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'shared/base.html' %}
 {% load static %}
 {% load tz %}
 {% load app_filters %}
@@ -10,7 +10,7 @@
 
 <div class="container-fluid py-4">
   <!-- Welcome Section -->
-  {% include 'components/welcome_section.html' with user=student %}
+  {% include 'shared/welcome_section.html' with user=student %}
 
   <!-- Dashboard Content -->
   <div id="dashboardSection" class="content-section" style="display: block;">
@@ -48,14 +48,14 @@
             <div class="progress mb-2 position-relative" style="height: 15px; border-radius: 20px; background-color: #f0f0f0;">
               <!-- Target marker at 75% -->
               <div class="position-absolute" style="left: 75%; top: -10px; bottom: -10px; width: 2px; background-color: #dc3545;"></div>
-              <div class="progress-bar {% if attendance_summary.attendance_percentage < 75 %}bg-danger{% else %}bg-success{% endif %}" 
-                   role="progressbar" 
+              <div class="progress-bar {% if attendance_summary.attendance_percentage < 75 %}bg-danger{% else %}bg-success{% endif %}"
+                   role="progressbar"
                    style="width: {{ attendance_summary.attendance_percentage }}%;"
-                   aria-valuenow="{{ attendance_summary.attendance_percentage }}" 
-                   aria-valuemin="0" 
+                   aria-valuenow="{{ attendance_summary.attendance_percentage }}"
+                   aria-valuemin="0"
                    aria-valuemax="100"></div>
             </div>
-            
+
             <div class="d-flex justify-content-between align-items-center">
               <small class="text-muted">Minimum required: 75%</small>
               {% if attendance_summary.attendance_percentage < 75 %}
@@ -194,7 +194,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Course Overview Section -->
     <div class="row mb-4">
       <div class="col-12">
@@ -202,7 +202,7 @@
           <h4 class="card-title mb-3 d-flex align-items-center">
             <i class="fas fa-graduation-cap me-2"></i> Course Details
           </h4>
-          
+
           {% if course_details %}
             {% for course in course_details %}
             <div class="mb-4">
@@ -228,6 +228,18 @@
                   <table class="table">
                     <tbody>
                       <tr>
+                        <th>Course Name</th>
+                        <td>{{ course.name }}</td>
+                      </tr>
+                      <tr>
+                        <th>Course Code</th>
+                        <td>{{ course.code|default:"-" }}</td>
+                      </tr>
+                      <tr>
+                        <th>Description</th>
+                        <td>{{ course.description|default:"No description available" }}</td>
+                      </tr>
+                      <tr>
                         <th>Start Date</th>
                         <td>{{ course.start_date|date:"M d, Y" }}</td>
                       </tr>
@@ -243,6 +255,14 @@
                           {% else %}
                             {{ course.duration }} years
                           {% endif %}
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Status</th>
+                        <td>
+                          <span class="badge {% if course.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ course.is_active|yesno:"Active,Inactive" }}
+                          </span>
                         </td>
                       </tr>
                       <tr>
@@ -262,20 +282,20 @@
                   <table class="table">
                     <tbody>
                       <tr>
-                        <th>Current Semester</th>
-                        <td>{{ course.current_semester }}</td>
+                        <th>{% if course.duration_type == "Semester" %}Current Semester{% else %}Current Year{% endif %}</th>
+                        <td>{% if course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} {{ course.current_period }}</td>
                       </tr>
                       <tr>
-                        <th>Semester Start</th>
-                        <td>{{ course.semester_start_date|date:"M d, Y" }}</td>
+                        <th>{% if course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} Start</th>
+                        <td>{{ course.period_start_date|date:"M d, Y" }}</td>
                       </tr>
                       <tr>
-                        <th>Semester End</th>
-                        <td>{{ course.semester_end_date|date:"M d, Y" }}</td>
+                        <th>{% if course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} End</th>
+                        <td>{{ course.period_end_date|date:"M d, Y" }}</td>
                       </tr>
                       {% if course.remaining_days is not None %}
                       <tr>
-                        <th>Semester Days Remaining</th>
+                        <th>{% if course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} Days Remaining</th>
                         <td>{{ course.remaining_days }} days</td>
                       </tr>
                       {% endif %}
@@ -304,7 +324,7 @@
   <div class="content-section" id="subjectsSection" style="display: none;">
     <div class="content-card">
       <h3 class="text-xl font-semibold mb-4">
-        <i class="fas fa-book me-2"></i>Current Semester Subjects
+        <i class="fas fa-book me-2"></i>Current {% if active_tracking.course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} Subjects
       </h3>
       {% if current_subjects %}
         <div class="row g-3">
@@ -314,7 +334,7 @@
                 <div class="card-body">
                   <h5 class="card-title">{{ subject.name }}</h5>
                   <p class="card-text">
-                    <small class="text-muted">Semester: {{ subject.semester_or_year }}</small>
+                    <small class="text-muted">{% if subject.course.duration_type == "Semester" %}Semester{% else %}Year{% endif %}: {{ subject.period_or_year }}</small>
                   </p>
                   <div class="d-flex justify-content-between align-items-center">
                     <button class="btn btn-primary btn-sm view-subject-files" data-subject-id="{{ subject.id }}" onclick="openSubjectFilesModal('{{ subject.id }}')">
@@ -328,7 +348,7 @@
         </div>
       {% else %}
         <div class="alert alert-info">
-          <i class="fas fa-info-circle me-2"></i>No subjects assigned for the current semester.
+          <i class="fas fa-info-circle me-2"></i>No subjects assigned for the current {% if active_tracking.course.duration_type == "Semester" %}semester{% else %}year{% endif %}.
         </div>
       {% endif %}
     </div>
@@ -345,6 +365,7 @@
             <tr>
               <th>Time</th>
               <th>Subject</th>
+              <th>Code</th>
               <th>Teacher</th>
             </tr>
           </thead>
@@ -354,16 +375,17 @@
                 <tr>
                   <td>{{ routine.start_time|time:"H:i" }} - {{ routine.end_time|time:"H:i" }}</td>
                   <td>{{ routine.subject.name }}</td>
+                  <td>{{ routine.subject.code|default:"-" }}</td>
                   <td>{{ routine.teacher.name }}</td>
                 </tr>
               {% endfor %}
             {% elif has_routines %}
               <tr>
-                <td colspan="3" class="text-center">No routines for current semester (Semester {{ student.current_semester }}).</td>
+                <td colspan="4" class="text-center">No routines for current semester (Semester {{ student.current_semester }}).</td>
               </tr>
             {% else %}
               <tr>
-                <td colspan="3" class="text-center">No routines assigned yet.</td>
+                <td colspan="4" class="text-center">No routines assigned yet.</td>
               </tr>
             {% endif %}
           </tbody>
@@ -385,7 +407,7 @@
         </div>
       </div>
       <div class="table-responsive">
-        <table class="table">
+        <table class="table table-responsive table-hover">
           <thead>
             <tr>
               <th>Start Date</th>
@@ -421,87 +443,96 @@
 
   <div class="content-section" id="feedbackSection" style="display: none;">
     <div class="content-card">
-      <h3 class="text-xl font-semibold mb-4">
-        <i class="fas fa-comments mr-2"></i> Feedback
-      </h3>
-      <div class="d-flex justify-content-end mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+          <i class="fas fa-comments me-2"></i> Feedback
+        </h3>
         <button class="btn btn-primary" onclick="openFeedbackModal()">
-          <i class="fas fa-plus me-2"></i>Give Feedback
+          <i class="fas fa-plus me-2"></i> Give Feedback
         </button>
       </div>
 
       <div class="row">
-        <div class="col-md-6">
+        <!-- Teacher Feedback -->
+        <div class="col-md-6 mb-4">
           <h4 class="mb-3">Teacher Feedback</h4>
-          {% for feedback in student.feedbacks.all %}
-          <div class="card mb-3 border-0 shadow-sm">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="card-title mb-0">{{ feedback.teacher.name }}</h5>
-                <div class="rating">
-                  {% for i in "12345"|make_list %}
-                  {% with i_float=forloop.counter|floatformat:0|add:"0" %}
-                    {% if feedback.rating >= i_float %}
-                      <i class="fas fa-star text-warning"></i>
-                    {% elif feedback.rating >= i_float|add:"-0.5" %}
-                      <i class="fas fa-star-half-alt text-warning"></i>
-                    {% else %}
-                      <i class="far fa-star text-warning"></i>
-                    {% endif %}
-                  {% endwith %}
-                  {% endfor %}
+          {% if student.feedbacks.all %}
+            <div class="feedback-list">
+              {% for feedback in student.feedbacks.all %}
+                <div class="feedback-card">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                      <div>
+                        <h5 class="mb-1">{{ feedback.teacher.name }}</h5>
+                        <small class="text-muted">{{ feedback.teacher.designation }}</small>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                          {% else %}
+                            <i class="far fa-star text-warning"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-message mt-3">
+                    <p>{{ feedback.feedback_text }}</p>
+                  </div>
+                  <div class="feedback-footer mt-2">
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
                 </div>
-              </div>
-              <div class="feedback-message p-3 bg-light rounded mb-2">
-                <p class="card-text mb-0">{{ feedback.feedback_text }}</p>
-              </div>
-              <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
-                <span class="badge bg-primary">{{ feedback.rating }}/5</span>
-              </div>
+              {% endfor %}
             </div>
-          </div>
-          {% empty %}
-          <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i> No feedback given to teachers yet.
-          </div>
-          {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-comments"></i>
+              <p>No teacher feedback submitted yet.</p>
+            </div>
+          {% endif %}
         </div>
-        <div class="col-md-6">
+
+        <!-- Institute Feedback -->
+        <div class="col-md-6 mb-4">
           <h4 class="mb-3">Institute Feedback</h4>
-          {% for feedback in student.institute_feedbacks.all %}
-          <div class="card mb-3 border-0 shadow-sm">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="card-title mb-0">{{ feedback.feedback_type }}</h5>
-                <div class="rating">
-                  {% for i in "12345"|make_list %}
-                  {% with i_float=forloop.counter|floatformat:0|add:"0" %}
-                    {% if feedback.rating >= i_float %}
-                      <i class="fas fa-star text-warning"></i>
-                    {% elif feedback.rating >= i_float|add:"-0.5" %}
-                      <i class="fas fa-star-half-alt text-warning"></i>
-                    {% else %}
-                      <i class="far fa-star text-warning"></i>
-                    {% endif %}
-                  {% endwith %}
-                  {% endfor %}
+          {% if institute_feedback %}
+            <div class="feedback-list">
+              {% for feedback in institute_feedback %}
+                <div class="feedback-card">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                      <div>
+                        <h5 class="mb-1">{{ feedback.feedback_type }}</h5>
+                        <small class="text-muted">{{ feedback.created_at|date:"M d, Y" }}</small>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                          {% else %}
+                            <i class="far fa-star text-warning"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-message mt-3">
+                    <p>{{ feedback.feedback_text }}</p>
+                  </div>
+                  <div class="feedback-footer mt-2">
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
                 </div>
-              </div>
-              <div class="feedback-message p-3 bg-light rounded mb-2">
-                <p class="card-text mb-0">{{ feedback.feedback_text }}</p>
-              </div>
-              <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
-                <span class="badge bg-primary">{{ feedback.rating }}/5</span>
-              </div>
+              {% endfor %}
             </div>
-          </div>
-          {% empty %}
-          <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i> No institute feedback given yet.
-          </div>
-          {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-building"></i>
+              <p>No institute feedback submitted yet.</p>
+            </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -704,18 +735,18 @@
 </div>
 
 <!-- Common Modals -->
-{% include 'components/common_modals.html' with user=student %}
+{% include 'shared/common_modals.html' with user=student %}
 
 <!-- Student-specific Modals -->
-{% include 'components/student_modals.html' %}
-{% include 'components/student_feedback_modal.html' %}
+{% include 'student/modals.html' %}
+{% include 'student/feedback_modal.html' %}
 
 <!-- Add fix script -->
 <script src="{% static 'js/navigation.js' %}"></script>
 <script src="{% static 'js/rating.js' %}"></script>
 
 <!-- Bottom Navigation -->
-{% include 'components/bottom_nav.html' with user=student %}
+{% include 'shared/bottom_nav.html' with user=student %}
 
 <!-- Add a new attendance section -->
 <div class="content-section" id="attendanceSection" style="display: none;">
@@ -723,7 +754,7 @@
     <h3 class="text-xl font-semibold mb-4">
       <i class="fas fa-clipboard-check me-2"></i> Attendance Record
     </h3>
-    
+
     <!-- Attendance Summary -->
     <div class="row mb-4">
       <div class="col-md-4">
@@ -751,11 +782,11 @@
             <div class="progress mb-2 position-relative" style="height: 15px; border-radius: 20px; background-color: #f0f0f0;">
               <!-- Target marker at 75% -->
               <div class="position-absolute" style="left: 75%; top: -10px; bottom: -10px; width: 2px; background-color: #dc3545;"></div>
-              <div class="progress-bar {% if attendance_summary.attendance_percentage < 75 %}bg-danger{% else %}bg-success{% endif %}" 
-                   role="progressbar" 
+              <div class="progress-bar {% if attendance_summary.attendance_percentage < 75 %}bg-danger{% else %}bg-success{% endif %}"
+                   role="progressbar"
                    style="width: {{ attendance_summary.attendance_percentage }}%;"
-                   aria-valuenow="{{ attendance_summary.attendance_percentage }}" 
-                   aria-valuemin="0" 
+                   aria-valuenow="{{ attendance_summary.attendance_percentage }}"
+                   aria-valuemin="0"
                    aria-valuemax="100"></div>
             </div>
             <div class="d-flex justify-content-between align-items-center">
@@ -764,9 +795,6 @@
               <small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Below minimum requirement</small>
               {% endif %}
             </div>
-            <!-- <small class="text-muted d-block text-center">
-              Based on attendance out of {% if student.course and student.course.duration_type == "Year" %}365 days per year{% else %}180 days per semester{% endif %}
-            </small> -->
           </div>
         </div>
       </div>
@@ -804,10 +832,10 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Attendance Records Table -->
     <div class="table-responsive">
-      <table class="table">
+      <table class="table table-responsive table-hover">
         <thead>
           <tr>
             <th>Date</th>
@@ -839,5 +867,19 @@
   </div>
 </div>
 
+{% endblock content %}
+
+{% block extrascripts %}
+<script>
+  // Initialize Firebase and request notification permission when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Call getDeviceToken to initialize Firebase and request notification permission
+    if (typeof getDeviceToken === 'function') {
+      getDeviceToken().catch(error => {
+        console.error('Error initializing Firebase:', error);
+      });
+    }
+  });
+</script>
 {% endblock %}
 

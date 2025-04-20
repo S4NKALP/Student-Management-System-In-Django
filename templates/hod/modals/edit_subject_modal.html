@@ -1,0 +1,128 @@
+{% load static %}
+{% load app_filters %}
+
+<!-- Edit Subject Modal -->
+<div id="editSubjectModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeEditSubjectModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Edit Subject</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeEditSubjectModal()">&times;</button>
+    </div>
+    <form id="editSubjectForm" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" id="editSubjectId" name="subject_id">
+      <div style="padding: 20px;">
+        <div style="margin-bottom: 15px;">
+          <label for="editSubjectName" style="display: block; margin-bottom: 8px; font-weight: 500;">Subject Name</label>
+          <input type="text" id="editSubjectName" name="name" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label for="editSubjectCode" style="display: block; margin-bottom: 8px; font-weight: 500;">Subject Code</label>
+          <input type="text" id="editSubjectCode" name="code" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label for="editSubjectPeriod" style="display: block; margin-bottom: 8px; font-weight: 500;">Period/{{ course.duration_type }}</label>
+          <input type="number" id="editSubjectPeriod" name="period_or_year" min="1" required style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
+          <small id="periodHelp" style="color: #666; display: block; margin-top: 5px;"></small>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label for="editSubjectSyllabus" style="display: block; margin-bottom: 8px; font-weight: 500;">Syllabus PDF</label>
+          <input type="file" id="editSubjectSyllabus" name="syllabus_pdf" accept=".pdf" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;">
+          <small style="color: #666; display: block; margin-top: 5px;">Current file: <span id="currentSyllabus">No file uploaded</span></small>
+        </div>
+      </div>
+      <div style="padding: 15px; border-top: 1px solid #EEEEEE; text-align: right; display: flex; flex-wrap: wrap; justify-content: flex-end;">
+        <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; margin-bottom: 10px; cursor: pointer; font-size: 14px;" onclick="closeEditSubjectModal()">Cancel</button>
+        <button type="submit" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 10px;">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditSubjectModal(subjectId) {
+  // Fetch subject details from the server
+  fetch(`/app/subject/${subjectId}/view/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        const subject = data.subject;
+        // Populate the edit form with subject details
+        document.getElementById('editSubjectId').value = subject.id;
+        document.getElementById('editSubjectName').value = subject.name;
+        document.getElementById('editSubjectCode').value = subject.code || '';
+        document.getElementById('editSubjectPeriod').value = subject.period_or_year;
+        
+        // Update period validation based on course duration type
+        const periodInput = document.getElementById('editSubjectPeriod');
+        const periodHelp = document.getElementById('periodHelp');
+        const maxPeriods = subject.course.duration_type === 'Semester' ? 
+          subject.course.duration * 2 : subject.course.duration;
+        
+        periodInput.max = maxPeriods;
+        if (subject.course.duration_type === 'Semester') {
+          periodHelp.textContent = `Enter semester number (1-${maxPeriods})`;
+        } else {
+          periodHelp.textContent = `Enter year number (1-${maxPeriods})`;
+        }
+        
+        // Update syllabus file info
+        if (subject.syllabus_pdf) {
+          const filename = subject.syllabus_pdf.split('/').pop();
+          document.getElementById('currentSyllabus').innerHTML = 
+            `<a href="${subject.syllabus_pdf}" target="_blank" style="color: #3F51B5; text-decoration: none;">${filename}</a>`;
+        } else {
+          document.getElementById('currentSyllabus').textContent = 'No file uploaded';
+        }
+
+        // Show the modal
+        document.getElementById('editSubjectModal').style.display = 'block';
+      } else {
+        alert(data.message || 'Failed to fetch subject details');
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching subject details:', error);
+      alert('Failed to fetch subject details');
+    });
+}
+
+function closeEditSubjectModal() {
+  document.getElementById('editSubjectModal').style.display = 'none';
+  document.getElementById('editSubjectForm').reset();
+}
+
+// Handle form submission
+document.getElementById('editSubjectForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  const subjectId = document.getElementById('editSubjectId').value;
+
+  fetch(`/app/subject/${subjectId}/edit/`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      closeEditSubjectModal();
+      // Refresh the page to show updated data
+      location.reload();
+    } else {
+      alert(data.message || 'Failed to update subject');
+    }
+  })
+  .catch(error => {
+    console.error('Error updating subject:', error);
+    alert('Failed to update subject');
+  });
+});
+</script> 

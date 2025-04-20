@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "shared/base.html" %}
 {% load static %}
 
 {% block content %}
@@ -124,7 +124,11 @@
 </head>
 <body>
     <div class="reset-container">
+        {% if institute and institute.logo %}
+        <img src="{{ institute.logo.url }}" alt="{{ institute.name }} Logo" class="logo">
+        {% else %}
         <img src="{% static 'img/logo.png' %}" alt="Logo" class="logo">
+        {% endif %}
         <h1>Reset Password</h1>
         
         <p>Select how you would like to reset your password:</p>

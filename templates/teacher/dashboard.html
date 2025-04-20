@@ -1,0 +1,1286 @@
+{% extends 'shared/base.html' %}
+{% load static %}
+{% load tz %}
+{% load app_filters %}
+
+{% block content %}
+<!-- Add CSRF token to the page -->
+{% csrf_token %}
+
+<div class="container-fluid py-4">
+  <!-- Welcome Section -->
+  {% include 'shared/welcome_section.html' with user=teacher %}
+
+  <!-- Dashboard Content -->
+  <div id="dashboardSection" class="content-section active">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i> Students</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ total_students }}</h2>
+              <p class="text-muted">Total Students</p>
+            </div>
+            <div class="text-center">
+              <div class="d-flex justify-content-around">
+                <div>
+                  <h4 class="fw-bold mb-0">{{ present_students }}</h4>
+                  <p class="text-muted">Present Today</p>
+                </div>
+                <div>
+                  <h4 class="fw-bold mb-0">{{ absent_students }}</h4>
+                  <p class="text-muted">Absent Today</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-chalkboard me-2"></i> Today's Classes</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ today_classes }}</h2>
+              <p class="text-muted">Total Classes</p>
+            </div>
+            <div class="text-center">
+              {% if today_routines %}
+                <div class="text-center mb-2">
+                  <div class="d-flex justify-content-center flex-wrap gap-2">
+                    {% for routine in today_routines|slice:":3" %}
+                      <span class="badge bg-primary py-2 px-3">
+                        {{ routine.name|truncatechars:15 }}
+                      </span>
+                    {% endfor %}
+                    {% if today_routines|length > 3 %}
+                      <span class="badge bg-info py-2 px-3">
+                        +{{ today_routines|length|add:"-3" }} more
+                      </span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% else %}
+                <p class="text-muted">No classes scheduled for today</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-star me-2"></i> Feedback Rating</h5>
+          </div>
+          <div class="card-body text-center">
+            <h2 class="fw-bold mb-3">{{ avg_rating|floatformat:1 }}/5.0</h2>
+            <div class="rating-stars mb-3">
+              {% for i in "12345"|make_list %}
+                {% if forloop.counter <= avg_rating_rounded %}
+                  <i class="fas fa-star"></i>
+                {% else %}
+                  <i class="far fa-star"></i>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <p class="text-muted">Based on {{ recent_feedback.count }} student feedbacks</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-calendar-minus me-2"></i> Leave Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between mb-3">
+              <p class="mb-0">Pending</p>
+              <span class="badge leave-pending">{{ pending_leaves }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+              <p class="mb-0">Approved</p>
+              <span class="badge leave-approved">{{ approved_leaves }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+              <p class="mb-0">Rejected</p>
+              <span class="badge leave-rejected">{{ rejected_leaves }}</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-2" id="requestLeaveBtn" onclick="openLeaveModal()">
+              <i class="fas fa-plus-circle me-2"></i> Request Leave
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Classes -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="content-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i> Today's Classes</h5>
+          </div>
+
+          {% if today_routines %}
+            <!-- Display a single table with all routines -->
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Code</th>
+                    <th>Course</th>
+                    <th class="d-none d-md-table-cell">Period/Year</th>
+                    <th>Time</th>
+                    <th class="d-none d-sm-table-cell">Attendance</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for routine in today_routines %}
+                    <tr>
+                      <td>{{ routine.name }}</td>
+                      <td>{{ routine.subject.code|default:"-" }}</td>
+                      <td>{{ routine.course_name }}</td>
+                      <td class="d-none d-md-table-cell">{{ routine.period_or_year }}</td>
+                      <td>{{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }}</td>
+                      <td class="d-none d-sm-table-cell">{{ routine.attendance_count }}/{{ routine.total_students }}</td>
+                      <td>
+                        {% if routine.is_completed %}
+                          <span class="status-badge completed">Completed</span>
+                        {% elif routine.is_ongoing %}
+                          <span class="status-badge ongoing">In Progress</span>
+                        {% else %}
+                          <span class="status-badge upcoming">Upcoming</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if routine.has_attendance %}
+                          <span class="status-badge completed">Recorded</span>
+                        {% else %}
+                          <button type="button" class="btn btn-sm btn-primary" onclick="openAttendanceModal('{{ routine.id }}')">
+                            <i class="fas fa-clipboard-check"></i> <span class="d-none d-sm-inline">Attendance</span>
+                          </button>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No classes scheduled for today.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activities Section -->
+    <div class="row">
+      <!-- Recent Feedback -->
+      <div class="col-lg-6 mb-4">
+        <div class="content-card h-100">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0"><i class="fas fa-comment-dots me-2"></i> Recent Feedback</h5>
+            <div class="rating-summary">
+              <div class="rating-stats">
+                <div class="rating-number">
+                  {{ avg_rating|floatformat:1 }}<span class="text-muted">/5.0</span>
+                </div>
+                <div class="rating-stars mb-2">
+                  {% for i in "12345"|make_list %}
+                    {% if forloop.counter <= avg_rating_rounded %}
+                      <i class="fas fa-star"></i>
+                    {% else %}
+                      <i class="far fa-star"></i>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                <div class="rating-count text-muted">
+                  Based on {{ recent_feedback.count }} feedbacks
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% if recent_feedback %}
+            <div class="feedback-list">
+              {% for feedback in recent_feedback %}
+                <div class="feedback-card">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="d-flex align-items-center">
+                        <div class="student-avatar me-3">
+                          {% if feedback.student.image %}
+                            <img src="{{ feedback.student.image.url }}" alt="{{ feedback.student.name }}" class="rounded-circle">
+                          {% else %}
+                            <i class="fas fa-user-circle"></i>
+                          {% endif %}
+                        </div>
+                        <div>
+                          <h6 class="mb-0">{{ feedback.student.name }}</h6>
+                          <small class="text-muted">
+                            {{ feedback.student.course.name }} -
+                            {% if feedback.student.course.duration_type == 'Semester' %}
+                              Semester {{ feedback.student.current_period }}
+                            {% else %}
+                              Year {{ feedback.student.current_period }}
+                            {% endif %}
+                          </small>
+                          <br>
+                          <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                        </div>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star"></i>
+                          {% else %}
+                            <i class="far fa-star"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-body">
+                    <div class="feedback-message">
+                      <p>{{ feedback.feedback_text }}</p>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-comments"></i>
+              <p>No recent feedback yet.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Notices -->
+      <div class="col-lg-6 mb-4 notice-section">
+        <div class="content-card">
+          <h5 class="mb-3"><i class="fas fa-bullhorn me-2"></i> Recent Notices</h5>
+          {% if notices %}
+            <div class="list-group">
+              {% for notice in notices %}
+                <div class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between flex-wrap">
+                    <h6 class="mb-1">{{ notice.title }}</h6>
+                    <small class="text-muted">{{ notice.created_at|timesince }} ago</small>
+                  </div>
+                  <p class="mb-1">{{ notice.message }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No recent notices.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Section -->
+  <div id="scheduleSection" class="content-section">
+    <div class="content-card">
+      <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i> Your Class Schedule</h5>
+
+      {% if all_routines %}
+        <div class="row">
+          <div class="col-12">
+            {% for routine in all_routines %}
+              <div class="schedule-item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="mb-0">{{ routine.subject.name }}</h6>
+                  <span class="badge bg-info">{{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }}</span>
+                </div>
+                <p class="text-muted mb-0 small">{{ routine.course.name }} ({{ routine.course.duration_type }} {{ routine.period_or_year }})</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i> No class schedules found.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Attendance Section -->
+  <div id="attendanceSection" class="content-section">
+    <div class="content-card mb-4">
+      <!-- Header Section -->
+      <div id="attendanceHeader">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> Attendance Management</h5>
+          <button type="button" class="btn btn-primary" onclick="toggleAttendanceView('manage')">
+            <i class="fas fa-edit me-2"></i> Manage Attendance
+          </button>
+        </div>
+
+        <!-- Recent Attendance Records -->
+        <div id="recentAttendanceView">
+          {% if recent_attendance %}
+            <div class="table-responsive">
+              <table class="table table-responsive table-hover">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Present/Total</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for attendance in recent_attendance %}
+                    <tr>
+                      <td>{{ attendance.date|date:"M d, Y" }}</td>
+                      <td>{{ attendance.routine.subject.name }}</td>
+                      <td>{{ attendance.routine.start_time|time:"h:i A" }} - {{ attendance.routine.end_time|time:"h:i A" }}</td>
+                      <td>
+                        <span class="badge
+                          {% if attendance.class_status == 'Conducted' %}bg-success
+                          {% elif attendance.class_status == 'Cancelled' %}bg-danger
+                          {% elif attendance.class_status == 'Rescheduled' %}bg-warning
+                          {% else %}bg-info{% endif %}">
+                          {{ attendance.class_status }}
+                        </span>
+                      </td>
+                      <td>
+                        {{ attendance.present_count|default:"0" }}/{{ attendance.total_count|default:"0" }}
+                      </td>
+                      <td>
+                        <button type="button" class="btn btn-sm btn-outline-primary edit-attendance-btn" data-routine-id="{{ attendance.routine.id }}" data-date="{{ attendance.date|date:'Y-m-d' }}">
+                          <i class="fas fa-edit me-1"></i> Edit
+                        </button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No recent attendance records found.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Manage Attendance View -->
+      <div id="manageAttendanceView" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">Manage Attendance</h5>
+          <button type="button" class="btn btn-outline-secondary" onclick="toggleAttendanceView('recent')">
+            <i class="fas fa-arrow-left me-2"></i> Back to Records
+          </button>
+        </div>
+
+        <!-- Routine Selection -->
+        <div class="mb-4" id="routineSelectionForm">
+          <form id="routineSelectForm" class="row g-3">
+            <div class="col-md-6">
+              <label for="routineSelect" class="form-label">Select Class</label>
+              <select class="form-select" id="routineSelect" name="routine_id">
+                <option value="">Choose a class...</option>
+                {% for routine in routines %}
+                  <option value="{{ routine.id }}" {% if selected_routine and selected_routine.id == routine.id %}selected{% endif %}>
+                    {{ routine.subject.name }} - {{ routine.course.name }} ({{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="dateSelect" class="form-label">Select Date</label>
+              <input type="date" class="form-control" id="dateSelect" name="date" value="{{ selected_date|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}">
+            </div>
+          </form>
+        </div>
+
+        <div id="attendanceFormContainer">
+          <form method="post" action="/app/save-attendance/" id="attendanceForm">
+            {% csrf_token %}
+            <input type="hidden" name="routine_id" value="">
+            <input type="hidden" name="date" value="">
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="teacherAttend" name="teacher_attend">
+                  <label class="form-check-label" for="teacherAttend">Teacher Present</label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <select class="form-select" id="classStatus" name="class_status">
+                  <option value="True">Conducted</option>
+                  <option value="False">Not Conducted</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th width="5%">#</th>
+                    <th width="40%">Name</th>
+                    <th width="40%">Student ID</th>
+                    <th width="15%">Present</th>
+                  </tr>
+                </thead>
+                <tbody id="studentList">
+                  <!-- Students will be loaded here -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-3 d-flex justify-content-between">
+              <div>
+                <button type="button" class="btn btn-outline-success me-2" onclick="markAllPresent()">
+                  <i class="fas fa-check-double me-1"></i> Mark All Present
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="markAllAbsent()">
+                  <i class="fas fa-times-circle me-1"></i> Mark All Absent
+                </button>
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Save Attendance
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notices Section -->
+  <div id="noticeSection" class="content-section">
+    <div class="content-card">
+      <h5 class="mb-3"><i class="fas fa-bullhorn me-2"></i> Notices & Announcements</h5>
+
+      {% if notices %}
+        <div class="list-group">
+          {% for notice in notices %}
+            <div class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ notice.title }}</h5>
+                <small class="text-muted">{{ notice.created_at|date:"M d, Y" }}</small>
+              </div>
+              <p class="mb-1">{{ notice.message }}</p>
+              <small class="text-muted">Posted {{ notice.created_at|timesince }} ago</small>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i> No notices available.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Feedback Section -->
+  <div id="feedbackSection" class="content-section">
+    <div class="row">
+      <!-- Give Feedback -->
+      <div class="col-md-6 mb-4">
+        <div class="content-card">
+          <h5 class="mb-3"><i class="fas fa-comment-alt me-2"></i> Give Feedback to Institute</h5>
+          <form action="{% url 'submit_staff_institute_feedback' %}" method="post" class="feedback-form">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="feedback_type" class="form-label">Feedback Type</label>
+              <select class="form-select" id="feedback_type" name="feedback_type" required>
+                <option value="">Select Type</option>
+                {% for value, name in feedback_types %}
+                  <option value="{{ value }}">{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Rating</label>
+              <div class="rating-stars d-flex">
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="1" onclick="selectRating(this, 'selected_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="2" onclick="selectRating(this, 'selected_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="3" onclick="selectRating(this, 'selected_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="4" onclick="selectRating(this, 'selected_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="5" onclick="selectRating(this, 'selected_rating')"></i>
+                <input type="hidden" name="rating" id="selected_rating" value="" required>
+                <div class="invalid-feedback d-block" id="rating-error" style="display: none;">Please select a rating</div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="feedback_text" class="form-label">Feedback</label>
+              <textarea class="form-control" id="feedback_text" name="feedback_text" rows="4" required></textarea>
+            </div>
+
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="is_anonymous" name="is_anonymous">
+              <label class="form-check-label" for="is_anonymous">Submit anonymously</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="fas fa-paper-plane me-1"></i> Submit Feedback
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Recent Institute Feedback -->
+      <div class="col-md-6 mb-4">
+        <div class="content-card">
+          <h5 class="mb-3"><i class="fas fa-history me-2"></i> Your Recent Feedback</h5>
+
+          {% if institute_feedback %}
+            <div class="feedback-list">
+              {% for feedback in institute_feedback %}
+                <div class="feedback-card">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="d-flex align-items-center">
+                        <div class="student-avatar me-3">
+                          {% if feedback.staff.image %}
+                            <img src="{{ feedback.staff.image.url }}" alt="{{ feedback.staff.name }}" class="rounded-circle">
+                          {% else %}
+                            <i class="fas fa-user-circle fa-2x text-secondary"></i>
+                          {% endif %}
+                        </div>
+                        <div>
+                          <h6 class="card-title mb-0">{{ feedback.get_feedback_type_display }}</h6>
+                          <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                        </div>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star"></i>
+                          {% else %}
+                            <i class="far fa-star"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-body">
+                    <div class="feedback-message">
+                      <p class="mb-0">{{ feedback.feedback_text }}</p>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                      {% if feedback.is_anonymous %}
+                        <i class="fas fa-user-secret me-1"></i> Anonymous
+                      {% else %}
+                        <i class="fas fa-user me-1"></i> Public
+                      {% endif %}
+                    </small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-comments"></i>
+              <p>You haven't submitted any feedback yet.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Section -->
+  <div id="profileSection" class="content-section">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-user mr-2"></i> Profile Information
+      </h3>
+      <div class="row">
+        <!-- Profile Header with Image and Actions -->
+        <div class="col-12 mb-4">
+          <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex align-items-center mb-3 mb-md-0">
+              {% if teacher.image %}
+                <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+              {% else %}
+                <img src="{% static 'img/user.png' %}" alt="Default User" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+              {% endif %}
+              <div>
+                <h4 class="mb-1">{{ teacher.name }}</h4>
+                <p class="mb-0 text-muted">
+                  <span class="me-3"><i class="fas fa-id-card me-1"></i> {{ teacher.id }}</span>
+                  <span class="me-3"><i class="fas fa-envelope me-1"></i> {{ teacher.email }}</span>
+                  <span><i class="fas fa-phone me-1"></i> {{ teacher.phone }}</span>
+                </p>
+                <div class="mt-2">
+                  <span class="badge {% if teacher.is_active %}bg-success{% else %}bg-danger{% endif %} me-2">
+                    {{ teacher.is_active|yesno:"Active,Inactive" }}
+                  </span>
+                  <span class="badge bg-info">{{ teacher.designation }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="profile-actions d-flex gap-2">
+              <button class="btn btn-sm btn-primary" onclick="openProfileModal()">
+                <i class="fas fa-camera me-1"></i> Update Photo
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="openPasswordModal()">
+                <i class="fas fa-key me-1"></i> Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Information Section -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-user-circle me-2"></i>Personal Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Full Name</small>
+                  <p class="mb-0 fw-medium">{{ teacher.name }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Gender</small>
+                  <p class="mb-0 fw-medium">{{ teacher.gender|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Birth Date</small>
+                  <p class="mb-0 fw-medium">{{ teacher.birth_date|date:"M d, Y"|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Marital Status</small>
+                  <p class="mb-0 fw-medium">{{ teacher.marital_status|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Citizenship No.</small>
+                  <p class="mb-0 fw-medium">{{ teacher.citizenship_no|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Passport</small>
+                  <p class="mb-0 fw-medium">{{ teacher.passport|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-address-book me-2"></i>Contact Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Email Address</small>
+                  <p class="mb-0 fw-medium">{{ teacher.email|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Phone Number</small>
+                  <p class="mb-0 fw-medium">{{ teacher.phone|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Parent Name</small>
+                  <p class="mb-0 fw-medium">{{ teacher.parent_name|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Parent Phone</small>
+                  <p class="mb-0 fw-medium">{{ teacher.parent_phone|default:"Not provided" }}</p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Temporary Address</small>
+                  <p class="mb-0 fw-medium">{{ teacher.temporary_address|default:"Not provided" }}</p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Permanent Address</small>
+                  <p class="mb-0 fw-medium">{{ teacher.permanent_address|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Employment Information -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-briefcase me-2"></i>Employment Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Employee ID</small>
+                  <p class="mb-0 fw-medium">{{ teacher.id }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Designation</small>
+                  <p class="mb-0 fw-medium">{{ teacher.designation|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Joining Date</small>
+                  <p class="mb-0 fw-medium">{{ teacher.joining_date|date:"M d, Y"|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Status</small>
+                  <p class="mb-0 fw-medium">
+                    <span class="badge {% if teacher.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                      {{ teacher.is_active|yesno:"Active,Inactive" }}
+                    </span>
+                  </p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Permissions</small>
+                  <p class="mb-0 fw-medium">
+                    {% for group in teacher.groups.all %}
+                      <span class="badge bg-info me-1 mb-1">{{ group.name }}</span>
+                    {% empty %}
+                      No specific permissions
+                    {% endfor %}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Qualifications -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-graduation-cap me-2"></i>Qualifications</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-12">
+                  <small class="text-muted d-block mb-2">Educational Background</small>
+                  {% if teacher.education_set.all %}
+                    {% for education in teacher.education_set.all %}
+                      <div class="mb-2 pb-2 border-bottom">
+                        <p class="mb-0 fw-medium">{{ education.degree }}, {{ education.institution }} ({{ education.year }})</p>
+                        <small>{{ education.specialization }}</small>
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <p class="mb-2 fw-medium">No educational qualifications recorded</p>
+                  {% endif %}
+
+                  {% if teacher.qualification %}
+                    <div class="mt-2">
+                      <small class="text-muted d-block mb-1">Additional Qualifications</small>
+                      <p class="mb-0 fw-medium">{{ teacher.qualification }}</p>
+                    </div>
+                  {% endif %}
+                </div>
+
+                {% if teacher.skills %}
+                <div class="col-12 mt-2">
+                  <small class="text-muted d-block mb-2">Skills & Specialization</small>
+                  <p class="mb-2 fw-medium">{{ teacher.specialization|default:"No specialization information available" }}</p>
+
+                  <div>
+                    {% for skill in teacher.skills %}
+                      <span class="badge bg-primary me-1 mb-1">{{ skill.strip }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leave Section -->
+  <div id="leaveSection" class="content-section">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-calendar-minus mr-2"></i> Leave Management
+      </h3>
+      <div class="row mb-4">
+        <div class="col-12">
+          <button class="btn btn-primary" onclick="openLeaveModal()">
+            <i class="fas fa-plus-circle me-2"></i>Request Leave
+          </button>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+              <i class="fas fa-clock text-warning mb-3" style="font-size: 2rem;"></i>
+              <h3 class="text-warning mb-2">{{ pending_leaves }}</h3>
+              <p class="mb-0">Pending Requests</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+              <i class="fas fa-check-circle text-success mb-3" style="font-size: 2rem;"></i>
+              <h3 class="text-success mb-2">{{ approved_leaves }}</h3>
+              <p class="mb-0">Approved Requests</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+              <i class="fas fa-times-circle text-danger mb-3" style="font-size: 2rem;"></i>
+              <h3 class="text-danger mb-2">{{ rejected_leaves }}</h3>
+              <p class="mb-0">Rejected Requests</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <h5 class="mb-3"><i class="fas fa-history me-2"></i> Leave History</h5>
+        <div class="table-responsive">
+          <table class="table table-responsive table-hover">
+            <thead>
+              <tr>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Applied On</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_leaves %}
+                {% for leave in recent_leaves %}
+                  <tr>
+                    <td>{{ leave.start_date|date:"M d, Y" }}</td>
+                    <td>{{ leave.end_date|date:"M d, Y" }}</td>
+                    <td>{{ leave.message }}</td>
+                    <td>
+                      <span class="badge
+                        {% if leave.status == 0 %}leave-pending
+                        {% elif leave.status == 1 %}leave-approved
+                        {% else %}leave-rejected{% endif %}">
+                        {{ leave.get_status_display }}
+                      </span>
+                    </td>
+                    <td>{{ leave.created_at|date:"M d, Y" }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5" class="text-center">No leave history available</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+   <!-- Subjects Section -->
+   <div id="subjectsSection" class="content-section">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-book me-2"></i>Your Subjects & Materials
+      </h3>
+      
+      <div class="mb-4">
+        <p class="text-muted mb-3">Manage study materials, notes, and resources for students.</p>
+        <a href="#" class="btn btn-primary" onclick="window.showSection('subjectMaterialsSection'); return false;">
+          <i class="fas fa-file-upload me-2"></i>Manage Subject Materials
+        </a>
+      </div>
+      
+      <div class="row g-3">
+        {% for routine in teacher_subjects %}
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-header bg-light">
+                <h5 class="card-title mb-0">{{ routine.subject.name }}</h5>
+                <small class="text-muted">{{ routine.course.name }} - {{ routine.subject.period_or_year }}</small>
+              </div>
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <p class="mb-2">
+                      <i class="fas fa-clock text-primary me-2"></i>{{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }}
+                    </p>
+                    <p class="mb-0">
+                      <i class="fas fa-users text-info me-2"></i>{{ routine.students_count|default:"0" }} students
+                    </p>
+                  </div>
+                </div>
+                
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                  {% if routine.subject.syllabus_pdf %}
+                  <a href="{{ routine.subject.syllabus_pdf.url }}" class="btn btn-sm btn-outline-secondary w-100" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> View Syllabus
+                  </a>
+                  {% endif %}
+                  {% if routine.subject.get_all_files|length > 0 %}
+                  <a href="#" class="btn btn-sm btn-primary w-100" 
+                     onclick="window.showSection('subjectMaterialsSection', '{{ routine.subject.id }}'); return false;">
+                    <i class="fas fa-file-alt me-1"></i> View Materials
+                  </a>
+                  {% else %}
+                  <a href="#" class="btn btn-sm btn-success w-100" 
+                     onclick="window.showSection('subjectMaterialsSection', '{{ routine.subject.id }}'); return false;">
+                    <i class="fas fa-file-upload me-1"></i> Upload Materials
+                  </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="col-12">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>You don't have any subjects assigned.
+        </div>
+          </div>
+        {% endfor %}
+        </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Subject Materials Section -->
+<div id="subjectMaterialsSection" class="content-section">
+  <div class="content-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="text-xl font-semibold mb-1">
+          <i class="fas fa-book me-2"></i>Manage Subject Materials
+        </h3>
+        <a href="#" class="btn btn-link text-decoration-none ps-0" onclick="showSection('subjectsSection'); return false;">
+          <i class="fas fa-arrow-left me-1"></i> Back to Subjects
+        </a>
+      </div>
+      <button class="btn btn-primary" onclick="openUploadModal()">
+        <i class="fas fa-upload me-1"></i> Upload New Material
+      </button>
+    </div>
+    
+    <!-- Materials content in table format -->
+    <div id="subjectMaterialsContent">
+      {% if teacher_subjects %}
+        <div class="table-responsive">
+          <table class="table table-responsive">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 40%">Subject</th>
+                <th style="width: 20%">Department</th>
+                <th style="width: 15%">Files</th>
+                <th style="width: 25%">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for routine in teacher_subjects %}
+                <tr class="subject-row" data-bs-target="#files-{{ routine.subject.id }}" aria-expanded="false" aria-controls="files-{{ routine.subject.id }}">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-chevron-right me-2 text-primary collapse-icon"></i>
+                      <strong>{{ routine.subject.name }}</strong>
+                    </div>
+                  </td>
+                  <td>{{ routine.course.name }} - {{ routine.subject.period_or_year }}</td>
+                  <td>
+                    {% with files=routine.subject.get_all_files %}
+                      <span class="badge bg-secondary">{{ files|length }} file(s)</span>
+                    {% endwith %}
+                  </td>
+                  <td>
+                    <a href="#" class="btn btn-primary btn-sm" onclick="openUploadModal('{{ routine.subject.id }}'); event.stopPropagation(); return false;">
+                      <i class="fas fa-upload me-1"></i> Upload
+                    </a>
+                    {% if routine.subject.syllabus_pdf %}
+                    <a href="{{ routine.subject.syllabus_pdf.url }}" class="btn btn-outline-secondary btn-sm" target="_blank" onclick="event.stopPropagation();">
+                      <i class="fas fa-file-pdf me-1"></i> Syllabus
+                    </a>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr class="collapse-row">
+                  <td colspan="4" class="p-0">
+                    <div class="collapse" id="files-{{ routine.subject.id }}">
+                      {% with files=routine.subject.get_all_files %}
+                        {% if files %}
+                          <div class="table-responsive">
+                            <table class="table table-borderless mb-0 file-table">
+                              <tbody>
+                                {% for file in files %}
+                                  <tr class="file-row">
+                                    <td style="width: 60%">
+                                      <div class="d-flex align-items-center">
+                                        {% if file.file_type == 'syllabus' %}
+                                          <i class="far fa-file-pdf text-danger me-2"></i>
+                                        {% else %}
+                                          <i class="far fa-file-alt text-primary me-2"></i>
+                                        {% endif %}
+                                        <div>
+                                          <div>{{ file.title }}</div>
+                                          <small class="text-muted">
+                                            <span class="badge {% if file.file_type == 'syllabus' %}bg-info{% else %}bg-primary{% endif %} rounded-pill">
+                                              {{ file.file_type|default:"Study Material"|title }}
+                                            </span>
+                                            {% if file.uploaded_at %}
+                                              <span class="ms-1">{{ file.uploaded_at|date:"d M Y" }}</span>
+                                            {% endif %}
+                                          </small>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td style="width: 40%" class="text-end">
+                                      <a href="{{ file.file_url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                        <i class="fas fa-download"></i> Download
+                                      </a>
+                                      {% if file.file_type == 'syllabus' %}
+                                        <a href="{{ file.file_url }}" class="btn btn-outline-secondary btn-sm" target="_blank">
+                                          <i class="fas fa-eye"></i> View
+                                        </a>
+                                      {% else %}
+                                        <a href="{{ file.file_url }}" class="btn btn-outline-secondary btn-sm" target="_blank">
+                                          <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteFile('{{ file.id }}')">
+                                          <i class="fas fa-trash"></i>
+                                        </button>
+                                      {% endif %}
+                                    </td>
+                                  </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+                          </div>
+                        {% else %}
+                          <div class="p-3 bg-light text-center">
+                            <i class="fas fa-info-circle me-2"></i>No files available for this subject.
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+        <style>
+          .subject-row {
+            /* Removed cursor: pointer; */
+          }
+          .subject-row:hover {
+            background-color: #f8f9fa;
+          }
+          .file-table {
+            background-color: #f8f9fa;
+          }
+          .file-row:hover {
+            background-color: #eff1f3;
+          }
+          .collapse-row {
+            border-top: none;
+          }
+          .collapse-icon {
+            transition: transform 0.2s;
+            cursor: pointer; /* Add cursor pointer only to icon */
+          }
+          [aria-expanded="true"] .collapse-icon {
+            transform: rotate(90deg);
+          }
+        </style>
+        
+        <script>
+          // Initialize collapsible sections
+          document.addEventListener('DOMContentLoaded', function() {
+            // Remove the click handler for the whole row
+            document.querySelectorAll('.collapse-icon').forEach(icon => {
+              icon.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const row = this.closest('.subject-row');
+                const wasExpanded = row.getAttribute('aria-expanded') === 'true';
+                row.setAttribute('aria-expanded', !wasExpanded);
+                
+                // Toggle the collapse manually
+                const targetId = row.getAttribute('data-bs-target');
+                const target = document.querySelector(targetId);
+                if (target) {
+                  if (!wasExpanded) {
+                    target.classList.add('show');
+                  } else {
+                    target.classList.remove('show');
+                  }
+                }
+              });
+            });
+          });
+        </script>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>You don't have any subjects assigned.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Upload File Modal -->
+<div id="uploadFileModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeUploadModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Upload Study Material</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeUploadModal()">&times;</button>
+    </div>
+    <div style="padding: 20px;">
+      <form id="uploadFileForm" method="post" action="/app/manage-subject-files/" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="subject_id" class="form-label">Subject</label>
+          <select class="form-select" id="subject_id" name="subject_id" required>
+            <option value="">Select a subject</option>
+            {% for subject in teacher_subjects %}
+              <option value="{{ subject.subject.id }}">{{ subject.subject.name }} ({{ subject.course.name }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="title" class="form-label">Title</label>
+          <input type="text" class="form-control" id="title" name="title" required placeholder="e.g. Chapter 1 Notes">
+        </div>
+
+        <div class="mb-3">
+          <label for="description" class="form-label">Description (Optional)</label>
+          <textarea class="form-control" id="description" name="description" rows="2" placeholder="Brief description of the material"></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label for="file" class="form-label">File</label>
+          <input type="file" class="form-control" id="file" name="file" required>
+          <div class="form-text">Upload PDF, DOCX, PPT or other study materials. Max file size: 10MB</div>
+        </div>
+
+        <div id="uploadResponse" style="display: none;" class="alert mb-3"></div>
+
+        <div class="d-flex justify-content-end">
+          <button type="button" class="btn btn-secondary me-2" onclick="closeUploadModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-upload me-1"></i> Upload
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmationModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeConfirmationModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 400px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #f44336; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Confirm Deletion</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeConfirmationModal()">&times;</button>
+    </div>
+    <div style="padding: 20px;">
+      <p class="mb-4">Are you sure you want to delete this file? This action cannot be undone.</p>
+      
+      <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-secondary me-2" onclick="closeConfirmationModal()">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+          <i class="fas fa-trash me-1"></i> Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Common Modals -->
+{% include 'shared/common_modals.html' with user=teacher %}
+
+<!-- Teacher-specific Modals -->
+{% include 'teacher/modals/attendance_modal.html' %}
+{% include 'teacher/modals/feedback_modal.html' %}
+{% include 'teacher/modals/upload_file_modal.html' %}
+{% include 'teacher/modals/confirmation_modal.html' %}
+
+<!-- Bottom Navigation -->
+{% include 'shared/bottom_nav.html' with user=teacher %}
+
+<!-- Include teacher dashboard scripts -->
+<script src="{% static 'js/teacher-utils.js' %}"></script>
+<script src="{% static 'js/teacher-attendance.js' %}"></script>
+<script src="{% static 'js/teacher-materials.js' %}"></script>
+<script src="{% static 'js/teacher-init.js' %}"></script>
+<script src="{% static 'js/rating.js' %}"></script>
+
+<!-- Initialize Firebase and request notification permission when the page loads -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Call getDeviceToken to initialize Firebase and request notification permission
+    if (typeof getDeviceToken === 'function') {
+      getDeviceToken().catch(error => {
+        console.error('Error initializing Firebase:', error);
+      });
+    }
+  });
+</script>
+
+<!-- Add fix script -->
+<script src="{% static 'js/teacher_modals.js' %}"></script>
+<script src="{% static 'js/navigation.js' %}"></script>
+<script src="{% static 'js/rating.js' %}"></script>
+
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extrascripts %}
+{{ block.super }}
+<script>
+  // Initialize Firebase and request notification permission when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Call getDeviceToken to initialize Firebase and request notification permission
+    if (typeof getDeviceToken === 'function') {
+      getDeviceToken().catch(error => {
+        console.error('Error initializing Firebase:', error);
+      });
+    }
+  });
+</script>
+{% endblock %}

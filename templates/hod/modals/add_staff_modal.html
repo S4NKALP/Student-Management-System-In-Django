@@ -1,0 +1,126 @@
+{% load static %}
+
+<div id="addStaffModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddStaffModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background-color: #3F51B5; color: white; padding: 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;">
+      <h5 style="margin: 0; font-size: 18px;">Add New Staff</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddStaffModal()">&times;</button>
+    </div>
+    <div style="padding: 15px;">
+      <form id="addStaffForm">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <!-- Left Column -->
+          <div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Name <span style="color: red;">*</span></label>
+              <input type="text" id="addStaffName" name="name" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Phone <span style="color: red;">*</span></label>
+              <input type="tel" id="addStaffPhone" name="phone" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+              <small style="color: #666; display: block; margin-top: 2px; font-size: 11px;">This will be used as the login ID</small>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Email</label>
+              <input type="email" id="addStaffEmail" name="email" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Gender</label>
+              <select id="addStaffGender" name="gender" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Birth Date</label>
+              <input type="date" id="addStaffBirthDate" name="birth_date" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+          </div>
+          <!-- Right Column -->
+          <div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Assigned Subjects <span style="color: red;">*</span></label>
+              <select id="addStaffSubjects" name="subjects[]" multiple style="width: 100%; min-height: 100px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required>
+                {% for subject in subjects %}
+                  <option value="{{ subject.id }}">
+                    {{ subject.name }} {% if course.duration_type == 'Semester' %}(Semester {{ subject.period_or_year }}){% else %}(Year {{ subject.period_or_year }}){% endif %}
+                  </option>
+                {% empty %}
+                  <option value="" disabled>No subjects available</option>
+                {% endfor %}
+              </select>
+              <small style="color: #666; display: block; margin-top: 2px; font-size: 11px;">Hold Ctrl/Cmd to select multiple subjects</small>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Temporary Address</label>
+              <input type="text" id="addStaffTempAddress" name="temporary_address" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Permanent Address</label>
+              <input type="text" id="addStaffPermAddress" name="permanent_address" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Marital Status</label>
+              <select id="addStaffMaritalStatus" name="marital_status" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Select Marital Status</option>
+                <option value="Married">Married</option>
+                <option value="Unmarried">Unmarried</option>
+                <option value="Divorced">Divorced</option>
+              </select>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Citizenship Number</label>
+              <input type="text" id="addStaffCitizenshipNo" name="citizenship_no" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div style="padding: 12px; border-top: 1px solid #EEEEEE; text-align: right; position: sticky; bottom: 0; background-color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+      <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 8px;" onclick="closeAddStaffModal()">Cancel</button>
+      <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="submitAddStaffForm()">Add Staff</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openAddStaffModal() {
+  document.getElementById('addStaffModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAddStaffModal() {
+  document.getElementById('addStaffModal').style.display = 'none';
+  document.body.style.overflow = '';
+  document.getElementById('addStaffForm').reset();
+}
+
+function submitAddStaffForm() {
+  const formData = new FormData(document.getElementById('addStaffForm'));
+  
+  fetch('/app/add-staff/', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      closeAddStaffModal();
+      showMessageModal('Success', 'Staff member added successfully. Default password is: 123');
+      // Refresh the staff list
+      location.reload();
+    } else {
+      showMessageModal('Error', data.message);
+    }
+  })
+  .catch(error => {
+    showMessageModal('Error', 'Failed to add staff member.');
+  });
+}
+</script> 

@@ -1,25 +1,37 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.db.models import Count, Q, Avg
-from django.utils import timezone
+# Standard library imports
 from datetime import timedelta
-from django.views.decorators.http import require_http_methods, require_GET
-from .models import (
-    Student,
-    Course,
-    CourseTracking,
-    Student_Leave,
-    Staff,
+
+# Core Django imports
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db.models import Avg, Count, Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+
+# Local app imports
+from app.models import (
     Attendance,
     AttendanceRecord,
-    StudentFeedback,
-    Routine,
-    Notice,
-    Institute,
+    Batch,
+    Course,
+    CourseTracking,
     InstituteFeedback,
+    Notice,
+    Parent,
+    ParentFeedback,
+    ParentInstituteFeedback,
+    Routine,
+    Staff,
+    StaffInstituteFeedback,
+    StaffLeave,
+    Student,
+    StudentFeedback,
+    StudentLeave,
     Subject,
+    SubjectFile,
+    TeacherParentMeeting,
     FEEDBACK_TYPE_CHOICES,
 )
 
@@ -33,15 +45,16 @@ def studentDashboard(request):
     last_month = today - timedelta(days=30)
 
     # Clear section states on page load
-    if request.method == 'GET':
-        request.session.pop('active_section', None)
-        request.session.pop('active_subsection', None)
+    if request.method == "GET":
+        request.session.pop("active_section", None)
+        request.session.pop("active_subsection", None)
 
     # Get all teachers for feedback form
     teachers = Staff.objects.filter(
         Q(designation__icontains="Teacher")
         | Q(designation__icontains="Staff")
         | Q(designation__icontains="Principal")
+        | Q(designation__icontains="Admission Officer")
         | Q(designation__isnull=True)
         | Q(designation="")
     ).order_by("name")
@@ -77,87 +90,81 @@ def studentDashboard(request):
     # Course Details with enhanced information
     course_details = []
     for tracking in course_trackings:
-        course_details.append({
-            "name": tracking.course.name,
-            "start_date": tracking.start_date,
-            "expected_end_date": tracking.expected_end_date,
-            "actual_end_date": tracking.actual_end_date,
-            "completion_percentage": tracking.completion_percentage,
-            "progress_status": tracking.progress_status,
-            "current_semester": tracking.current_semester,
-            "semester_start_date": tracking.semester_start_date,
-            "semester_end_date": tracking.semester_end_date,
-            "remaining_days": tracking.remaining_days,
-            "is_completed": tracking.is_completed,
-            "is_active": tracking.is_active,
-            "duration_type": tracking.course.duration_type,
-            "duration": tracking.course.duration,
-            "total_duration_days": tracking.total_duration_days,
-            "notes": tracking.notes,
-        })
+        course_details.append(
+            {
+                "name": tracking.course.name,
+                "start_date": tracking.start_date,
+                "expected_end_date": tracking.expected_end_date,
+                "actual_end_date": tracking.actual_end_date,
+                "completion_percentage": tracking.completion_percentage,
+                "progress_status": tracking.progress_status,
+                "current_period": tracking.current_period,
+                "period_start_date": tracking.period_start_date,
+                "period_end_date": tracking.period_end_date,
+                "remaining_days": tracking.remaining_days,
+                "total_remaining_days": tracking.total_remaining_days,
+                "is_completed": tracking.is_completed,
+                "is_active": tracking.is_active,
+                "duration_type": tracking.course.duration_type,
+                "duration": tracking.course.duration,
+                "total_duration_days": tracking.total_duration_days,
+                "notes": tracking.notes,
+            }
+        )
 
-    # Get current subjects based on current semester
+    # Get current subjects based on current period
     current_subjects = []
     active_tracking = course_trackings.filter(progress_status="In Progress").first()
     if active_tracking:
         current_subjects = Subject.objects.filter(
-            course=active_tracking.course,
-            semester_or_year=active_tracking.current_semester
+            course=active_tracking.course, period_or_year=active_tracking.current_period
         )
 
     # Attendance Statistics with enhanced information
     attendance_records = AttendanceRecord.objects.filter(student=student)
-    
-    # Get the current semester start and end dates from student's course tracking
-    current_semester_start = None
-    current_semester_end = None
-    
+
+    # Get the current period start and end dates from student's course tracking
+    current_period_start = None
+    current_period_end = None
+
     # Try to get course tracking for current student
     try:
-        if active_tracking and active_tracking.semester_start_date:
-            current_semester_start = active_tracking.semester_start_date
-            current_semester_end = active_tracking.semester_end_date or today
+        if active_tracking and active_tracking.period_start_date:
+            current_period_start = active_tracking.period_start_date
+            current_period_end = active_tracking.period_end_date or today
     except Exception:
         pass
-    
-    # Filter attendance by current semester date range if available
-    if current_semester_start:
-        semester_attendance = attendance_records.filter(
-            attendance__date__gte=current_semester_start,
-            attendance__date__lte=current_semester_end
+
+    # Calculate total attendance
+    total_attendance = attendance_records.filter(student_attend=True).count()
+    total_classes = attendance_records.count()
+
+    # Calculate attendance percentage
+    if total_classes > 0:
+        attendance_percentage = (total_attendance / total_classes) * 100
+    else:
+        attendance_percentage = 0
+
+    # Filter attendance by current period date range if available
+    if current_period_start:
+        period_attendance = attendance_records.filter(
+            attendance__date__gte=current_period_start,
+            attendance__date__lte=current_period_end,
         )
-        
+
         # Count the actual classes and attendance
-        actual_classes = semester_attendance.count()
-        classes_attended = semester_attendance.filter(student_attend=True).count()
-        
-        # Check if the course is semester-based or year-based
-        is_semester_based = active_tracking.course.duration_type == "Semester" if active_tracking else True
-            
-        # Set the denominator based on semester/year
-        if is_semester_based:
-            # For a 6-month semester, use 180 days as denominator
-            total_classes = 180
-        else:
-            # For a full year, use 365 days as denominator
-            total_classes = 365  # Or use 317 (365 - 48) if excluding Saturdays
-        
-        # Keep track of actual records for display purposes
+        actual_classes = period_attendance.count()
+        classes_attended = period_attendance.filter(student_attend=True).count()
+
+        # Calculate actual attendance percentage
         if actual_classes > 0:
-            attendance_summary_actual = (classes_attended / actual_classes * 100)
+            attendance_summary_actual = classes_attended / actual_classes * 100
         else:
             attendance_summary_actual = 0
     else:
-        # Fall back to overall attendance if semester dates aren't available
-        actual_classes = attendance_records.count()
-        classes_attended = attendance_records.filter(student_attend=True).count()
-        total_classes = 180  # Default to semester-based
-        attendance_summary_actual = 0
-        
-    # Calculate attendance percentage using the fixed formula
-    attendance_percentage = (
-        (classes_attended / total_classes * 100) if total_classes > 0 else 0
-    )
+        actual_classes = total_classes
+        classes_attended = total_attendance
+        attendance_summary_actual = attendance_percentage
 
     # Calculate attendance streaks
     current_streak = 0
@@ -188,15 +195,17 @@ def studentDashboard(request):
     attendance_summary = {
         "total_classes": total_classes,
         "classes_attended": classes_attended,
-        "present_count": classes_attended,
-        "absent_count": total_classes - classes_attended,
+        "present_count": total_attendance,
+        "absent_count": total_classes - total_attendance,
         "attendance_percentage": attendance_percentage,
         "current_streak": current_streak,
-        "longest_streak": longest_streak
+        "longest_streak": longest_streak,
+        "actual_classes": actual_classes,
+        "actual_percentage": attendance_summary_actual,
     }
-    
+
     # Add actual recorded classes info if different from expected
-    if current_semester_start and actual_classes != total_classes:
+    if current_period_start and actual_classes != total_classes:
         attendance_summary["actual_classes"] = actual_classes
         attendance_summary["actual_percentage"] = attendance_summary_actual
 
@@ -218,24 +227,24 @@ def studentDashboard(request):
     notices = Notice.objects.all().order_by("-created_at")
 
     # Get student leaves with status information
-    student_leaves = Student_Leave.objects.filter(student=student).order_by(
+    student_leaves = StudentLeave.objects.filter(student=student).order_by(
         "-created_at"
     )
     pending_leaves = student_leaves.filter(status=0).count()
     approved_leaves = student_leaves.filter(status=1).count()
     rejected_leaves = student_leaves.filter(status=2).count()
 
-    # Get current semester routines
-    current_semester_routines = []
+    # Get current period routines
+    current_period_routines = Routine.objects.none()  # Initialize with empty QuerySet
     if active_tracking:
-        current_semester_routines = Routine.objects.filter(
+        current_period_routines = Routine.objects.filter(
             course=active_tracking.course,
-            semester_or_year=active_tracking.current_semester,
+            period_or_year=active_tracking.current_period,
             is_active=True,
         )
 
     # Check if student has any routines
-    has_routines = current_semester_routines.exists()
+    has_routines = current_period_routines.exists()
 
     context = {
         "student": student,
@@ -252,6 +261,7 @@ def studentDashboard(request):
         "course_summary": course_summary,
         # Current Subjects
         "current_subjects": current_subjects,
+        "active_tracking": active_tracking,
         # Attendance
         "attendance_summary": attendance_summary,
         "attendance_records": attendance_records,
@@ -267,13 +277,13 @@ def studentDashboard(request):
         "approved_leaves": approved_leaves,
         "rejected_leaves": rejected_leaves,
         # Routines
-        "current_semester_routines": current_semester_routines,
+        "current_period_routines": current_period_routines,
         "has_routines": has_routines,
         # Current date for display
         "today": today,
     }
 
-    return render(request, "student_dashboard.html", context)
+    return render(request, "student/dashboard.html", context)
 
 
 @login_required
@@ -301,10 +311,10 @@ def request_leave(request):
                 return redirect("studentDashboard")
 
             # Check if leave already exists for these dates
-            existing_leave = Student_Leave.objects.filter(
+            existing_leave = StudentLeave.objects.filter(
                 student=student,
                 start_date__lte=end_date.date(),
-                end_date__gte=start_date.date()
+                end_date__gte=start_date.date(),
             ).first()
 
             if existing_leave:
@@ -314,7 +324,7 @@ def request_leave(request):
                 return redirect("studentDashboard")
 
             # Create leave request
-            leave = Student_Leave.objects.create(
+            leave = StudentLeave.objects.create(
                 student=student,
                 start_date=start_date.date(),
                 end_date=end_date.date(),
@@ -365,7 +375,9 @@ def submit_feedback(request):
                         existing_feedback.rating = rating
                         existing_feedback.feedback_text = feedback_text
                         existing_feedback.save()
-                        messages.success(request, "Teacher feedback updated successfully")
+                        messages.success(
+                            request, "Teacher feedback updated successfully"
+                        )
                     else:
                         # Create new feedback
                         StudentFeedback.objects.create(
@@ -374,7 +386,9 @@ def submit_feedback(request):
                             rating=rating,
                             feedback_text=feedback_text,
                         )
-                        messages.success(request, "Teacher feedback submitted successfully")
+                        messages.success(
+                            request, "Teacher feedback submitted successfully"
+                        )
 
                 except Staff.DoesNotExist:
                     messages.error(request, "Selected teacher does not exist")
@@ -401,7 +415,9 @@ def submit_institute_feedback(request):
 
         try:
             # Validate feedback type
-            if not feedback_type or feedback_type not in dict(InstituteFeedback.FEEDBACK_TYPE_CHOICES):
+            if not feedback_type or feedback_type not in dict(
+                InstituteFeedback.FEEDBACK_TYPE_CHOICES
+            ):
                 messages.error(request, "Please select a valid feedback type")
                 return redirect("studentDashboard")
 
@@ -469,7 +485,7 @@ def get_subject_files(request, subject_id):
     try:
         subject = Subject.objects.get(id=subject_id)
         files = subject.get_all_files()
-        
+
         if not files:
             return JsonResponse(
                 {"success": False, "message": "No files available for this subject"}

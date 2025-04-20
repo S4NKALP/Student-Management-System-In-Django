@@ -1,0 +1,364 @@
+{% load static %}
+
+<!-- Add Routine Modal -->
+<div id="addRoutineModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddRoutineModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Add Class Routine</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddRoutineModal()">&times;</button>
+    </div>
+    <form id="addRoutineForm">
+      {% csrf_token %}
+      <div style="padding: 20px;">
+        <div style="margin-bottom: 15px;">
+          <label for="periodSelect" style="display: block; margin-bottom: 8px; font-weight: 500;">{% if course.duration_type == 'Semester' %}Semester{% else %}Year{% endif %}</label>
+          <select id="periodSelect" name="period_select" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required>
+            <option value="">Select {% if course.duration_type == 'Semester' %}Semester{% else %}Year{% endif %}</option>
+            <!-- Options will be populated dynamically via JavaScript -->
+          </select>
+        </div>
+        
+        <!-- Subject list container - subjects will be added here dynamically -->
+        <div id="subjectsContainer" style="margin-bottom: 15px; max-height: 400px; overflow-y: auto;"></div>
+        
+        <input type="hidden" id="periodOrYear" name="period_or_year">
+      </div>
+      <div style="padding: 15px; border-top: 1px solid #EEEEEE; text-align: right; display: flex; flex-wrap: wrap; justify-content: flex-end;">
+        <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; margin-bottom: 10px; cursor: pointer; font-size: 14px;" onclick="closeAddRoutineModal()">Cancel</button>
+        <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 10px;" onclick="submitAddRoutineForm()">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Store all subject data for use in the form
+const allSubjects = [
+  {% for subject in subjects %}
+  {
+    id: {{ subject.id }},
+    name: "{{ subject.name }}",
+    period: "{{ subject.period_or_year }}"
+  },
+  {% endfor %}
+];
+
+function openAddRoutineModal() {
+  const modal = document.getElementById('addRoutineModal');
+  if (modal) {
+    // Reset form
+    document.getElementById('addRoutineForm').reset();
+    document.getElementById('subjectsContainer').innerHTML = '';
+    
+    // Populate period dropdown dynamically
+    const periodSelect = document.getElementById('periodSelect');
+    const periodLabel = {% if course.duration_type == 'Semester' %}'Semester'{% else %}'Year'{% endif %};
+    
+    // Try to get the course data from the page
+    const courseElement = document.querySelector('#routineSection');
+    const courseId = courseElement?.getAttribute('data-course-id') || 
+                     window.location.pathname.match(/\/hod\/(\d+)/)?.at(1);
+    
+    // Default to 3 periods if we can't determine
+    let totalPeriods = 3;
+    
+    {% if course.total_periods %}
+    // If we have it from the template, use that
+    totalPeriods = {{ course.total_periods }};
+    console.log("Using course periods from template:", totalPeriods);
+    {% endif %}
+    
+    // Clear all options
+    periodSelect.innerHTML = '';
+    
+    // Add placeholder option
+    periodSelect.innerHTML = `<option value="">Select ${periodLabel}</option>`;
+    
+    // Add options based on total periods
+    console.log(`Adding ${totalPeriods} period options`);
+    for (let i = 1; i <= totalPeriods; i++) {
+      periodSelect.innerHTML += `<option value="${i}">${periodLabel} ${i}</option>`;
+    }
+    
+    // Setup period selection change listener
+    periodSelect.onchange = function() {
+      const selectedPeriod = this.value;
+      document.getElementById('periodOrYear').value = selectedPeriod;
+      
+      // Clear existing subjects
+      const subjectsContainer = document.getElementById('subjectsContainer');
+      subjectsContainer.innerHTML = '';
+      
+      if (selectedPeriod) {
+        // Filter subjects for the selected period
+        const periodSubjects = allSubjects.filter(subject => subject.period === selectedPeriod);
+        
+        if (periodSubjects.length === 0) {
+          subjectsContainer.innerHTML = '<p style="text-align: center; padding: 10px;">No subjects found for this period.</p>';
+          return;
+        }
+        
+        // Create a form section for each subject
+        periodSubjects.forEach(subject => {
+          const subjectDiv = document.createElement('div');
+          subjectDiv.className = 'subject-item';
+          subjectDiv.style.padding = '15px';
+          subjectDiv.style.marginBottom = '15px';
+          subjectDiv.style.border = '1px solid #EEEEEE';
+          subjectDiv.style.borderRadius = '4px';
+          
+          // Create subject header
+          const subjectHeader = document.createElement('h4');
+          subjectHeader.textContent = subject.name;
+          subjectHeader.style.margin = '0 0 10px 0';
+          subjectHeader.style.fontSize = '16px';
+          subjectDiv.appendChild(subjectHeader);
+          
+          // Add hidden input for subject ID
+          const subjectIdInput = document.createElement('input');
+          subjectIdInput.type = 'hidden';
+          subjectIdInput.name = `subject_id_${subject.id}`;
+          subjectIdInput.value = subject.id;
+          subjectDiv.appendChild(subjectIdInput);
+          
+          // Create inline form row
+          const formRow = document.createElement('div');
+          formRow.style.display = 'flex';
+          formRow.style.flexWrap = 'wrap';
+          formRow.style.gap = '10px';
+          formRow.style.alignItems = 'flex-end';
+          
+          // Create teacher dropdown
+          const teacherDiv = document.createElement('div');
+          teacherDiv.style.flex = '2';
+          teacherDiv.style.minWidth = '180px';
+          
+          const teacherLabel = document.createElement('label');
+          teacherLabel.textContent = 'Teacher';
+          teacherLabel.style.display = 'block';
+          teacherLabel.style.marginBottom = '5px';
+          teacherLabel.style.fontWeight = '500';
+          teacherDiv.appendChild(teacherLabel);
+          
+          const teacherSelect = document.createElement('select');
+          teacherSelect.name = `teacher_id_${subject.id}`;
+          teacherSelect.style.width = '100%';
+          teacherSelect.style.padding = '10px';
+          teacherSelect.style.border = '1px solid #BDBDBD';
+          teacherSelect.style.borderRadius = '4px';
+          teacherSelect.style.boxSizing = 'border-box';
+          teacherSelect.required = true;
+          
+          // Add default option
+          const defaultOption = document.createElement('option');
+          defaultOption.value = '';
+          defaultOption.textContent = 'Select Teacher';
+          teacherSelect.appendChild(defaultOption);
+          
+          // Add teacher options
+          {% for teacher in staff %}
+          const teacherOption_{{ teacher.id }} = document.createElement('option');
+          teacherOption_{{ teacher.id }}.value = '{{ teacher.id }}';
+          teacherOption_{{ teacher.id }}.textContent = '{{ teacher.name }}';
+          teacherSelect.appendChild(teacherOption_{{ teacher.id }});
+          {% endfor %}
+          
+          teacherDiv.appendChild(teacherSelect);
+          formRow.appendChild(teacherDiv);
+          
+          // Start time
+          const startTimeDiv = document.createElement('div');
+          startTimeDiv.style.flex = '1';
+          startTimeDiv.style.minWidth = '120px';
+          
+          const startTimeLabel = document.createElement('label');
+          startTimeLabel.textContent = 'Start Time';
+          startTimeLabel.style.display = 'block';
+          startTimeLabel.style.marginBottom = '5px';
+          startTimeLabel.style.fontWeight = '500';
+          startTimeDiv.appendChild(startTimeLabel);
+          
+          const startTimeInput = document.createElement('input');
+          startTimeInput.type = 'time';
+          startTimeInput.name = `start_time_${subject.id}`;
+          startTimeInput.style.width = '100%';
+          startTimeInput.style.padding = '10px';
+          startTimeInput.style.border = '1px solid #BDBDBD';
+          startTimeInput.style.borderRadius = '4px';
+          startTimeInput.style.boxSizing = 'border-box';
+          startTimeInput.required = true;
+          startTimeDiv.appendChild(startTimeInput);
+          
+          formRow.appendChild(startTimeDiv);
+          
+          // End time
+          const endTimeDiv = document.createElement('div');
+          endTimeDiv.style.flex = '1';
+          endTimeDiv.style.minWidth = '120px';
+          
+          const endTimeLabel = document.createElement('label');
+          endTimeLabel.textContent = 'End Time';
+          endTimeLabel.style.display = 'block';
+          endTimeLabel.style.marginBottom = '5px';
+          endTimeLabel.style.fontWeight = '500';
+          endTimeDiv.appendChild(endTimeLabel);
+          
+          const endTimeInput = document.createElement('input');
+          endTimeInput.type = 'time';
+          endTimeInput.name = `end_time_${subject.id}`;
+          endTimeInput.style.width = '100%';
+          endTimeInput.style.padding = '10px';
+          endTimeInput.style.border = '1px solid #BDBDBD';
+          endTimeInput.style.borderRadius = '4px';
+          endTimeInput.style.boxSizing = 'border-box';
+          endTimeInput.required = true;
+          endTimeDiv.appendChild(endTimeInput);
+          
+          formRow.appendChild(endTimeDiv);
+          
+          // Add the form row to the subject div
+          subjectDiv.appendChild(formRow);
+          
+          // Add the subject div to the container
+          subjectsContainer.appendChild(subjectDiv);
+        });
+      }
+    };
+    
+    // Show modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeAddRoutineModal() {
+  const modal = document.getElementById('addRoutineModal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
+// Make functions available globally
+if (typeof window !== 'undefined') {
+  window.openAddRoutineModal = openAddRoutineModal;
+  window.closeAddRoutineModal = closeAddRoutineModal;
+}
+
+// Add form submission function
+function submitAddRoutineForm() {
+  const form = document.getElementById('addRoutineForm');
+  if (!form) {
+    console.error('Add routine form not found');
+    return;
+  }
+  
+  // Get selected period
+  const periodSelect = document.getElementById('periodSelect');
+  const selectedPeriod = periodSelect.value;
+  
+  if (!selectedPeriod) {
+    alert('Please select a period');
+    return;
+  }
+  
+  // Get selected subjects
+  const subjectItems = document.querySelectorAll('.subject-item');
+  if (subjectItems.length === 0) {
+    alert('No subjects available for this period');
+    return;
+  }
+  
+  // Check if any item has incomplete data
+  let hasIncompleteData = false;
+  subjectItems.forEach(item => {
+    const teacherSelect = item.querySelector('select');
+    const startTime = item.querySelector('input[type="time"][name^="start_time_"]');
+    const endTime = item.querySelector('input[type="time"][name^="end_time_"]');
+    
+    if (!teacherSelect.value || !startTime.value || !endTime.value) {
+      hasIncompleteData = true;
+    }
+  });
+  
+  if (hasIncompleteData) {
+    alert('Please fill in all required fields for each subject');
+    return;
+  }
+  
+  // Prepare requests to be sent
+  const requests = [];
+  
+  // Common data
+  const courseId = document.querySelector('#routineSection')?.getAttribute('data-course-id') || 
+                   window.location.pathname.match(/\/hod\/(\d+)/)?.at(1);
+                    
+  if (!courseId) {
+    alert('Course ID not found');
+    return;
+  }
+
+  // Create a request for each subject
+  subjectItems.forEach(item => {
+    const subjectId = item.querySelector('input[type="hidden"]').value;
+    const teacherId = item.querySelector('select').value;
+    const startTime = item.querySelector('input[name^="start_time_"]').value;
+    const endTime = item.querySelector('input[name^="end_time_"]').value;
+    
+    const formData = new FormData();
+    formData.append('course_id', courseId);
+    formData.append('subject_id', subjectId);
+    formData.append('teacher_id', teacherId);
+    formData.append('start_time', startTime);
+    formData.append('end_time', endTime);
+    formData.append('period_or_year', selectedPeriod);
+    
+    requests.push(
+      fetch('/app/api/hod/routines/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+    );
+  });
+  
+  // Send all requests and handle responses
+  Promise.all(requests.map(p => p.catch(e => e)))
+    .then(responses => {
+      const allSuccessful = responses.every(res => !(res instanceof Error) && res.ok);
+      
+      if (allSuccessful) {
+        if (typeof window.showMessageModal === 'function') {
+          window.showMessageModal('Success', 'All routines added successfully');
+        } else if (typeof window.showToast === 'function') {
+          window.showToast('success', 'All routines added successfully');
+        } else {
+          alert('All routines added successfully');
+        }
+        closeAddRoutineModal();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        if (typeof window.showMessageModal === 'function') {
+          window.showMessageModal('Error', 'Some routines could not be added');
+        } else if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Some routines could not be added');
+        } else {
+          alert('Some routines could not be added');
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error adding routines:', error);
+      alert('Failed to add routines: ' + error.message);
+    });
+}
+
+// Make submission function globally available
+if (typeof window !== 'undefined') {
+  window.submitAddRoutineForm = submitAddRoutineForm;
+}
+</script> 

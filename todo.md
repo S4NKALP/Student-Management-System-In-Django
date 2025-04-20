@@ -9,6 +9,9 @@
 [x] Leave Management
 [x] Course Tracking
 [x] Teacher Study Materials
-[ ] Parent User Roles
-[ ] Parent Roles
+[x] Student Roles
+[x] Staff/Teacher Roles
+[x] Admission Officer Roles
+[x] HOD Roles
+[x] Parent Roles
 [ ] Library Management

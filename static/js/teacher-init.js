@@ -146,8 +146,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     body: formData,
                     credentials: 'same-origin',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (responseDiv) {
                         responseDiv.style.display = 'block';

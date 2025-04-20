@@ -1,11 +1,17 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import login
+# Core Django imports
+from django.contrib.auth import authenticate, login
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
+from django.contrib import messages
+
+
 import uuid
-from .models import Student, Staff
-from .utils import (
+
+# Local app imports
+from app.models import Student, Staff, Parent, Institute
+from app.utils import (
     generate_otp,
     generate_secret_key,
     store_secret_key,
@@ -16,27 +22,41 @@ from .utils import (
     store_reset_token,
     verify_reset_token
 )
-from django.contrib import messages
+
+
 
 def reset_password_options(request):
     """View for selecting between phone and email password reset"""
-    return render(request, "login/reset_options.html")
+    # Get institute for logo
+    institute = Institute.objects.first()
+    return render(request, "login/reset_options.html", {"institute": institute})
 
 def password_reset_phone(request):
     """View for initiating password reset with phone number"""
+    # Get institute for logo
+    institute = Institute.objects.first()
+    
     if request.method == "POST":
         phone = request.POST.get("phone")
         
         # Validate phone number
         if not phone or not phone.isdigit():
-            return render(request, "login/password_reset_phone.html", {"error": "Please enter a valid phone number", "is_email": False})
+            return render(request, "login/password_reset_phone.html", {
+                "error": "Please enter a valid phone number", 
+                "is_email": False,
+                "institute": institute
+            })
         
         # Check if a user with this phone exists
         student = Student.objects.filter(phone=phone).first()
         staff = Staff.objects.filter(phone=phone).first()
         
         if not student and not staff:
-            return render(request, "login/password_reset_phone.html", {"error": "No account found with this phone number", "is_email": False})
+            return render(request, "login/password_reset_phone.html", {
+                "error": "No account found with this phone number", 
+                "is_email": False,
+                "institute": institute
+            })
         
         # Generate secret key and store it
         secret_key = generate_secret_key()
@@ -48,14 +68,28 @@ def password_reset_phone(request):
         
         if send_result:
             # Redirect to OTP verification page
-            return render(request, "login/password_reset_otp.html", {"phone": phone, "is_email": False})
+            return render(request, "login/password_reset_otp.html", {
+                "phone": phone, 
+                "is_email": False,
+                "institute": institute
+            })
         else:
-            return render(request, "login/password_reset_phone.html", {"error": "Failed to send OTP. Please try again.", "is_email": False})
+            return render(request, "login/password_reset_phone.html", {
+                "error": "Failed to send OTP. Please try again.", 
+                "is_email": False,
+                "institute": institute
+            })
     
-    return render(request, "login/password_reset_phone.html", {"is_email": False})
+    return render(request, "login/password_reset_phone.html", {
+        "is_email": False,
+        "institute": institute
+    })
 
 def password_reset_phone_verify(request):
     """View for verifying OTP for password reset"""
+    # Get institute for logo
+    institute = Institute.objects.first()
+    
     if request.method == "POST":
         phone = request.POST.get("phone")
         otp = request.POST.get("otp")
@@ -64,7 +98,8 @@ def password_reset_phone_verify(request):
             return render(request, "login/password_reset_otp.html", {
                 "error": "Phone and OTP are required",
                 "phone": phone,
-                "is_email": False
+                "is_email": False,
+                "institute": institute
             })
         
         # Verify OTP
@@ -78,13 +113,15 @@ def password_reset_phone_verify(request):
             return render(request, "login/password_reset_set.html", {
                 "phone": phone,
                 "token": token,
-                "is_email": False
+                "is_email": False,
+                "institute": institute
             })
         else:
             return render(request, "login/password_reset_otp.html", {
                 "error": "Invalid or expired OTP",
                 "phone": phone,
-                "is_email": False
+                "is_email": False,
+                "institute": institute
             })
     
     # If GET request, redirect to phone login
@@ -123,19 +160,30 @@ def resend_phone_otp(request):
 
 def password_reset_email(request):
     """View for initiating password reset with email"""
+    # Get institute for logo
+    institute = Institute.objects.first()
+    
     if request.method == "POST":
         email = request.POST.get("email")
         
         # Validate email
         if not email:
-            return render(request, "login/email_reset.html", {"error": "Please enter a valid email address", "is_email": True})
+            return render(request, "login/email_reset.html", {
+                "error": "Please enter a valid email address", 
+                "is_email": True,
+                "institute": institute
+            })
         
         # Check if a user with this email exists
         student = Student.objects.filter(email=email).first()
         staff = Staff.objects.filter(email=email).first()
         
         if not student and not staff:
-            return render(request, "login/email_reset.html", {"error": "No account found with this email address", "is_email": True})
+            return render(request, "login/email_reset.html", {
+                "error": "No account found with this email address", 
+                "is_email": True,
+                "institute": institute
+            })
         
         # Get the user
         user = student or staff
@@ -143,14 +191,28 @@ def password_reset_email(request):
         # Send password reset email
         if send_password_reset_email(user, request, email):
             # Redirect to verification page
-            return render(request, "login/password_reset_otp.html", {"email": email, "is_email": True})
+            return render(request, "login/password_reset_otp.html", {
+                "email": email, 
+                "is_email": True,
+                "institute": institute
+            })
         else:
-            return render(request, "login/email_reset.html", {"error": "Failed to send verification code. Please try again.", "is_email": True})
+            return render(request, "login/email_reset.html", {
+                "error": "Failed to send verification code. Please try again.", 
+                "is_email": True,
+                "institute": institute
+            })
     
-    return render(request, "login/email_reset.html", {"is_email": True})
+    return render(request, "login/email_reset.html", {
+        "is_email": True,
+        "institute": institute
+    })
 
 def password_reset_email_verify(request):
     """View for verifying reset code for email"""
+    # Get institute for logo
+    institute = Institute.objects.first()
+    
     if request.method == "POST":
         email = request.POST.get("email")
         code = request.POST.get("otp")
@@ -159,7 +221,8 @@ def password_reset_email_verify(request):
             return render(request, "login/password_reset_otp.html", {
                 "error": "Email and verification code are required",
                 "email": email,
-                "is_email": True
+                "is_email": True,
+                "institute": institute
             })
         
         # Verify code
@@ -173,14 +236,16 @@ def password_reset_email_verify(request):
             return render(request, "login/password_reset_set.html", {
                 "email": email,
                 "token": token,
-                "is_email": True
+                "is_email": True,
+                "institute": institute
             })
         else:
             return render(request, "login/password_reset_otp.html", {
                 "error": "Invalid or expired code",
                 "email": email,
                 "is_email": True,
-                "message": "Please check your email for the verification code."
+                "message": "Please check your email for the verification code.",
+                "institute": institute
             })
     
     # For GET request, show the verification form with email pre-filled
@@ -188,7 +253,8 @@ def password_reset_email_verify(request):
     return render(request, "login/password_reset_otp.html", {
         "email": email,
         "is_email": True,
-        "message": "Please check your email for the verification code."
+        "message": "Please check your email for the verification code.",
+        "institute": institute
     })
 
 def resend_email_code(request):
@@ -229,6 +295,9 @@ def resend_email_code(request):
 
 def set_new_password(request):
     """View for setting new password after verification"""
+    # Get institute for logo
+    institute = Institute.objects.first()
+    
     if request.method == "POST":
         phone = request.POST.get("phone")
         email = request.POST.get("email")
@@ -246,7 +315,8 @@ def set_new_password(request):
                 "phone": phone,
                 "email": email,
                 "token": token,
-                "is_email": is_email
+                "is_email": is_email,
+                "institute": institute
             })
         
         # Verify token is valid
@@ -256,7 +326,8 @@ def set_new_password(request):
                 "phone": phone,
                 "email": email,
                 "token": token,
-                "is_email": is_email
+                "is_email": is_email,
+                "institute": institute
             })
         
         # Check passwords match
@@ -266,7 +337,8 @@ def set_new_password(request):
                 "phone": phone,
                 "email": email,
                 "token": token,
-                "is_email": is_email
+                "is_email": is_email,
+                "institute": institute
             })
         
         # Find the user
@@ -284,7 +356,8 @@ def set_new_password(request):
                 "phone": phone,
                 "email": email,
                 "token": token,
-                "is_email": is_email
+                "is_email": is_email,
+                "institute": institute
             })
         
         # Update password
@@ -295,4 +368,40 @@ def set_new_password(request):
         messages.success(request, "Password has been reset successfully. Please login with your new password.")
         return redirect("login")
     
-    return render(request, "login/password_reset_set.html", {"is_email": False}) 
+    return render(request, "login/password_reset_set.html", {"is_email": False, "institute": institute})
+
+def custom_login(request):
+    """Custom login view to handle authentication"""
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        
+        # Validate phone number format if it's a phone number
+        if username.isdigit():
+            if len(username) != 10:
+                # Get institute for logo
+                institute = Institute.objects.first()
+                return render(request, "login/login.html", {
+                    "error": "Phone number must be 10 digits",
+                    "username": username,
+                    "institute": institute
+                })
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            next_url = request.POST.get("next", "/app/dashboard/")
+            return redirect(next_url)
+        else:
+            # Get institute for logo
+            institute = Institute.objects.first()
+            return render(request, "login/login.html", {
+                "error": "Invalid credentials",
+                "username": username,
+                "institute": institute
+            })
+    
+    # Get institute for logo
+    institute = Institute.objects.first()
+    return render(request, "login/login.html", {"institute": institute}) 

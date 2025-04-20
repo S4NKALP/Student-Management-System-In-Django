@@ -6,4 +6,5 @@ For security, do not share this OTP. If you didn't request this, please ignore.
 
 Best regards,
 Student Management System
-support@sms.com 
+support@sms.com
+

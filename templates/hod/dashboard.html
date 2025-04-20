@@ -1,0 +1,3457 @@
+{% extends 'shared/base.html' %}
+{% load static %}
+{% load tz %}
+{% load app_filters %}
+
+{% block title %}HOD Dashboard - {{ course.name }}{% endblock title %}
+
+{% block head %}
+{{ block.super }}
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Staff Module -->
+<script type="module">
+    import * as staffModals from '{% static "js/hod/modals/staff.js" %}';
+    window.openAddStaffModal = staffModals.openAddStaffModal;
+    window.closeAddStaffModal = staffModals.closeAddStaffModal;
+    window.openEditStaffModal = staffModals.openEditStaffModal;
+    window.closeEditStaffModal = staffModals.closeEditStaffModal;
+    window.openViewStaffModal = staffModals.openViewStaffModal;
+    window.closeViewStaffModal = staffModals.closeViewStaffModal;
+    window.submitAddStaffForm = staffModals.submitAddStaffForm;
+    window.submitEditStaffForm = staffModals.submitEditStaffForm;
+    window.confirmDeleteStaff = staffModals.confirmDeleteStaff;
+</script>
+
+<!-- Notifications Module -->
+<script type="module">
+    import { showToast } from '{% static "js/hod/utils/notifications.js" %}';
+    window.showToast = showToast;
+    console.log("Imported showToast:", window.showToast); // Debug log
+</script>
+
+<!-- HOD Dashboard JS -->
+<script type="module">
+    // Load module with retry mechanism
+    async function loadMeetingModule() {
+        try {
+            const meetingModals = await import('{% static "js/hod/modals/meeting.js" %}?v=' + new Date().getTime());
+            console.log("Successfully imported meeting module:", meetingModals);
+
+            // Meeting functions
+            window.openAddMeetingModal = meetingModals.openAddMeetingModal;
+            window.closeAddMeetingModal = meetingModals.closeAddMeetingModal;
+            window.openEditMeetingModal = meetingModals.openEditMeetingModal;
+            window.closeEditMeetingModal = meetingModals.closeEditMeetingModal;
+            window.openCancelMeetingModal = meetingModals.openCancelMeetingModal;
+            window.closeCancelMeetingModal = meetingModals.closeCancelMeetingModal;
+            window.viewMeetingDetails = meetingModals.viewMeetingDetails;
+            window.closeViewMeetingModal = meetingModals.closeViewMeetingModal;
+            window.submitAddMeetingForm = meetingModals.submitAddMeetingForm;
+            window.submitEditMeetingForm = meetingModals.submitEditMeetingForm;
+            window.submitCancelMeetingForm = meetingModals.submitCancelMeetingForm;
+
+            console.log("Imported openEditMeetingModal:", window.openEditMeetingModal); // Debug log
+
+            // Set up event listeners after module is loaded
+            document.querySelectorAll('.edit-meeting-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const meetingId = this.getAttribute('data-meeting-id');
+                    if (typeof window.openEditMeetingModal === 'function') {
+                        window.openEditMeetingModal(meetingId);
+                    } else {
+                        console.error("openEditMeetingModal is not a function after loading");
+                        alert('Error: Edit function not available. Please refresh the page.');
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.reschedule-meeting-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const meetingId = this.getAttribute('data-meeting-id');
+                    if (typeof window.openRescheduleMeetingModal === 'function') {
+                        window.openRescheduleMeetingModal(meetingId);
+                    } else {
+                        alert('Error: Reschedule function not available. Please refresh the page.');
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.cancel-meeting-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const meetingId = this.getAttribute('data-meeting-id');
+                    if (typeof window.openCancelMeetingModal === 'function') {
+                        window.openCancelMeetingModal(meetingId);
+                    } else {
+                        console.error("openCancelMeetingModal is not a function after loading");
+                        alert('Error: Cancel function not available. Please refresh the page.');
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.view-meeting-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const meetingId = this.getAttribute('data-meeting-id');
+                    if (typeof window.viewMeetingDetails === 'function') {
+                        window.viewMeetingDetails(meetingId);
+                    } else {
+                        console.error("viewMeetingDetails is not a function after loading");
+                        alert('Error: View function not available. Please refresh the page.');
+                    }
+                });
+            });
+            
+            return true;
+        } catch (error) {
+            console.error("Error loading meeting module:", error);
+            return false;
+        }
+    }
+
+    // Try to load the module immediately
+    loadMeetingModule().then(success => {
+        if (!success) {
+            // If failed, try again after a short delay
+            setTimeout(() => {
+                loadMeetingModule().then(retrySuccess => {
+                    if (!retrySuccess) {
+                        console.error("Failed to load meeting module after retry");
+                    }
+                });
+            }, 1000);
+        }
+    });
+
+    import * as studentModals from '{% static "js/hod/modals/student.js" %}';
+    import * as routineModule from '{% static "js/hod/routine.js" %}';
+
+    // Student functions
+    window.openAddStudentModal = studentModals.openAddStudentModal;
+    window.closeAddStudentModal = studentModals.closeAddStudentModal;
+    window.openEditStudentModal = studentModals.openEditStudentModal;
+    window.closeEditStudentModal = studentModals.closeEditStudentModal;
+    window.openViewStudentModal = studentModals.openViewStudentModal;
+    window.closeViewStudentModal = studentModals.closeViewStudentModal;
+    window.submitAddStudentForm = studentModals.submitAddStudentForm;
+    window.submitEditStudentForm = studentModals.submitEditStudentForm;
+    window.confirmDeleteStudent = studentModals.confirmDeleteStudent;
+
+    // Routine functions
+    window.openAddRoutineModal = routineModule.openAddRoutineModal;
+    window.closeAddRoutineModal = routineModule.closeAddRoutineModal;
+    window.submitAddRoutineForm = routineModule.submitAddRoutineForm;
+    window.openEditRoutineModal = routineModule.openEditRoutineModal;
+    window.closeEditRoutineModal = routineModule.closeEditRoutineModal;
+    window.submitEditRoutineForm = routineModule.submitEditRoutineForm;
+    window.openDeleteRoutineModal = routineModule.openDeleteRoutineModal;
+    window.closeDeleteRoutineModal = routineModule.closeDeleteRoutineModal;
+    window.submitDeleteRoutineForm = routineModule.submitDeleteRoutineForm;
+
+    // Initialize event listeners when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize duration filter for subjects
+        const durationButtons = document.querySelectorAll('#durationFilter button');
+        const subjectRows = document.querySelectorAll('#subjectsTableBody tr[data-period]');
+
+        durationButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                durationButtons.forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                this.classList.add('active');
+
+                const selectedDuration = this.dataset.duration;
+                
+                // Show/hide rows based on selected duration
+                // Convert string values to the same type before comparison
+                subjectRows.forEach(row => {
+                    if (selectedDuration === 'all' || String(row.dataset.period) === String(selectedDuration)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // Show/hide "no subjects" message
+                const noSubjectsRow = document.querySelector('#subjectsTableBody tr:not([data-period])');
+                if (noSubjectsRow) {
+                    const visibleRows = Array.from(subjectRows).filter(row => row.style.display !== 'none');
+                    noSubjectsRow.style.display = visibleRows.length === 0 ? '' : 'none';
+                }
+                
+                // Log for debugging
+                console.log('Filter selected:', selectedDuration);
+                console.log('Visible rows:', Array.from(subjectRows).filter(row => row.style.display !== 'none').length);
+            });
+        });
+
+        // Initialize online meeting toggle listeners
+        const isOnlineCheckbox = document.getElementById('isOnline');
+        const meetingLinkContainer = document.getElementById('meetingLinkContainer');
+        
+        if (isOnlineCheckbox) {
+            isOnlineCheckbox.addEventListener('change', function() {
+                meetingLinkContainer.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+        
+        const editIsOnlineCheckbox = document.getElementById('editIsOnline');
+        const editMeetingLinkContainer = document.getElementById('editMeetingLinkContainer');
+        
+        if (editIsOnlineCheckbox) {
+            editIsOnlineCheckbox.addEventListener('change', function() {
+                editMeetingLinkContainer.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+    });
+</script>
+<style>
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 10000;
+  }
+  
+  .modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  
+  .modal-header {
+    background-color: #3F51B5;
+    color: white;
+    padding: 12px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .modal-body {
+    padding: 15px;
+  }
+  
+  .modal-footer {
+    padding: 12px;
+    border-top: 1px solid #EEEEEE;
+    text-align: right;
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+  
+  .modal-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .modal-btn-cancel {
+    background-color: #9E9E9E;
+    color: white;
+    margin-right: 8px;
+  }
+  
+  .modal-btn-delete {
+    background-color: #3F51B5;
+    color: white;
+  }
+</style>
+{% endblock head %}
+
+{% block content %}
+<!-- Add CSRF token to the page -->
+{% csrf_token %}
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Common Modals -->
+{% include 'shared/common_modals.html' %}
+
+<script>
+// Direct implementation of staff deletion functionality
+function confirmDeleteStaff(staffId) {
+    // Display the confirmation modal
+    const confirmationModal = document.getElementById('confirmationModal');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    // Update confirmation message
+    const messageElement = confirmationModal.querySelector('div p');
+    messageElement.textContent = 'Are you sure you want to delete this staff member? This action cannot be undone.';
+    
+    // Show the modal
+    confirmationModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Set up the delete button action
+    confirmDeleteBtn.onclick = function() {
+        window.location.href = `/app/delete-staff/${staffId}/`;
+    };
+}
+
+// Helper function to close the confirmation modal
+function closeConfirmationModal() {
+    document.getElementById('confirmationModal').style.display = 'none';
+    document.body.style.overflow = '';
+}
+</script>
+
+<div class="container-fluid py-4">
+  <!-- Welcome Section -->
+  {% include 'shared/welcome_section.html' %}
+
+  <!-- Dashboard Content -->
+  <div id="dashboardSection" class="content-section active">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i> Students</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ total_students }}</h2>
+              <p class="text-muted">Total Students</p>
+            </div>
+            <div class="text-center">
+              <div class="d-flex justify-content-around">
+                <div>
+                  <h4 class="fw-bold mb-0">{{ total_staff }}</h4>
+                  <p class="text-muted">Staff</p>
+                </div>
+                <div>
+                  <h4 class="fw-bold mb-0">{{ total_subjects }}</h4>
+                  <p class="text-muted">Subjects</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-chalkboard me-2"></i> Today's Classes</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ today_classes|length }}</h2>
+              <p class="text-muted">Total Classes</p>
+            </div>
+            <div class="text-center">
+              {% if today_classes %}
+                <div class="text-center mb-2">
+                  <div class="d-flex justify-content-center flex-wrap gap-2">
+                    {% for class in today_classes|slice:":3" %}
+                      <span class="badge bg-primary py-2 px-3">
+                        {{ class.subject.name|truncatechars:15 }}
+                      </span>
+                    {% endfor %}
+                    {% if today_classes|length > 3 %}
+                      <span class="badge bg-info py-2 px-3">
+                        +{{ today_classes|length|add:"-3" }} more
+                      </span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% else %}
+                <p class="text-muted">No classes scheduled for today</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-graduation-cap me-2"></i> Student Progress</h5>
+          </div>
+          <div class="card-body text-center">
+            {% if student_progress %}
+              <div class="progress-stats">
+                {% for progress in student_progress|slice:":3" %}
+                  <div class="mb-2">
+                    <small class="text-muted d-block mb-1">{{ progress.student.name }}</small>
+                    <div class="progress" style="height: 8px;">
+                      <div class="progress-bar {% if progress.completion_percentage >= 75 %}bg-success{% elif progress.completion_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                           role="progressbar"
+                           style="width: {{ progress.completion_percentage }}%"
+                           aria-valuenow="{{ progress.completion_percentage }}"
+                           aria-valuemin="0"
+                           aria-valuemax="100">
+                      </div>
+                    </div>
+                    <small class="text-muted">{{ progress.completion_percentage }}%</small>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-muted">No progress data available</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-calendar-check me-2"></i> Upcoming Meetings</h5>
+          </div>
+          <div class="card-body">
+            {% if upcoming_meetings %}
+              {% for meeting in upcoming_meetings|slice:":3" %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div>
+                    <small class="text-muted d-block">{{ meeting.meeting_date|date:"M d, Y" }}</small>
+                    <small>{{ meeting.meeting_time|time:"h:i A" }}</small>
+                  </div>
+                  <span class="badge bg-primary">{{ meeting.get_status_display }}</span>
+                </div>
+              {% endfor %}
+              {% if upcoming_meetings|length > 3 %}
+                <div class="text-center mt-2">
+                  <small class="text-muted">+{{ upcoming_meetings|length|add:"-3" }} more meetings</small>
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-muted text-center">No upcoming meetings</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Classes -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="content-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i> Today's Classes</h5>
+          </div>
+
+          {% if today_classes %}
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Code</th>
+                    <th>Teacher</th>
+                    <th>Time</th>
+                    <th>Period/Year</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for class in today_classes %}
+                    <tr>
+                      <td>{{ class.subject.name }}</td>
+                      <td>{{ class.subject.code|default:"-" }}</td>
+                      <td>{{ class.teacher.name }}</td>
+                      <td>{{ class.start_time|time:"h:i A" }} - {{ class.end_time|time:"h:i A" }}</td>
+                      <td>{{ class.period_or_year }}</td>
+                      <td>
+                        {% if class.attendance %}
+                          <span class="badge {% if class.attendance.class_status %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if class.attendance.class_status %}Conducted{% else %}Cancelled{% endif %}
+                          </span>
+                        {% else %}
+                          <span class="badge bg-warning">Pending</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No classes scheduled for today.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Progress and Recent Feedback -->
+    <div class="row">
+      <div class="col-lg-6 mb-4">
+        <div class="content-card h-100">
+          <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i> Student Progress</h5>
+          {% if student_progress_all %}
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Batch</th>
+                    <th>Current Period</th>
+                    <th>Completion %</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for progress in student_progress_all %}
+                    <tr data-batch-id="{% for batch in progress.student.batches.all %}{{ batch.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                      <td>
+                        <div class="d-flex align-items-center">
+                          {% if progress.student.image %}
+                            <img src="{{ progress.student.image.url }}" class="rounded-circle me-2" width="30" height="30">
+                          {% else %}
+                            <div class="avatar-placeholder rounded-circle me-2">{{ progress.student.name|slice:":1" }}</div>
+                          {% endif %}
+                          {{ progress.student.name }}
+                        </div>
+                      </td>
+                      <td>
+                        {% for batch in progress.student.batches.all %}
+                          {{ batch.name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                      </td>
+                      <td>{{ progress.student.current_period }}</td>
+                      <td>
+                        <div class="progress" style="height: 10px;">
+                          <div class="progress-bar 
+                            {% if progress.completion_percentage >= 75 %}
+                              bg-success
+                            {% elif progress.completion_percentage >= 40 %}
+                              bg-warning
+                            {% else %}
+                              bg-danger
+                            {% endif %}" 
+                            role="progressbar" 
+                            style="width: {{ progress.completion_percentage }}%;" 
+                            aria-valuenow="{{ progress.completion_percentage }}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100">
+                          </div>
+                        </div>
+                        <span class="small">{{ progress.completion_percentage }}%</span>
+                      </td>
+                      <td>
+                        {% if progress.progress_status == "Completed" %}
+                          <span class="badge bg-success">Completed</span>
+                        {% elif progress.progress_status == "In Progress" %}
+                          <span class="badge bg-primary">In Progress</span>
+                        {% elif progress.progress_status == "Not Started" %}
+                          <span class="badge bg-secondary">Not Started</span>
+                        {% elif progress.progress_status == "Dropped" %}
+                          <span class="badge bg-danger">Dropped</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <button type="button" class="btn btn-sm btn-warning" onclick="openEditProgressModal('{{ progress.id }}')">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No progress data found for the selected batch.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-lg-6 mb-4">
+        <div class="content-card h-100">
+          <h5 class="mb-3"><i class="fas fa-comment-dots me-2"></i> Recent Feedback</h5>
+          {% if recent_feedback %}
+            <div class="feedback-list">
+              {% for feedback in recent_feedback %}
+                <div class="feedback-card mb-3">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 class="mb-0">{{ feedback.student.name }}</h6>
+                        <small class="text-muted">to {{ feedback.teacher.name }}</small>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                          {% else %}
+                            <i class="far fa-star text-warning"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-body mt-2">
+                    <p class="mb-1">{{ feedback.feedback_text }}</p>
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No recent feedback available.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Students Section -->
+  <div id="studentsSection" class="content-section" style="display: none;">
+    <div class="content-card mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+          <div>
+            <h5 class="mb-1"><i class="fas fa-user-graduate me-2"></i> {{ course.name }} Students</h5>
+            <p class="text-muted mb-0 small">
+              <i class="fas fa-info-circle me-1"></i> 
+              Manage and track student information
+            </p>
+          </div>
+          <div class="ms-3">
+            <span class="badge bg-primary rounded-pill">
+              <i class="fas fa-users me-1"></i>
+              Total: <span id="studentCounter" class="fw-bold">{{ students|length }}</span>
+            </span>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddStudentModal()">
+          <i class="fas fa-plus-circle me-2"></i> Add New Student
+        </button>
+      </div>
+
+      <!-- Search Box -->
+      <div class="mb-4">
+        <div class="search-box">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="fas fa-search text-muted"></i>
+            </span>
+            <input type="text" 
+                   id="studentSearchInput" 
+                   class="form-control border-start-0 ps-0" 
+                   placeholder="Search students by name, email, or phone...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Students Table -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Enrollment Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTableBody">
+            {% if students %}
+              {% for student in students %}
+                <tr>
+                  <td>{{ student.name }}</td>
+                  <td>{{ student.email }}</td>
+                  <td>{{ student.phone }}</td>
+                  <td>{{ student.enrollment_date|date:"M d, Y" }}</td>
+                  <td>
+                    <span class="badge {% if student.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                      {% if student.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="openViewStudentModal('{{ student.id }}')" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-success" onclick="openEditStudentModal('{{ student.id }}')" title="Edit Student">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDeleteStudent('{{ student.id }}')" title="Delete Student">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+              <tr class="no-results" style="display: none;">
+                <td colspan="6" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="fas fa-search fa-2x mb-3"></i>
+                    <p class="mb-0">No students match your search criteria</p>
+                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="fas fa-user-graduate fa-2x mb-3"></i>
+                    <p class="mb-0">No students found for {{ course.name }}</p>
+                    <small>Click the "Add New Student" button to add your first student</small>
+                  </div>
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Staff Section -->
+  <div id="staffSection" class="content-section" style="display: none;">
+    <div class="content-card mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+          <div>
+            <h5 class="mb-1"><i class="fas fa-chalkboard-teacher me-2"></i> {{ course.name }} Staff</h5>
+            <p class="text-muted mb-0 small">
+              <i class="fas fa-info-circle me-1"></i> 
+              Manage teaching and administrative staff
+            </p>
+          </div>
+          <div class="ms-3">
+            <span class="badge bg-primary rounded-pill">
+              <i class="fas fa-user-tie me-1"></i>
+              Total: <span id="staffCounter" class="fw-bold">{{ staff|length }}</span>
+            </span>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddStaffModal()">
+          <i class="fas fa-plus-circle me-2"></i> Add New Staff
+        </button>
+      </div>
+
+      <!-- Search Box -->
+      <div class="mb-4">
+        <div class="search-box">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="fas fa-search text-muted"></i>
+            </span>
+            <input type="text" 
+                   id="staffSearchInput" 
+                   class="form-control border-start-0 ps-0" 
+                   placeholder="Search staff by name, email, phone, or subjects...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Staff Table -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Assigned Subjects</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="staffTableBody">
+            {% if staff %}
+              {% for staff_member in staff %}
+                <tr>
+                  <td>{{ staff_member.name }}</td>
+                  <td>{{ staff_member.email }}</td>
+                  <td>{{ staff_member.phone }}</td>
+                  <td>
+                    {% for subject in staff_member.filtered_subjects %}
+                      <span class="badge bg-primary">{{ subject.name }}{% if course.duration_type == 'Semester' %} (Semester {{ subject.period_or_year }}){% else %} (Year {{ subject.period_or_year }}){% endif %}</span>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    <span class="badge {% if staff_member.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                      {% if staff_member.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="openViewStaffModal('{{ staff_member.id }}')" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-success" onclick="openEditStaffModal('{{ staff_member.id }}')" title="Edit Staff">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDeleteStaff('{{ staff_member.id }}')" title="Delete Staff">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+              <tr class="no-results" style="display: none;">
+                <td colspan="6" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="fas fa-search fa-2x mb-3"></i>
+                    <p class="mb-0">No staff members match your search criteria</p>
+                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="fas fa-chalkboard-teacher fa-2x mb-3"></i>
+                    <p class="mb-0">No staff members found for {{ course.name }}</p>
+                    <small>Click the "Add New Staff" button to add your first staff member</small>
+                  </div>
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notice Section -->
+  <div id="noticeSection" class="content-section" style="display: none;">
+    <div class="content-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i> Notices & Announcements</h5>
+        <button class="btn btn-primary btn-sm" onclick="openAddNoticeModal()">
+          <i class="fas fa-plus-circle me-1"></i> Add Notice
+        </button>
+      </div>
+      
+      <!-- Notice List -->
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Message</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if notices %}
+              {% for notice in notices %}
+                <tr>
+                  <td>{{ notice.title }}</td>
+                  <td>{{ notice.message|truncatechars:100 }}</td>
+                  <td>{{ notice.created_at|date:"M d, Y H:i" }}</td>
+                  <td>
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewNotice('{{ notice.id }}')">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDeleteNotice('{{ notice.id }}')">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center">No notices found</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Section -->
+  <div id="profileSection" class="content-section" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-user mr-2"></i> Profile Information
+      </h3>
+      <div class="row">
+        <!-- Profile Header with Image and Actions -->
+        <div class="col-12 mb-4">
+          <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex align-items-center mb-3 mb-md-0">
+              {% if hod.image %}
+                <img src="{{ hod.image.url }}" alt="{{ hod.name }}" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+              {% else %}
+                <img src="{% static 'img/user.png' %}" alt="Default User" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+              {% endif %}
+              <div>
+                <h4 class="mb-1">{{ hod.name }}</h4>
+                <p class="mb-0 text-muted">
+                  <span class="me-3"><i class="fas fa-id-card me-1"></i> {{ hod.id }}</span>
+                  <span class="me-3"><i class="fas fa-envelope me-1"></i> {{ hod.email }}</span>
+                  <span><i class="fas fa-phone me-1"></i> {{ hod.phone }}</span>
+                </p>
+                <div class="mt-2">
+                  <span class="badge {% if hod.is_active %}bg-success{% else %}bg-danger{% endif %} me-2">
+                    {{ hod.is_active|yesno:"Active,Inactive" }}
+                  </span>
+                  <span class="badge bg-info">Head of Department</span>
+                </div>
+              </div>
+            </div>
+            <div class="profile-actions d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-primary" onclick="openProfileModal()">
+                <i class="fas fa-camera me-1"></i> Update Photo
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="openPasswordModal()">
+                <i class="fas fa-key me-1"></i> Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Information Section -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-user-circle me-2"></i>Personal Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Full Name</p>
+                  <p class="mb-0 fw-medium">{{ hod.name }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Email Address</p>
+                  <p class="mb-0 fw-medium">{{ hod.email }}</p>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Phone Number</p>
+                  <p class="mb-0 fw-medium">{{ hod.phone|default:"Not provided" }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Gender</p>
+                  <p class="mb-0 fw-medium">
+                    {% if hod.gender == 'M' %}Male
+                    {% elif hod.gender == 'F' %}Female
+                    {% else %}{{ hod.gender|default:"Not specified" }}{% endif %}
+                  </p>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Date of Birth</p>
+                  <p class="mb-0 fw-medium">{{ hod.birth_date|default:"Not provided" }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Joining Date</p>
+                  <p class="mb-0 fw-medium">{{ hod.joining_date|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact and Address Information -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-address-card me-2"></i>Contact & Address</h5>
+            </div>
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-12">
+                  <p class="text-muted mb-1">Temporary Address</p>
+                  <p class="mb-0 fw-medium">{{ hod.temporary_address|default:"Not provided" }}</p>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-12">
+                  <p class="text-muted mb-1">Permanent Address</p>
+                  <p class="mb-0 fw-medium">{{ hod.permanent_address|default:"Not provided" }}</p>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Emergency Contact</p>
+                  <p class="mb-0 fw-medium">{{ hod.emergency_contact|default:"Not provided" }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Relationship</p>
+                  <p class="mb-0 fw-medium">{{ hod.emergency_relationship|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Information -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-briefcase me-2"></i>Professional Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Department</p>
+                  <p class="mb-0 fw-medium">{{ course.name }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Position</p>
+                  <p class="mb-0 fw-medium">Head of Department</p>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Employee ID</p>
+                  <p class="mb-0 fw-medium">{{ hod.id }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Status</p>
+                  <p class="mb-0 fw-medium">
+                    <span class="badge {% if hod.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                      {% if hod.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-12">
+                  <p class="text-muted mb-1">Qualifications</p>
+                  <p class="mb-0 fw-medium">{{ hod.qualifications|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- About Section -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>About</h5>
+            </div>
+            <div class="card-body">
+              <p class="mb-3">{{ hod.bio|default:"No information available" }}</p>
+              
+              <div class="row mb-3">
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Marital Status</p>
+                  <p class="mb-0 fw-medium">{{ hod.marital_status|default:"Not specified" }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Blood Group</p>
+                  <p class="mb-0 fw-medium">{{ hod.blood_group|default:"Not specified" }}</p>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Citizenship No.</p>
+                  <p class="mb-0 fw-medium">{{ hod.citizenship_no|default:"Not provided" }}</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="text-muted mb-1">Passport No.</p>
+                  <p class="mb-0 fw-medium">{{ hod.passport|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Subject Modal -->
+{% include 'hod/modals/add_subject_modal.html' %}
+
+<!-- Edit Subject Modal -->
+{% include 'hod/modals/edit_subject_modal.html' %}
+
+<!-- View Subject Modal -->
+{% include 'hod/modals/view_subject_modal.html' %}
+
+<!-- Add Staff Modal -->
+{% include 'hod/modals/add_staff_modal.html' %}
+
+<!-- View Staff Modal -->
+{% include 'hod/modals/view_staff_modal.html' %}
+
+<!-- Edit Staff Modal -->
+{% include 'hod/modals/edit_staff_modal.html' %}
+
+<!-- Add Student Modal -->
+{% include 'hod/modals/add_student_modal.html' %}
+
+<!-- Edit Student Modal -->
+{% include 'hod/modals/edit_student_modal.html' %}
+
+<!-- View Student Modal -->
+{% include 'hod/modals/view_student_modal.html' %}
+
+<!-- Add Meeting Modal -->
+{% include 'hod/modals/add_meeting_modal.html' %}
+
+<!-- Edit Meeting Modal -->
+{% include 'hod/modals/edit_meeting_modal.html' %}
+
+<!-- View Meeting Modal -->
+{% include 'hod/modals/view_meeting_modal.html' %}
+
+<!-- Cancel Meeting Modal -->
+{% include 'hod/modals/cancel_meeting_modal.html' %}
+
+<!-- Meeting Notes Modal -->
+{% include 'hod/modals/meeting_notes_modal.html' %}
+
+<!-- Meeting Agenda Modal -->
+{% include 'hod/modals/meeting_agenda_modal.html' %}
+
+<!-- Cancellation Reason Modal -->
+{% include 'hod/modals/cancellation_reason_modal.html' %}
+
+<!-- Routine Modals -->
+{% include 'hod/modals/add_routine_modal.html' %}
+{% include 'hod/modals/edit_routine_modal.html' %}
+
+<!-- Bottom Navigation -->
+{% include 'shared/bottom_nav.html' with user=hod %}
+
+<!-- Notice Modals -->
+{% include 'hod/modals/notice_modal.html' %}
+{% include 'hod/modals/edit_progress_modal.html' %}
+
+<!-- Message Modal -->
+<div id="messageModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeMessageModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 400px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 id="messageModalTitle" style="margin: 0; font-size: 18px;">Message</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeMessageModal()">&times;</button>
+    </div>
+    <div style="padding: 20px;">
+      <p id="messageModalContent" style="margin: 0;"></p>
+    </div>
+    <div style="padding: 15px; border-top: 1px solid #EEEEEE; text-align: right;">
+      <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="closeMessageModal()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fallback for function that might not load from module -->
+<script>
+  // Use the existing confirmation modal for student deletion
+  function confirmDeleteStudent(studentId) {
+    // Display the confirmation modal
+    const confirmationModal = document.getElementById('confirmationModal');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    // Update confirmation message
+    const messageElement = confirmationModal.querySelector('div p');
+    messageElement.textContent = 'Are you sure you want to delete this student? This action cannot be undone.';
+    
+    // Show the modal
+    confirmationModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Set up the delete button action
+    confirmDeleteBtn.onclick = function() {
+      window.location.href = `/app/delete-student/${studentId}/`;
+    };
+  }
+  
+  // Helper function to close the confirmation modal
+  function closeConfirmationModal() {
+    document.getElementById('confirmationModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+</script>
+
+<script>
+  // Direct implementation of viewMeetingDetails function for reliability
+  window.viewMeetingDetails = function(meetingId) {
+    fetch(`/app/api/hod/meetings/${meetingId}/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        return response.json();
+      })
+      .then(data => {
+        const modal = document.getElementById('viewMeetingModal');
+        if (!modal) {
+          alert('Error: View meeting modal not found!');
+          return;
+        }
+        
+        // Fill the modal with meeting data
+        document.getElementById('viewMeetingDate').textContent = new Date(data.meeting_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        document.getElementById('viewMeetingTime').textContent = new Date('1970-01-01T' + data.meeting_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        document.getElementById('viewMeetingDuration').textContent = data.duration;
+        document.getElementById('viewMeetingStatus').innerHTML = `<span class="badge bg-${data.status === 'scheduled' ? 'primary' : data.status === 'completed' ? 'success' : data.status === 'cancelled' ? 'danger' : 'warning'}">${data.status_display}</span>`;
+        document.getElementById('viewMeetingAgenda').textContent = data.agenda || 'No agenda available';
+        document.getElementById('viewMeetingNotes').textContent = data.notes || 'No notes available';
+        document.getElementById('viewMeetingType').textContent = data.is_online ? 'Online Meeting' : 'In-Person Meeting';
+        
+        const linkContainer = document.getElementById('viewMeetingLinkContainer');
+        const linkElement = document.getElementById('viewMeetingLink');
+        
+        if (data.is_online && data.meeting_link) {
+          linkContainer.style.display = 'block';
+          linkElement.innerHTML = `<a href="${data.meeting_link}" target="_blank">${data.meeting_link}</a>`;
+        } else {
+          linkContainer.style.display = 'none';
+        }
+        
+        // Handle cancellation reason
+        const cancellationContainer = document.getElementById('viewCancellationReasonContainer');
+        const cancellationReason = document.getElementById('viewCancellationReason');
+        
+        if (data.status === 'cancelled' && data.cancellation_reason) {
+          cancellationContainer.style.display = 'block';
+          cancellationReason.textContent = data.cancellation_reason;
+        } else {
+          cancellationContainer.style.display = 'none';
+        }
+        
+        // Set up edit button
+        const editBtn = document.getElementById('editMeetingBtn');
+        if (editBtn) {
+          editBtn.onclick = () => {
+            closeViewMeetingModal();
+            if (typeof window.openEditMeetingModal === 'function') {
+              window.openEditMeetingModal(meetingId);
+            } else {
+              alert('Error: Edit function not available');
+            }
+          };
+        }
+        
+        // Show modal
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      })
+      .catch(error => {
+        console.error('Error fetching meeting details:', error);
+        alert('Failed to load meeting details: ' + error.message);
+      });
+  };
+  
+  // Function to close the meeting modal
+  window.closeViewMeetingModal = function() {
+    const modal = document.getElementById('viewMeetingModal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  };
+
+  // Direct implementation of openEditMeetingModal for reliability
+  window.openEditMeetingModal = function(meetingId) {
+    fetch(`/app/api/hod/meetings/${meetingId}/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        return response.json();
+      })
+      .then(data => {
+        const modal = document.getElementById('editMeetingModal');
+        if (!modal) {
+          alert('Error: Edit meeting modal not found!');
+          return;
+        }
+        
+        // Populate the form fields
+        document.getElementById('editMeetingId').value = meetingId;
+        document.getElementById('editMeetingDate').value = data.meeting_date;
+        document.getElementById('editMeetingTime').value = data.meeting_time;
+        document.getElementById('editDuration').value = data.duration;
+        document.getElementById('editAgenda').value = data.agenda || '';
+        document.getElementById('editIsOnline').checked = data.is_online;
+        document.getElementById('editMeetingLink').value = data.meeting_link || '';
+        document.getElementById('editNotes').value = data.notes || '';
+        
+        // Update the meeting link field visibility
+        if (data.is_online) {
+          document.getElementById('editMeetingLinkContainer').style.display = 'block';
+        } else {
+          document.getElementById('editMeetingLinkContainer').style.display = 'none';
+        }
+        
+        // Show the modal
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      })
+      .catch(error => {
+        console.error('Error fetching meeting details:', error);
+        if (typeof window.showMessageModal === 'function') {
+          window.showMessageModal('Error', 'Failed to load meeting details');
+        } else if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Failed to load meeting details');
+        } else {
+          alert('Failed to load meeting details: ' + error.message);
+        }
+      });
+  };
+  
+  // Direct implementation of closeEditMeetingModal for reliability
+  window.closeEditMeetingModal = function() {
+    const modal = document.getElementById('editMeetingModal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+      document.getElementById('editMeetingForm').reset();
+    }
+  };
+  
+  // Direct implementation of submitEditMeetingForm for reliability
+  window.submitEditMeetingForm = function() {
+    const form = document.getElementById('editMeetingForm');
+    const meetingId = document.getElementById('editMeetingId').value;
+    
+    // Create FormData instead of JSON object
+    const formData = new FormData();
+    formData.append('meeting_date', document.getElementById('editMeetingDate').value);
+    formData.append('meeting_time', document.getElementById('editMeetingTime').value);
+    formData.append('duration', document.getElementById('editDuration').value);
+    formData.append('agenda', document.getElementById('editAgenda').value);
+    formData.append('notes', document.getElementById('editNotes').value);
+    formData.append('is_online', document.getElementById('editIsOnline').checked ? 'true' : 'false');
+    
+    // Always include meeting_link (empty string if not online) to satisfy NOT NULL constraint
+    formData.append('meeting_link', document.getElementById('editIsOnline').checked ? 
+      document.getElementById('editMeetingLink').value : '');
+    
+    console.log("Submitting form data to edit endpoint");
+    
+    fetch(`/app/api/hod/meetings/${meetingId}/edit/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.text().then(text => {
+          console.error("Server response:", text);
+          throw new Error('Server error: ' + response.status);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Close modal using direct style manipulation (not Bootstrap)
+      const modal = document.getElementById('editMeetingModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        document.getElementById('editMeetingForm').reset();
+      }
+      
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Success', 'Meeting updated successfully');
+      } else if (typeof window.showToast === 'function') {
+        window.showToast('success', 'Meeting updated successfully');
+      } else {
+        alert('Meeting updated successfully');
+      }
+      
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    })
+    .catch(error => {
+      console.error('Error updating meeting:', error);
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Error', 'Failed to update meeting. Please try again.');
+      } else if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Failed to update meeting. Please try again.');
+      } else {
+        alert('Failed to update meeting: ' + error.message);
+      }
+    });
+  };
+
+  // Direct implementation of openCancelMeetingModal for reliability
+  window.openCancelMeetingModal = function(meetingId) {
+    document.getElementById('cancelMeetingId').value = meetingId;
+    document.getElementById('cancellationReason').value = '';
+    document.getElementById('cancelMeetingModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Direct implementation of closeCancelMeetingModal for reliability
+  window.closeCancelMeetingModal = function() {
+    document.getElementById('cancelMeetingModal').style.display = 'none';
+    document.body.style.overflow = '';
+    document.getElementById('cancelMeetingForm').reset();
+  };
+
+  // Direct implementation of submitCancelMeetingForm for reliability
+  window.submitCancelMeetingForm = function() {
+    const form = document.getElementById('cancelMeetingForm');
+    const formData = new FormData(form);
+    const meetingId = document.getElementById('cancelMeetingId').value;
+    
+    // Make sure cancellation reason is provided
+    const cancellationReason = document.getElementById('cancellationReason').value;
+    if (!cancellationReason.trim()) {
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Error', 'Please provide a reason for cancellation');
+      } else if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Please provide a reason for cancellation');
+      } else {
+        alert('Please provide a reason for cancellation');
+      }
+      return;
+    }
+    
+    fetch(`/app/api/hod/meetings/${meetingId}/cancel/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.text().then(text => {
+          console.error("Server response:", text);
+          throw new Error('Server error: ' + response.status);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Close modal using direct style manipulation
+      document.getElementById('cancelMeetingModal').style.display = 'none';
+      document.body.style.overflow = '';
+      document.getElementById('cancelMeetingForm').reset();
+      
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Success', 'Meeting cancelled successfully');
+      } else if (typeof window.showToast === 'function') {
+        window.showToast('success', 'Meeting cancelled successfully');
+      } else {
+        alert('Meeting cancelled successfully');
+      }
+      
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    })
+    .catch(error => {
+      console.error('Error cancelling meeting:', error);
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Error', 'Failed to cancel meeting. Please try again.');
+      } else if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Failed to cancel meeting. Please try again.');
+      } else {
+        alert('Failed to cancel meeting: ' + error.message);
+      }
+    });
+  };
+
+  // Direct implementation of submitAddMeetingForm for reliability
+  window.submitAddMeetingForm = function() {
+    const form = document.getElementById('addMeetingForm');
+    if (!form) {
+      console.error("Add meeting form not found");
+      return;
+    }
+    
+    // Validate required fields
+    const meetingDate = document.getElementById('meetingDate').value;
+    const meetingTime = document.getElementById('meetingTime').value;
+    const duration = document.getElementById('duration').value;
+    
+    if (!meetingDate || !meetingTime || !duration) {
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Error', 'Please fill all required fields');
+      } else {
+        alert('Please fill all required fields');
+      }
+      return;
+    }
+    
+    // Create FormData manually to ensure proper formatting
+    const formData = new FormData();
+    formData.append('meeting_date', meetingDate);
+    formData.append('meeting_time', meetingTime);
+    formData.append('duration', duration);
+    formData.append('agenda', document.getElementById('agenda').value || '');
+    formData.append('notes', document.getElementById('notes') ? (document.getElementById('notes').value || '') : '');
+    
+    // Handle online meeting fields properly
+    const isOnline = document.getElementById('isOnline').checked;
+    formData.append('is_online', isOnline ? 'true' : 'false');
+    
+    // Always include meeting_link (empty string if not online)
+    const meetingLink = document.getElementById('meetingLink').value || '';
+    formData.append('meeting_link', meetingLink);
+    
+    console.log("Submitting meeting form with data:", {
+      meeting_date: meetingDate,
+      meeting_time: meetingTime,
+      duration: duration,
+      is_online: isOnline ? 'true' : 'false',
+      meeting_link: meetingLink
+    });
+    
+    fetch('/app/api/hod/meetings/', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.text().then(text => {
+          console.error("Server response:", text);
+          throw new Error('Server error: ' + response.status);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      window.closeAddMeetingModal();
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Success', 'Meeting scheduled successfully');
+      } else if (typeof window.showToast === 'function') {
+        window.showToast('success', 'Meeting scheduled successfully');
+      } else {
+        alert('Meeting scheduled successfully');
+      }
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    })
+    .catch(error => {
+      console.error('Error scheduling meeting:', error);
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Error', 'Failed to schedule meeting. Please try again.');
+      } else if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Failed to schedule meeting. Please try again.');
+      } else {
+        alert('Failed to schedule meeting: ' + error.message);
+      }
+    });
+  };
+
+  // Direct implementation of openAddMeetingModal for reliability
+  window.openAddMeetingModal = function() {
+    const modal = document.getElementById('addMeetingModal');
+    if (modal) {
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    } else {
+      console.error("Add meeting modal not found");
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Error', 'Meeting form not found. Please refresh the page.');
+      } else {
+        alert('Error: Meeting form not found. Please refresh the page.');
+      }
+    }
+  };
+
+  // Direct implementation of closeAddMeetingModal for reliability
+  window.closeAddMeetingModal = function() {
+    const modal = document.getElementById('addMeetingModal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+      const form = document.getElementById('addMeetingForm');
+      if (form) form.reset();
+    }
+  };
+
+  // Implementation of openRescheduleMeetingModal function
+  window.openRescheduleMeetingModal = function(meetingId) {
+    fetch(`/app/api/hod/meetings/${meetingId}/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Create a new date object from the meeting date and add 1 day
+        const currentDate = new Date(data.meeting_date);
+        const nextDay = new Date(currentDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        // Format the date as YYYY-MM-DD for the input field
+        const formattedNextDay = nextDay.toISOString().split('T')[0];
+        
+        // First we open the edit modal
+        window.openEditMeetingModal(meetingId);
+        
+        // Then we update the meeting date to next day - short delay to ensure modal is loaded
+        setTimeout(() => {
+          document.getElementById('editMeetingDate').value = formattedNextDay;
+          
+          // Update the modal title to make it clear this is rescheduling
+          const modalHeader = document.querySelector('#editMeetingModal div[style*="background-color"] h5');
+          if (modalHeader) {
+            modalHeader.textContent = 'Reschedule Meeting';
+          }
+          
+          // Update the submit button text
+          const submitButton = document.querySelector('#editMeetingModal button[onclick*="submitEditMeetingForm"]');
+          if (submitButton) {
+            submitButton.textContent = 'Reschedule Meeting';
+          }
+        }, 300);
+      })
+      .catch(error => {
+        console.error('Error fetching meeting details for rescheduling:', error);
+        if (typeof window.showMessageModal === 'function') {
+          window.showMessageModal('Error', 'Failed to load meeting details for rescheduling');
+        } else if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Failed to load meeting details for rescheduling');
+        } else {
+          alert('Failed to load meeting details for rescheduling: ' + error.message);
+        }
+      });
+  };
+
+  window.addEventListener('load', function() {
+    // Add direct event listeners to view buttons
+    document.querySelectorAll('.view-meeting-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const meetingId = this.getAttribute('data-meeting-id');
+        window.viewMeetingDetails(meetingId);
+      });
+    });
+    
+    // Add event listeners for edit and cancel buttons
+    document.querySelectorAll('.edit-meeting-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const meetingId = this.getAttribute('data-meeting-id');
+        if (typeof window.openEditMeetingModal === 'function') {
+          window.openEditMeetingModal(meetingId);
+        } else {
+          alert('Error: Edit function not available. Please refresh the page.');
+        }
+      });
+    });
+    
+    document.querySelectorAll('.reschedule-meeting-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const meetingId = this.getAttribute('data-meeting-id');
+        if (typeof window.openRescheduleMeetingModal === 'function') {
+          window.openRescheduleMeetingModal(meetingId);
+        } else {
+          alert('Error: Reschedule function not available. Please refresh the page.');
+        }
+      });
+    });
+    
+    document.querySelectorAll('.cancel-meeting-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const meetingId = this.getAttribute('data-meeting-id');
+        if (typeof window.openCancelMeetingModal === 'function') {
+          window.openCancelMeetingModal(meetingId);
+        } else {
+          alert('Error: Cancel function not available. Please refresh the page.');
+        }
+      });
+    });
+  });
+
+  // Direct implementation of openDeleteRoutineModal function to use the existing confirmation modal
+  window.openDeleteRoutineModal = function(routineId) {
+    // Display the confirmation modal
+    const confirmationModal = document.getElementById('confirmationModal');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    // Update confirmation message
+    const messageElement = confirmationModal.querySelector('div p');
+    messageElement.textContent = 'Are you sure you want to delete this routine? This action cannot be undone.';
+    
+    // Show the modal
+    confirmationModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Set up the delete button action
+    confirmDeleteBtn.onclick = function() {
+      // Send request to server
+      fetch(`/app/api/hod/routines/${routineId}/delete/`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to delete routine');
+        }
+        closeConfirmationModal();
+        
+        if (typeof window.showMessageModal === 'function') {
+          window.showMessageModal('Success', 'Routine deleted successfully');
+        } else if (typeof window.showToast === 'function') {
+          window.showToast('success', 'Routine deleted successfully');
+        } else {
+          alert('Routine deleted successfully');
+        }
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      })
+      .catch(error => {
+        console.error('Error deleting routine:', error);
+        closeConfirmationModal();
+        
+        if (typeof window.showMessageModal === 'function') {
+          window.showMessageModal('Error', error.message || 'Failed to delete routine');
+        } else if (typeof window.showToast === 'function') {
+          window.showToast('error', error.message || 'Failed to delete routine');
+        } else {
+          alert('Failed to delete routine: ' + error.message);
+        }
+      });
+    };
+  };
+  
+  // Initialize event listeners for routine delete buttons when DOM is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners for delete routine buttons
+    document.querySelectorAll('.delete-routine-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const routineId = this.getAttribute('data-routine-id');
+        if (typeof window.openDeleteRoutineModal === 'function') {
+          window.openDeleteRoutineModal(routineId);
+        } else {
+          alert('Error: Delete function not available. Please refresh the page.');
+        }
+      });
+    });
+  });
+
+  // Direct implementation of routine functions to ensure they're available
+  // These implementations will serve as fallbacks if the module imports fail
+  if (typeof window.openAddRoutineModal !== 'function') {
+    window.openAddRoutineModal = function() {
+      const modal = document.getElementById('addRoutineModal');
+      if (modal) {
+        // Reset form
+        document.getElementById('addRoutineForm').reset();
+        
+        // Set default period/year based on subject selection
+        const subjectSelect = document.getElementById('subjectId');
+        if (subjectSelect) {
+          subjectSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const periodOrYear = selectedOption.textContent.match(/\((?:Semester|Year) (\d+)\)/);
+            if (periodOrYear && periodOrYear[1]) {
+              document.getElementById('periodOrYear').value = periodOrYear[1];
+            }
+          });
+        }
+        
+        // Show modal
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      }
+    };
+  }
+  
+  if (typeof window.closeAddRoutineModal !== 'function') {
+    window.closeAddRoutineModal = function() {
+      const modal = document.getElementById('addRoutineModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    };
+  }
+  
+  if (typeof window.submitAddRoutineForm !== 'function') {
+    window.submitAddRoutineForm = function() {
+      const form = document.getElementById('addRoutineForm');
+      if (!form) return;
+      
+      // Create form data
+      const formData = new FormData(form);
+      
+      // Add course_id from the page
+      const courseId = document.querySelector('#routineSection').getAttribute('data-course-id');
+      if (courseId) {
+        formData.append('course_id', courseId);
+      } else {
+        // If no explicit course ID, use the current course ID from the URL
+        const urlPath = window.location.pathname;
+        const urlMatch = urlPath.match(/\/hod\/(\d+)/);
+        if (urlMatch && urlMatch[1]) {
+          formData.append('course_id', urlMatch[1]);
+        }
+      }
+      
+      // Validate form
+      const subjectId = formData.get('subject_id');
+      const teacherId = formData.get('teacher_id');
+      const startTime = formData.get('start_time');
+      const endTime = formData.get('end_time');
+      
+      if (!subjectId || !teacherId || !startTime || !endTime) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Please fill in all required fields');
+        } else {
+          alert('Please fill in all required fields');
+        }
+        return;
+      }
+      
+      // Send request to server
+      fetch('/app/api/hod/routines/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.message || 'Failed to add routine');
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (typeof window.showToast === 'function') {
+          window.showToast('success', 'Routine added successfully');
+        } else {
+          alert('Routine added successfully');
+        }
+        window.closeAddRoutineModal();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      })
+      .catch(error => {
+        console.error('Error adding routine:', error);
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', error.message || 'Failed to add routine');
+        } else {
+          alert('Failed to add routine: ' + error.message);
+        }
+      });
+    };
+  }
+  
+  if (typeof window.openEditRoutineModal !== 'function') {
+    window.openEditRoutineModal = function(routineId) {
+      if (!routineId) {
+        console.error('No routine ID provided');
+        return;
+      }
+      
+      // Fetch routine data
+      fetch(`/app/api/hod/routines/${routineId}/`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch routine data');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Populate form fields
+          document.getElementById('editRoutineId').value = routineId;
+          document.getElementById('editSubjectId').value = data.subject_id;
+          document.getElementById('editTeacherId').value = data.teacher_id;
+          document.getElementById('editStartTime').value = data.start_time;
+          document.getElementById('editEndTime').value = data.end_time;
+          document.getElementById('editPeriodOrYear').value = data.period_or_year;
+          
+          // Set default period/year based on subject selection
+          const subjectSelect = document.getElementById('editSubjectId');
+          if (subjectSelect) {
+            subjectSelect.addEventListener('change', function() {
+              const selectedOption = this.options[this.selectedIndex];
+              const periodOrYear = selectedOption.textContent.match(/\((?:Semester|Year) (\d+)\)/);
+              if (periodOrYear && periodOrYear[1]) {
+                document.getElementById('editPeriodOrYear').value = periodOrYear[1];
+              }
+            });
+          }
+          
+          // Show modal
+          const modal = document.getElementById('editRoutineModal');
+          if (modal) {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching routine data:', error);
+          if (typeof window.showToast === 'function') {
+            window.showToast('error', error.message || 'Failed to fetch routine data');
+          } else {
+            alert('Failed to fetch routine data: ' + error.message);
+          }
+        });
+    };
+  }
+  
+  if (typeof window.closeEditRoutineModal !== 'function') {
+    window.closeEditRoutineModal = function() {
+      const modal = document.getElementById('editRoutineModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    };
+  }
+  
+  if (typeof window.submitEditRoutineForm !== 'function') {
+    window.submitEditRoutineForm = function() {
+      const form = document.getElementById('editRoutineForm');
+      if (!form) return;
+      
+      // Create form data
+      const formData = new FormData(form);
+      const routineId = formData.get('routine_id');
+      
+      if (!routineId) {
+        console.error('No routine ID provided');
+        return;
+      }
+      
+      // Validate form
+      const subjectId = formData.get('subject_id');
+      const teacherId = formData.get('teacher_id');
+      const startTime = formData.get('start_time');
+      const endTime = formData.get('end_time');
+      
+      if (!subjectId || !teacherId || !startTime || !endTime) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Please fill in all required fields');
+        } else {
+          alert('Please fill in all required fields');
+        }
+        return;
+      }
+      
+      // Send request to server
+      fetch(`/app/api/hod/routines/${routineId}/`, {
+        method: 'PUT',
+        body: formData,
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.message || 'Failed to update routine');
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (typeof window.showToast === 'function') {
+          window.showToast('success', 'Routine updated successfully');
+        } else {
+          alert('Routine updated successfully');
+        }
+        window.closeEditRoutineModal();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      })
+      .catch(error => {
+        console.error('Error updating routine:', error);
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', error.message || 'Failed to update routine');
+        } else {
+          alert('Failed to update routine: ' + error.message);
+        }
+      });
+    };
+  }
+  
+  // Ensure the delete routine modal function is defined
+  if (typeof window.openDeleteRoutineModal !== 'function') {
+    window.openDeleteRoutineModal = function(routineId) {
+      // Display the confirmation modal
+      const confirmationModal = document.getElementById('confirmationModal');
+      const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+      
+      // Update confirmation message
+      const messageElement = confirmationModal.querySelector('div p');
+      messageElement.textContent = 'Are you sure you want to delete this routine? This action cannot be undone.';
+      
+      // Show the modal
+      confirmationModal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+      
+      // Set up the delete button action
+      confirmDeleteBtn.onclick = function() {
+        // Send request to server
+        fetch(`/app/api/hod/routines/${routineId}/delete/`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to delete routine');
+          }
+          closeConfirmationModal();
+          
+          if (typeof window.showMessageModal === 'function') {
+            window.showMessageModal('Success', 'Routine deleted successfully');
+          } else if (typeof window.showToast === 'function') {
+            window.showToast('success', 'Routine deleted successfully');
+          } else {
+            alert('Routine deleted successfully');
+          }
+          
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        })
+        .catch(error => {
+          console.error('Error deleting routine:', error);
+          closeConfirmationModal();
+          
+          if (typeof window.showMessageModal === 'function') {
+            window.showMessageModal('Error', error.message || 'Failed to delete routine');
+          } else if (typeof window.showToast === 'function') {
+            window.showToast('error', error.message || 'Failed to delete routine');
+          } else {
+            alert('Failed to delete routine: ' + error.message);
+          }
+        });
+      };
+    };
+  }
+  
+  // Initialize event listeners for routine delete buttons when DOM is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners for routine action buttons
+    document.querySelectorAll('.edit-routine-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const routineId = this.getAttribute('data-routine-id');
+        if (typeof window.openEditRoutineModal === 'function') {
+          window.openEditRoutineModal(routineId);
+        } else {
+          alert('Error: Edit function not available. Please refresh the page.');
+        }
+      });
+    });
+    
+    document.querySelectorAll('.delete-routine-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const routineId = this.getAttribute('data-routine-id');
+        if (typeof window.openDeleteRoutineModal === 'function') {
+          window.openDeleteRoutineModal(routineId);
+        } else {
+          alert('Error: Delete function not available. Please refresh the page.');
+        }
+      });
+    });
+  });
+</script>
+
+<script>
+  // Add this code after the existing script tags but before the closing body tag
+
+  // Function to handle progress search
+  function handleProgressSearch() {
+    const searchInput = document.getElementById('progressSearchInput');
+    const progressTable = document.getElementById('progressTable');
+    const rows = progressTable.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    const noProgressDataMessage = document.getElementById('noProgressDataMessage');
+    
+    const searchTerm = searchInput.value.toLowerCase();
+    let hasVisibleRows = false;
+
+    for (let row of rows) {
+      // Skip the "no data" row if it exists
+      if (!row.getAttribute('data-batch-id')) continue;
+
+      const studentName = row.querySelector('td:first-child').textContent.toLowerCase();
+      const batchNames = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+      
+      // Check if the search term matches either student name or batch
+      const matches = studentName.includes(searchTerm) || batchNames.includes(searchTerm);
+      
+      row.style.display = matches ? '' : 'none';
+      if (matches) hasVisibleRows = true;
+    }
+
+    // Show/hide the "no data" message
+    if (noProgressDataMessage) {
+      noProgressDataMessage.style.display = hasVisibleRows ? 'none' : 'block';
+    }
+  }
+
+  // Initialize search functionality when the document is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('progressSearchInput');
+    const searchButton = document.getElementById('progressSearchButton');
+
+    if (searchInput) {
+      // Add event listener for real-time search as user types
+      searchInput.addEventListener('input', handleProgressSearch);
+      
+      // Add event listener for search button click
+      if (searchButton) {
+        searchButton.addEventListener('click', handleProgressSearch);
+      }
+
+      // Add event listener for Enter key press
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          handleProgressSearch();
+        }
+      });
+    }
+  });
+</script>
+
+<script>
+  // Add this code after the existing script tags but before the closing body tag
+
+  // Function to handle subject filtering
+  function handleSubjectFilter() {
+    const durationButtons = document.querySelectorAll('#durationFilter button');
+    const subjectRows = document.querySelectorAll('#subjectsTableBody tr[data-period]');
+    const noSubjectsMessage = document.querySelector('#subjectsTableBody tr:not([data-period])');
+    
+    durationButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        // Remove active class from all buttons
+        durationButtons.forEach(button => {
+          button.classList.remove('active', 'btn-primary');
+          button.classList.add('btn-outline-primary');
+        });
+        
+        // Add active class to clicked button
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('active', 'btn-primary');
+        
+        const selectedDuration = this.getAttribute('data-duration');
+        let visibleRows = 0;
+        
+        // Show/hide rows based on selected duration
+        subjectRows.forEach(row => {
+          const period = row.getAttribute('data-period');
+          if (selectedDuration === 'all' || period === selectedDuration) {
+            row.style.display = '';
+            visibleRows++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+        
+        // Show/hide "no subjects" message
+        if (noSubjectsMessage) {
+          noSubjectsMessage.style.display = visibleRows === 0 ? '' : 'none';
+        }
+        
+        // Update counter if it exists
+        const counter = document.getElementById('subjectCounter');
+        if (counter) {
+          counter.textContent = visibleRows;
+        }
+        
+        // Log for debugging
+        console.log(`Filter selected: ${selectedDuration}, Visible rows: ${visibleRows}`);
+      });
+    });
+  }
+
+  // Function to handle subject search
+  function handleSubjectSearch() {
+    const searchInput = document.getElementById('subjectSearchInput');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      const subjectRows = document.querySelectorAll('#subjectsTableBody tr[data-period]');
+      const noSubjectsMessage = document.querySelector('#subjectsTableBody tr:not([data-period])');
+      let visibleRows = 0;
+
+      subjectRows.forEach(row => {
+        const subjectName = row.querySelector('td:first-child').textContent.toLowerCase();
+        const subjectCode = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const matches = subjectName.includes(searchTerm) || subjectCode.includes(searchTerm);
+
+        if (matches) {
+          // Check if row should be visible based on current period filter
+          const activeDuration = document.querySelector('#durationFilter button.active').getAttribute('data-duration');
+          const period = row.getAttribute('data-period');
+          
+          if (activeDuration === 'all' || period === activeDuration) {
+            row.style.display = '';
+            visibleRows++;
+          } else {
+            row.style.display = 'none';
+          }
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Show/hide "no subjects" message
+      if (noSubjectsMessage) {
+        noSubjectsMessage.style.display = visibleRows === 0 ? '' : 'none';
+      }
+
+      // Update counter if it exists
+      const counter = document.getElementById('subjectCounter');
+      if (counter) {
+        counter.textContent = visibleRows;
+      }
+    });
+  }
+
+  // Initialize subject section functionality when the document is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize subject filtering
+    handleSubjectFilter();
+    
+    // Initialize subject search
+    handleSubjectSearch();
+    
+    // Set initial active state for "All" filter
+    const allButton = document.querySelector('#durationFilter button[data-duration="all"]');
+    if (allButton) {
+      allButton.click();
+    }
+  });
+</script>
+
+<script>
+  // Function to handle student search
+  function handleStudentSearch() {
+    const searchInput = document.getElementById('studentSearchInput');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      const studentRows = document.querySelectorAll('#studentsTableBody tr');
+      const studentCounter = document.getElementById('studentCounter');
+      let visibleRows = 0;
+
+      studentRows.forEach(row => {
+        if (row.querySelector('td')) {  // Skip header row
+          const name = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+          const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+          const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+          
+          const matches = name.includes(searchTerm) || 
+                         email.includes(searchTerm) || 
+                         phone.includes(searchTerm);
+
+          row.style.display = matches ? '' : 'none';
+          if (matches) visibleRows++;
+        }
+      });
+
+      // Update counter
+      if (studentCounter) {
+        studentCounter.textContent = visibleRows;
+      }
+
+      // Show/hide no results message
+      const noResultsRow = document.querySelector('#studentsTableBody tr.no-results');
+      if (noResultsRow) {
+        noResultsRow.style.display = visibleRows === 0 ? '' : 'none';
+      }
+    });
+  }
+
+  // Function to handle staff search
+  function handleStaffSearch() {
+    const searchInput = document.getElementById('staffSearchInput');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      const staffRows = document.querySelectorAll('#staffTableBody tr:not(.no-results)');
+      const staffCounter = document.getElementById('staffCounter');
+      let visibleRows = 0;
+
+      staffRows.forEach(row => {
+        // Skip if this is not a data row
+        if (!row.children || row.children.length === 0) return;
+
+        // Get text content from each cell
+        const name = row.children[0]?.textContent?.toLowerCase() || '';
+        const email = row.children[1]?.textContent?.toLowerCase() || '';
+        const phone = row.children[2]?.textContent?.toLowerCase() || '';
+        const subjects = row.children[3]?.textContent?.toLowerCase() || '';
+        
+        const matches = name.includes(searchTerm) || 
+                       email.includes(searchTerm) || 
+                       phone.includes(searchTerm) ||
+                       subjects.includes(searchTerm);
+
+        row.style.display = matches ? '' : 'none';
+        if (matches) visibleRows++;
+      });
+
+      // Update counter
+      if (staffCounter) {
+        staffCounter.textContent = visibleRows;
+      }
+
+      // Show/hide no results message
+      const noResultsRow = document.querySelector('#staffTableBody tr.no-results');
+      if (noResultsRow) {
+        if (visibleRows === 0) {
+          noResultsRow.style.display = '';
+          if (!document.querySelector('#noStaffResultsContent')) {
+            noResultsRow.innerHTML = `
+              <td colspan="6" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-search fa-2x mb-3"></i>
+                  <p class="mb-0">No staff members match your search criteria</p>
+                </div>
+              </td>
+            `;
+          }
+        } else {
+          noResultsRow.style.display = 'none';
+        }
+      }
+    });
+  }
+
+  // Initialize search functionality when document is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    handleStudentSearch();
+    handleStaffSearch();
+  });
+</script>
+
+<!-- Subject Section -->
+<div id="subjectsSection" class="content-section" style="display: none;">
+  <div class="content-card mb-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex align-items-center">
+        <div>
+          <h5 class="mb-1"><i class="fas fa-book me-2"></i> {{ course.name }} Subjects</h5>
+          <p class="text-muted mb-0 small">
+            <i class="fas fa-info-circle me-1"></i> 
+            Manage and organize course subjects by {{ course.duration_type|lower }}
+          </p>
+        </div>
+        <div class="ms-3">
+          <span class="badge bg-primary rounded-pill">
+            <i class="fas fa-layer-group me-1"></i>
+            Total: <span id="subjectCounter" class="fw-bold">0</span>
+          </span>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="openAddSubjectModal()">
+        <i class="fas fa-plus-circle me-2"></i> Add New Subject
+      </button>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="row g-3 mb-4">
+      <!-- Search Box -->
+      <div class="col-md-6">
+        <div class="search-box">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="fas fa-search text-muted"></i>
+            </span>
+            <input type="text" 
+                   id="subjectSearchInput" 
+                   class="form-control border-start-0 ps-0" 
+                   placeholder="Search subjects by name or code...">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Duration Filter -->
+      <div class="col-md-6">
+        <div class="filter-box">
+          <div class="btn-group w-100" role="group" id="durationFilter">
+            <button type="button" class="btn btn-outline-primary" data-duration="all">
+              <i class="fas fa-globe me-1"></i> All
+            </button>
+            {% if course.duration_type == 'Semester' %}
+              {% for i in "12345678"|make_list %}
+                {% if forloop.counter <= course.duration|multiply:2 %}
+                  <button type="button" class="btn btn-outline-primary" data-duration="{{ forloop.counter }}">
+                    <i class="fas fa-calendar-alt me-1"></i> Sem {{ forloop.counter }}
+                  </button>
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              {% for i in "1234"|make_list %}
+                {% if forloop.counter <= course.duration %}
+                  <button type="button" class="btn btn-outline-primary" data-duration="{{ forloop.counter }}">
+                    <i class="fas fa-calendar-alt me-1"></i> Year {{ forloop.counter }}
+                  </button>
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subjects Table -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 40%">Subject Details</th>
+            <th style="width: 20%">Code</th>
+            <th style="width: 20%">Period/{{ course.duration_type }}</th>
+            <th style="width: 20%">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="subjectsTableBody">
+          {% if subjects %}
+            {% for subject in subjects %}
+              <tr data-period="{{ subject.period_or_year }}">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="subject-icon me-3">
+                      <span class="badge rounded-circle bg-light text-primary p-2" style="width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center;">
+                        {{ subject.name|slice:":1"|upper }}
+                      </span>
+                    </div>
+                    <div>
+                      <h6 class="mb-0">{{ subject.name }}</h6>
+                      {% if subject.description %}
+                        <small class="text-muted">{{ subject.description|truncatechars:50 }}</small>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {% if subject.code %}
+                    <span class="badge bg-light text-dark">{{ subject.code }}</span>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge bg-info">
+                    {% if course.duration_type == 'Semester' %}
+                      Semester {{ subject.period_or_year }}
+                    {% else %}
+                      Year {{ subject.period_or_year }}
+                    {% endif %}
+                  </span>
+                </td>
+                <td>
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openViewSubjectModal('{{ subject.id }}')" title="View Details">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="openEditSubjectModal('{{ subject.id }}')" title="Edit Subject">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDeleteSubject('{{ subject.id }}')" title="Delete Subject">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-book fa-2x mb-3"></i>
+                  <p class="mb-0">No subjects found for {{ course.name }}</p>
+                  <small>Click the "Add New Subject" button to add your first subject</small>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Routine Section -->
+<div id="routineSection" class="content-section" style="display: none;" data-course-id="{{ course.id }}">
+  <div class="content-card">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex align-items-center">
+        <div>
+          <h5 class="mb-1"><i class="fas fa-calendar-alt me-2"></i> Course Routine</h5>
+          <p class="text-muted mb-0 small">
+            <i class="fas fa-info-circle me-1"></i> 
+            Manage class schedules by {{ course.duration_type|lower }}
+          </p>
+        </div>
+        <div class="ms-3">
+          <span class="badge bg-primary rounded-pill">
+            <i class="fas fa-clock me-1"></i>
+            Classes: <span id="routineCounter" class="fw-bold">0</span>
+          </span>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="openAddRoutineModal()">
+        <i class="fas fa-plus-circle me-2"></i> Add New Routine
+      </button>
+    </div>
+
+    <!-- Period Filter Section -->
+    <div class="mb-4">
+      <div class="filter-box">
+        <div class="btn-group w-100" role="group" id="periodFilterButtons">
+          <button type="button" class="btn btn-outline-primary" data-period="all">
+            <i class="fas fa-globe me-1"></i> All Periods
+          </button>
+          {% if course.duration_type == 'Semester' %}
+            {% for i in "12345678"|make_list %}
+              {% if forloop.counter <= course.duration|multiply:2 %}
+                <button type="button" class="btn btn-outline-primary" data-period="{{ forloop.counter }}">
+                  <i class="fas fa-calendar-alt me-1"></i> Sem {{ forloop.counter }}
+                </button>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            {% for i in "1234"|make_list %}
+              {% if forloop.counter <= course.duration %}
+                <button type="button" class="btn btn-outline-primary" data-period="{{ forloop.counter }}">
+                  <i class="fas fa-calendar-alt me-1"></i> Year {{ forloop.counter }}
+                </button>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Routines Table -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 20%">Time</th>
+            <th style="width: 30%">Subject</th>
+            <th style="width: 25%">Teacher</th>
+            <th style="width: 15%">Period/Year</th>
+            <th style="width: 10%">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="routineTableBody">
+          {% if class_routines %}
+            {% for routine in class_routines %}
+              <tr class="routine-row" data-period="{{ routine.period_or_year }}">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <span class="badge rounded-circle bg-light text-primary p-2 me-2" style="width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center;">
+                      <i class="fas fa-clock"></i>
+                    </span>
+                    <div>
+                      <strong>{{ routine.start_time|time:"H:i" }} - {{ routine.end_time|time:"H:i" }}</strong>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <span class="badge rounded-circle bg-light text-primary p-2 me-2" style="width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center;">
+                      {{ routine.subject.name|slice:":1"|upper }}
+                    </span>
+                    <div>
+                      <h6 class="mb-0">{{ routine.subject.name }}</h6>
+                      {% if routine.subject.code %}
+                        <small class="text-muted">{{ routine.subject.code }}</small>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    {% if routine.teacher.image %}
+                      <img src="{{ routine.teacher.image.url }}" class="rounded-circle me-2" width="35" height="35">
+                    {% else %}
+                      <span class="badge rounded-circle bg-light text-primary p-2 me-2" style="width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center;">
+                        {{ routine.teacher.name|slice:":1"|upper }}
+                      </span>
+                    {% endif %}
+                    <div>{{ routine.teacher.name }}</div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-info">
+                    {% if course.duration_type == 'Semester' %}
+                      Semester {{ routine.period_or_year }}
+                    {% else %}
+                      Year {{ routine.period_or_year }}
+                    {% endif %}
+                  </span>
+                </td>
+                <td>
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-success edit-routine-btn" data-routine-id="{{ routine.id }}" title="Edit Routine">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger delete-routine-btn" data-routine-id="{{ routine.id }}" title="Delete Routine">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr id="noRoutinesMessage">
+              <td colspan="5" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-calendar-times fa-2x mb-3"></i>
+                  <p class="mb-0">No routines available for {{ course.name }}</p>
+                  <small>Click the "Add New Routine" button to create your first routine</small>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Update the routine filtering function
+  function handleRoutineFilter() {
+    const periodButtons = document.querySelectorAll('#periodFilterButtons button');
+    const routineRows = document.querySelectorAll('.routine-row');
+    const noRoutinesMessage = document.getElementById('noRoutinesMessage');
+    const routineCounter = document.getElementById('routineCounter');
+    
+    periodButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        // Remove active class from all buttons
+        periodButtons.forEach(btn => {
+          btn.classList.remove('active', 'btn-primary');
+          btn.classList.add('btn-outline-primary');
+        });
+        
+        // Add active class to clicked button
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('active', 'btn-primary');
+        
+        const selectedPeriod = this.getAttribute('data-period');
+        let visibleRows = 0;
+        
+        // Show/hide rows based on selected period
+        routineRows.forEach(row => {
+          const period = row.getAttribute('data-period');
+          if (selectedPeriod === 'all' || period === selectedPeriod) {
+            row.style.display = '';
+            visibleRows++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+        
+        // Update counter
+        if (routineCounter) {
+          routineCounter.textContent = visibleRows;
+        }
+        
+        // Show/hide no routines message
+        if (noRoutinesMessage) {
+          if (visibleRows === 0) {
+            noRoutinesMessage.style.display = '';
+          } else {
+            noRoutinesMessage.style.display = 'none';
+          }
+        }
+      });
+    });
+    
+    // Initialize counter with total routines
+    if (routineCounter) {
+      routineCounter.textContent = routineRows.length;
+    }
+    
+    // Set initial active state for "All" button
+    const allButton = document.querySelector('#periodFilterButtons button[data-period="all"]');
+    if (allButton) {
+      allButton.click();
+    }
+  }
+
+  // Initialize routine filtering when document is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    handleRoutineFilter();
+  });
+</script>
+
+<style>
+  /* Additional styles for routine section */
+  #routineSection .filter-box {
+    margin-bottom: 1.5rem;
+  }
+
+  #routineSection .table td {
+    vertical-align: middle;
+  }
+
+  #routineSection .routine-row {
+    transition: all 0.2s ease;
+  }
+
+  #routineSection .routine-row:hover {
+    background-color: #f8f9fa;
+  }
+
+  #routineSection .btn-group .btn {
+    padding: 0.4rem 0.8rem;
+    margin: 0 2px;
+  }
+
+  #routineSection .badge {
+    font-weight: 500;
+  }
+
+  /* Animation for row transitions */
+  #routineSection .routine-row {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    #routineSection .filter-box .btn-group {
+      flex-wrap: wrap;
+    }
+    
+    #routineSection .filter-box .btn {
+      flex: 1 1 auto;
+      white-space: nowrap;
+      margin: 2px;
+    }
+  }
+</style>
+
+
+<!-- Progress Section -->
+<div id="progressSection" class="content-section" style="display: none;">
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <div>
+            <h5 class="mb-1"><i class="fas fa-chart-line me-2"></i> Student Progress</h5>
+            <p class="text-muted mb-0 small">Track and manage student progress</p>
+          </div>
+          <div class="ms-3">
+            <span class="badge bg-primary rounded-pill">
+              <i class="fas fa-users me-1"></i>
+              Students: <span id="progressCounter" class="fw-bold">{{ student_progress_all|length }}</span>
+            </span>
+          </div>
+        </div>
+        <div class="search-box">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="fas fa-search text-muted"></i>
+            </span>
+            <input type="text" 
+                   id="progressSearchInput" 
+                   class="form-control border-start-0 ps-0" 
+                   placeholder="Search by student name or batch...">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <!-- Progress Overview -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="text-muted mb-1">Average Completion</h6>
+              <h3 class="mb-0">{{ avg_completion }}%</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="text-muted mb-1">On Track</h6>
+              <h3 class="mb-0">{{ students_on_track }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="text-muted mb-1">At Risk</h6>
+              <h3 class="text-danger mb-0">{{ students_at_risk }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Table -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle" id="progressTable">
+          <thead class="table-light">
+            <tr>
+              <th>Student</th>
+              <th>Batch</th>
+              <th>Current Period</th>
+              <th>Completion %</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if student_progress_all %}
+              {% for progress in student_progress_all %}
+                <tr data-batch-id="{% for batch in progress.student.batches.all %}{{ batch.id }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% if progress.student.image %}
+                        <img src="{{ progress.student.image.url }}" class="rounded-circle me-2" width="35" height="35">
+                      {% else %}
+                        <span class="badge rounded-circle bg-light text-primary p-2 me-2" style="width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center;">
+                          {{ progress.student.name|slice:":1"|upper }}
+                        </span>
+                      {% endif %}
+                      {{ progress.student.name }}
+                    </div>
+                  </td>
+                  <td>
+                    {% for batch in progress.student.batches.all %}
+                      {{ batch.name }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                  </td>
+                  <td>{{ progress.student.current_period }}</td>
+                  <td>
+                    <div class="progress" style="height: 10px;">
+                      <div class="progress-bar 
+                        {% if progress.completion_percentage >= 75 %}
+                          bg-success
+                        {% elif progress.completion_percentage >= 40 %}
+                          bg-warning
+                        {% else %}
+                          bg-danger
+                        {% endif %}" 
+                        role="progressbar" 
+                        style="width: {{ progress.completion_percentage }}%;" 
+                        aria-valuenow="{{ progress.completion_percentage }}" 
+                        aria-valuemin="0" 
+                        aria-valuemax="100">
+                      </div>
+                    </div>
+                    <span class="small">{{ progress.completion_percentage }}%</span>
+                  </td>
+                  <td>
+                    {% if progress.progress_status == "Completed" %}
+                      <span class="badge bg-success">Completed</span>
+                    {% elif progress.progress_status == "In Progress" %}
+                      <span class="badge bg-primary">In Progress</span>
+                    {% elif progress.progress_status == "Not Started" %}
+                      <span class="badge bg-secondary">Not Started</span>
+                    {% elif progress.progress_status == "Dropped" %}
+                      <span class="badge bg-danger">Dropped</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button type="button" class="btn btn-sm btn-warning" onclick="openEditProgressModal('{{ progress.id }}')" title="Edit Progress">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="fas fa-chart-line fa-2x mb-3"></i>
+                    <p class="mb-0">No progress data available</p>
+                  </div>
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Meetings Section -->
+<div id="meetingsSection" class="content-section" style="display: none;">
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <div>
+            <h5 class="mb-1"><i class="fas fa-calendar-check me-2"></i> Meetings</h5>
+            <p class="text-muted mb-0 small">Schedule and manage parent-teacher meetings</p>
+          </div>
+          <div class="ms-3">
+            <span class="badge bg-primary rounded-pill">
+              <i class="fas fa-handshake me-1"></i>
+              Total: <span id="meetingCounter" class="fw-bold">{{ meetings|length }}</span>
+            </span>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddMeetingModal()">
+          <i class="fas fa-plus-circle me-2"></i> Schedule Meeting
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      <!-- Meetings Table -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Duration</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for meeting in meetings %}
+              <tr>
+                <td>{{ meeting.meeting_date|date:"M d, Y" }}</td>
+                <td>{{ meeting.meeting_time|time:"g:i A" }}</td>
+                <td>{{ meeting.duration }} minutes</td>
+                <td>{% if meeting.is_online %}Online{% else %}In-Person{% endif %}</td>
+                <td>
+                  <span class="badge {% if meeting.status == 'scheduled' %}bg-primary{% elif meeting.status == 'completed' %}bg-success{% elif meeting.status == 'cancelled' %}bg-danger{% elif meeting.status == 'rescheduled' %}bg-warning{% else %}bg-secondary{% endif %}">
+                    {{ meeting.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary view-meeting-btn" data-meeting-id="{{ meeting.id }}" title="View Details">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    {% if meeting.status == 'scheduled' %}
+                      <button type="button" class="btn btn-sm btn-outline-success edit-meeting-btn" data-meeting-id="{{ meeting.id }}" title="Edit Meeting">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-warning reschedule-meeting-btn" data-meeting-id="{{ meeting.id }}" title="Reschedule">
+                        <i class="fas fa-calendar-alt"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-danger cancel-meeting-btn" data-meeting-id="{{ meeting.id }}" title="Cancel">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="fas fa-calendar-check fa-2x mb-3"></i>
+                    <p class="mb-0">No meetings scheduled</p>
+                    <small>Click the "Schedule Meeting" button to create your first meeting</small>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block extrastyle %}
+{{ block.super }}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<style>
+  /* Progress Bar Styles */
+  .progress {
+    background-color: #eef2f7;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .progress-bar {
+    border-radius: 10px;
+    transition: width 0.6s ease;
+  }
+  
+  .progress-bar.bg-success {
+    background-color: #22c55e !important;
+  }
+  
+  .progress-bar.bg-warning {
+    background-color: #f59e0b !important;
+  }
+  
+  .progress-bar.bg-danger {
+    background-color: #ef4444 !important;
+  }
+  
+  /* Feedback Card Styles */
+  .feedback-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .rating-stars {
+    color: #fbbf24;
+  }
+  
+  .rating-stars i {
+    margin-right: 2px;
+  }
+  
+  /* Summary Card Styles */
+  .summary-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .summary-card .card-header {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 15px;
+  }
+  
+  .summary-card .card-body {
+    padding: 15px;
+  }
+  
+  /* Content Card Styles */
+  .content-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  /* Badge Styles */
+  .badge {
+    padding: 6px 12px;
+    font-weight: 500;
+  }
+
+  /* Subject Section Styles */
+  .search-box .input-group {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .search-box .input-group-text {
+    border: 1px solid #e0e0e0;
+    background-color: #ffffff;
+  }
+
+  .search-box .form-control {
+    border: 1px solid #e0e0e0;
+    padding: 0.6rem 1rem;
+  }
+
+  .search-box .form-control:focus {
+    box-shadow: none;
+    border-color: #3F51B5;
+  }
+
+  .filter-box .btn-group {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .filter-box .btn {
+    padding: 0.6rem 1rem;
+    border: 1px solid #e0e0e0;
+  }
+
+  .filter-box .btn.active {
+    background-color: #3F51B5;
+    border-color: #3F51B5;
+    color: white;
+  }
+
+  .table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .table tbody tr {
+    transition: all 0.2s ease;
+  }
+
+  .table tbody tr:hover {
+    background-color: #f8f9fa;
+  }
+
+  .subject-icon .badge {
+    font-size: 1.2rem;
+    font-weight: 500;
+  }
+
+  .btn-group .btn {
+    padding: 0.4rem 0.8rem;
+    margin: 0 2px;
+  }
+
+  .btn-group .btn i {
+    font-size: 0.9rem;
+  }
+
+  /* Animation for row transitions */
+  .table tbody tr {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .filter-box .btn-group {
+      flex-wrap: wrap;
+    }
+    
+    .filter-box .btn {
+      flex: 1 1 auto;
+      white-space: nowrap;
+      margin: 2px;
+    }
+  }
+
+  /* Search box styles */
+  .search-box .input-group {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .search-box .input-group-text {
+    border: 1px solid #e0e0e0;
+    background-color: #ffffff;
+  }
+
+  .search-box .form-control {
+    border: 1px solid #e0e0e0;
+    padding: 0.6rem 1rem;
+  }
+
+  .search-box .form-control:focus {
+    box-shadow: none;
+    border-color: #3F51B5;
+  }
+
+  /* Animation for row transitions */
+  #studentsTableBody tr,
+  #staffTableBody tr {
+    transition: all 0.2s ease;
+  }
+
+  #studentsTableBody tr:hover,
+  #staffTableBody tr:hover {
+    background-color: #f8f9fa;
+  }
+
+  .no-results {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+{% endblock extrastyle %}
+
+<script>
+  // Function to handle routine filtering
+  function handleRoutineFilter() {
+    const periodButtons = document.querySelectorAll('#periodFilterButtons button');
+    const routineRows = document.querySelectorAll('#routineTableBody tr.routine-row');
+    const noRoutinesMessage = document.getElementById('noRoutinesMessage');
+    const routineCounter = document.getElementById('routineCounter');
+
+    periodButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        // Remove active class from all buttons
+        periodButtons.forEach(btn => {
+          btn.classList.remove('active', 'btn-primary');
+          btn.classList.add('btn-outline-primary');
+        });
+
+        // Add active class to clicked button
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('active', 'btn-primary');
+
+        const selectedPeriod = this.getAttribute('data-period');
+        let visibleRows = 0;
+
+        // Filter routine rows
+        routineRows.forEach(row => {
+          const period = row.getAttribute('data-period');
+          console.log('Row period:', period, 'Selected period:', selectedPeriod); // Debug log
+          if (selectedPeriod === 'all' || period === selectedPeriod) {
+            row.style.display = '';
+            visibleRows++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        // Update counter
+        if (routineCounter) {
+          routineCounter.textContent = visibleRows;
+        }
+
+        // Show/hide no routines message
+        if (noRoutinesMessage) {
+          if (visibleRows === 0) {
+            noRoutinesMessage.style.display = '';
+            if (!document.querySelector('#noRoutinesMessageContent')) {
+              noRoutinesMessage.innerHTML = `
+                <td colspan="5" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="fas fa-calendar-times fa-2x mb-3"></i>
+                    <p class="mb-0">No routines found for selected period</p>
+                  </div>
+                </td>
+              `;
+            }
+          } else {
+            noRoutinesMessage.style.display = 'none';
+          }
+        }
+      });
+    });
+
+    // Initialize with "All" selected
+    const allButton = document.querySelector('#periodFilterButtons button[data-period="all"]');
+    if (allButton) {
+      allButton.click();
+    }
+  }
+
+  // Initialize when document is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    handleRoutineFilter();
+  });
+
+  // Update the resetAllFilters function to include routine reset
+  function resetAllFilters() {
+    // Reset routine period filter
+    const routineAllButton = document.querySelector('#periodFilterButtons button[data-period="all"]');
+    if (routineAllButton) {
+      routineAllButton.click();
+    }
+
+    // Reset student search
+    const studentSearchInput = document.getElementById('studentSearchInput');
+    if (studentSearchInput) {
+      studentSearchInput.value = '';
+      studentSearchInput.dispatchEvent(new Event('input'));
+    }
+
+    // Reset staff search
+    const staffSearchInput = document.getElementById('staffSearchInput');
+    if (staffSearchInput) {
+      staffSearchInput.value = '';
+      staffSearchInput.dispatchEvent(new Event('input'));
+    }
+
+    // Reset subject period filter
+    const subjectAllButton = document.querySelector('#durationFilter button[data-duration="all"]');
+    if (subjectAllButton) {
+      subjectAllButton.click();
+    }
+
+    // Show all rows in all tables
+    const tables = ['subjectsTableBody', 'progressTable', 'routineTableBody'];
+    tables.forEach(tableId => {
+      const rows = document.querySelectorAll(`#${tableId} tr[data-period], #${tableId} tr[data-batch-id]`);
+      rows.forEach(row => {
+        row.style.display = '';
+      });
+    });
+
+    // Update counters
+    updateCounters();
+  }
+
+  // Update the updateCounters function to include routine counter
+  function updateCounters() {
+    // Update routine counter
+    const routineCounter = document.getElementById('routineCounter');
+    const routineRows = document.querySelectorAll('.routine-row');
+    if (routineCounter) {
+      routineCounter.textContent = routineRows.length;
+    }
+
+    // Update subject counter
+    const subjectCounter = document.getElementById('subjectCounter');
+    const subjectRows = document.querySelectorAll('#subjectsTableBody tr[data-period]');
+    if (subjectCounter) {
+      subjectCounter.textContent = subjectRows.length;
+    }
+
+    // Update student counter
+    const studentCounter = document.getElementById('studentCounter');
+    const studentRows = document.querySelectorAll('#studentsTableBody tr:not(.no-results)');
+    if (studentCounter) {
+      studentCounter.textContent = studentRows.length;
+    }
+
+    // Update staff counter
+    const staffCounter = document.getElementById('staffCounter');
+    const staffRows = document.querySelectorAll('#staffTableBody tr:not(.no-results)');
+    if (staffCounter) {
+      staffCounter.textContent = staffRows.length;
+    }
+  }
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Period filter functionality for routines
+    const periodFilterButtons = document.querySelectorAll('#periodFilterButtons button');
+    const routineRows = document.querySelectorAll('.routine-row');
+    const noClassesMessage = document.getElementById('noClassesMessage');
+
+    periodFilterButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const selectedPeriod = this.getAttribute('data-period');
+        let visibleRows = 0;
+
+        // Remove active class from all buttons
+        periodFilterButtons.forEach(btn => {
+          btn.classList.remove('active', 'btn-primary');
+          btn.classList.add('btn-outline-primary');
+        });
+
+        // Add active class to clicked button
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('active', 'btn-primary');
+
+        // Filter routine rows
+        routineRows.forEach(row => {
+          const rowPeriod = row.getAttribute('data-period');
+          if (selectedPeriod === 'all' || rowPeriod === selectedPeriod) {
+            row.style.display = '';
+            visibleRows++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        // Show/hide no classes message
+        if (noClassesMessage) {
+          noClassesMessage.style.display = visibleRows === 0 ? 'block' : 'none';
+        }
+      });
+    });
+
+    // Initialize with "All" filter
+    const allButton = document.querySelector('#periodFilterButtons button[data-period="all"]');
+    if (allButton) {
+      allButton.click();
+    }
+  });
+</script>
+
+<script>
+// Direct implementation of staff deletion functionality
+function confirmDeleteStaff(staffId) {
+    // Display the confirmation modal
+    const confirmationModal = document.getElementById('confirmationModal');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    // Update confirmation message
+    const messageElement = confirmationModal.querySelector('div p');
+    messageElement.textContent = 'Are you sure you want to delete this staff member? This action cannot be undone.';
+    
+    // Show the modal
+    confirmationModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Set up the delete button action
+    confirmDeleteBtn.onclick = function() {
+        window.location.href = `/app/delete-staff/${staffId}/`;
+    };
+}
+</script>

@@ -1,0 +1,211 @@
+{% load static %}
+
+<!-- Edit Progress Modal -->
+<div id="editProgressModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeEditProgressModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background-color: #3F51B5; color: white; padding: 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;">
+      <h5 style="margin: 0; font-size: 18px;">Edit Student Progress</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeEditProgressModal()">&times;</button>
+    </div>
+    <div style="padding: 15px;">
+      <form id="editProgressForm">
+        {% csrf_token %}
+        <input type="hidden" id="edit_progress_id" name="progress_id">
+        
+        <div style="margin-bottom: 15px;">
+          <div class="d-flex align-items-center mb-2">
+            <div id="student_profile_container" style="width: 40px; height: 40px; border-radius: 50%; background-color: #e0e0e0; overflow: hidden; margin-right: 10px; display: flex; align-items: center; justify-content: center;">
+              <img id="student_profile_image" src="{% static 'img/user.png' %}" alt="Student" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div>
+              <h6 id="student_name" style="margin: 0; font-weight: 600;"></h6>
+              <small id="student_batch" style="color: #666;"></small>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Current Period <span style="color: red;">*</span></label>
+          <input type="number" id="edit_current_period" name="current_period" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Completion Percentage <span style="color: red;">*</span></label>
+          <input type="number" id="edit_completion_percentage" name="completion_percentage" min="0" max="100" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+          
+          <div style="margin-top: 10px;">
+            <div class="progress" style="height: 20px;">
+              <div id="completion_preview" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Progress Status</label>
+          <div>
+            <span id="edit_progress_status_display" class="badge bg-primary">In Progress</span>
+            <small class="text-muted d-block mt-1">Status is automatically determined based on completion percentage and dates</small>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Notes</label>
+          <textarea id="edit_notes" name="notes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 100px;"></textarea>
+        </div>
+      </form>
+    </div>
+    <div style="padding: 12px; border-top: 1px solid #EEEEEE; text-align: right; position: sticky; bottom: 0; background-color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+      <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 8px;" onclick="closeEditProgressModal()">Cancel</button>
+      <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="submitEditProgressForm()">Update Progress</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openEditProgressModal(progressId) {
+  document.getElementById('editProgressModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  loadProgressData(progressId);
+}
+
+function closeEditProgressModal() {
+  document.getElementById('editProgressModal').style.display = 'none';
+  document.body.style.overflow = '';
+  document.getElementById('editProgressForm').reset();
+}
+
+function loadProgressData(progressId) {
+  // Reset form
+  document.getElementById('edit_progress_id').value = '';
+  document.getElementById('student_name').textContent = '';
+  document.getElementById('student_batch').textContent = '';
+  document.getElementById('edit_current_period').value = '';
+  document.getElementById('edit_completion_percentage').value = '';
+  document.getElementById('edit_progress_status_display').textContent = 'In Progress';
+  document.getElementById('edit_progress_status_display').className = 'badge bg-primary';
+  document.getElementById('edit_notes').value = '';
+  document.getElementById('student_profile_image').src = "{% static 'img/user.png' %}";
+  
+  // Update progress bar preview
+  updateCompletionPreview(0);
+  
+  fetch(`/app/api/get-progress/${progressId}/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        const progress = data.progress;
+        const student = data.student;
+        
+        // Set form values
+        document.getElementById('edit_progress_id').value = progress.id;
+        document.getElementById('student_name').textContent = student.name;
+        
+        // Set batch information
+        if (student.batches && student.batches.length > 0) {
+          document.getElementById('student_batch').textContent = student.batches.join(', ');
+        } else {
+          document.getElementById('student_batch').textContent = 'No batch assigned';
+        }
+        
+        // Set student image if available
+        if (student.image) {
+          document.getElementById('student_profile_image').src = student.image;
+        }
+        
+        document.getElementById('edit_current_period').value = student.current_period || '';
+        document.getElementById('edit_completion_percentage').value = progress.completion_percentage || 0;
+        
+        // Update status display
+        document.getElementById('edit_progress_status_display').textContent = progress.progress_status || 'In Progress';
+        
+        // Set status badge color
+        const statusBadge = document.getElementById('edit_progress_status_display');
+        statusBadge.className = 'badge';
+        if (progress.progress_status === 'Completed') {
+          statusBadge.classList.add('bg-success');
+        } else if (progress.progress_status === 'In Progress') {
+          statusBadge.classList.add('bg-primary');
+        } else if (progress.progress_status === 'Not Started') {
+          statusBadge.classList.add('bg-secondary');
+        } else if (progress.progress_status === 'Dropped') {
+          statusBadge.classList.add('bg-danger');
+        } else {
+          statusBadge.classList.add('bg-primary');
+        }
+        
+        document.getElementById('edit_notes').value = progress.notes || '';
+        
+        // Update progress bar preview
+        updateCompletionPreview(progress.completion_percentage || 0);
+      } else {
+        showMessageModal('Error', data.message || 'Error loading progress data');
+      }
+    })
+    .catch(error => {
+      showMessageModal('Error', 'An error occurred while loading progress data');
+    });
+}
+
+function updateCompletionPreview(percentage) {
+  const progressBar = document.getElementById('completion_preview');
+  progressBar.style.width = `${percentage}%`;
+  progressBar.setAttribute('aria-valuenow', percentage);
+  
+  // Update class based on percentage
+  progressBar.className = 'progress-bar';
+  if (percentage >= 75) {
+    progressBar.classList.add('bg-success');
+  } else if (percentage >= 40) {
+    progressBar.classList.add('bg-warning');
+  } else {
+    progressBar.classList.add('bg-danger');
+  }
+}
+
+// Add event listener to completion percentage input to update preview
+document.addEventListener('DOMContentLoaded', function() {
+  const completionInput = document.getElementById('edit_completion_percentage');
+  if (completionInput) {
+    completionInput.addEventListener('input', function() {
+      updateCompletionPreview(this.value);
+    });
+  }
+});
+
+function submitEditProgressForm() {
+  const form = document.getElementById('editProgressForm');
+  const formData = new FormData(form);
+  const progressId = document.getElementById('edit_progress_id').value;
+
+  fetch(`/app/api/edit-progress/${progressId}/`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      showMessageModal('Success', 'Student progress updated successfully');
+      closeEditProgressModal();
+      location.reload();
+    } else {
+      showMessageModal('Error', data.message || 'Error updating progress');
+    }
+  })
+  .catch(error => {
+    showMessageModal('Error', 'An error occurred while updating progress');
+  });
+}
+</script> 

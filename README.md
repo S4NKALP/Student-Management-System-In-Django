@@ -15,11 +15,14 @@ A comprehensive Student Management System built with Django, featuring multi-rol
 
 </div>
 
+> **Note:** This project was developed as part of an academic minor project. Ongoing maintenance or additional feature development may be limited.
+
 ## 📑 Table of Contents
 
 - [💻 Tech Stack](#-tech-stack)
 - [👥 Role System](#-role-system)
 - [✨ Key Features](#-key-features)
+- [📸 Screenshots](#-screenshots)
 - [🎯 Project Architecture](#-project-architecture)
 - [🌍 Feasibility](#-feasibility)
 - [🚀 Getting Started](#-getting-started)
@@ -119,54 +122,119 @@ A comprehensive Student Management System built with Django, featuring multi-rol
 ## ✨ Key Features
 
 ### 👥 User Management
-- **Multi-role System**: Comprehensive role hierarchy
-- **Secure Authentication**: OTP and TOTP-based verification
-- **Role-based Access Control**: Detailed permission system
-- **User Profiles**: Complete user information management
+
+- **Multi-role System**: Comprehensive roles including Admin, HOD, Teacher, Student, Parent, and Admission Officer
+- **Secure Authentication**: OTP and TOTP-based verification for password resets
+- **Role-based Access Control**: Different dashboards and permissions for each user role
+- **User Profiles**: Complete profile management with personal details and image uploads
 
 ### 📚 Academic Management
-- **Course Management**: Create and manage courses
-- **Subject Management**: Organize subjects with materials
-- **Class Scheduling**: Advanced timetable system
+
+- **Course Management**: Create and organize course offerings with duration tracking
+- **Subject Management**: Organize subjects with syllabus uploads and additional materials
+- **Class Scheduling**: Create and manage class routines with teacher assignments
+- **Batch Management**: Group students into batches for better organization
 
 ### 📊 Attendance System
-- **Real-time Tracking**: Live attendance monitoring
-- **Automated Reports**: Detailed attendance analytics
-- **Notification System**: Real-time alerts
-- **Bulk Operations**: Efficient batch processing
+
+- **Class Attendance**: Record and track student attendance for each class
+- **Teacher Attendance**: Track teacher presence for scheduled classes
+- **Attendance Reports**: View attendance statistics and historical records
+- **Real-time Status**: Monitor attendance status on dashboards
 
 ### 📝 Leave Management
-- **Multi-level Approval**: Role-based approval workflow
-- **Leave History**: Complete leave tracking
-- **Automated Notifications**: Status updates
-- **Documentation**: Leave record management
+
+- **Leave Requests**: Students and staff can request leave with date ranges
+- **Multi-level Approval**: HOD or Admin approval workflow for leave requests
+- **Status Tracking**: Monitor pending, approved, and rejected leave requests
+- **Leave History**: Complete historical record of all leave requests
 
 ### 👨‍👩‍👧‍👦 Parent-Teacher Interaction
-- **Meeting Scheduling**: Online/offline meeting management
-- **Progress Tracking**: Student performance monitoring
-- **Feedback System**: Comprehensive feedback mechanism
+
+- **Meeting Scheduling**: Schedule online or in-person parent-teacher meetings
+- **Student Progress Tracking**: Parents can monitor student performance
+- **Meeting Management**: Tools for scheduling, rescheduling, and cancelling meetings
 
 ### 📈 Course Progress Tracking
-- **Progress Monitoring**: Real-time course progress
-- **Completion Tracking**: Detailed completion metrics
-- **Performance Analytics**: Student performance analysis
+
+- **Progress Monitoring**: Track student course completion percentages
+- **Completion Metrics**: View detailed completion metrics by course and student
+- **Performance Analysis**: Analyze student performance across courses
 
 ### 🔄 Feedback System
-- **Multi-level Feedback**: Student, parent, and staff feedback
-- **Rating System**: Detailed rating mechanism
-- **Anonymous Feedback**: Option for anonymous submissions
-- **Feedback Analytics**: Comprehensive feedback analysis
+
+- **Multi-level Feedback**: Students, parents, and staff can submit feedback
+- **Rating System**: Detailed rating mechanism with comments
+- **Anonymous Feedback**: Option for anonymous feedback submissions
+- **Institute Feedback**: Feedback about the educational institution
 
 ### 🔐 Security Features
-- **OTP Verification**: Two-factor authentication
-- **Session Management**: Secure session handling
-- **CSRF Protection**: Cross-site request forgery prevention
-- **Password Security**: Secure password hashing and validation
 
-### 📱 Mobile Features
-- **Responsive Design**: Mobile-first approach
+- **OTP Verification**: Two-factor authentication for password resets
+- **Session Management**: Secure session handling for all users
+- **CSRF Protection**: Cross-site request forgery prevention
+- **Password Security**: Strong password validation and secure storage
+
+### 📱 Mobile-Friendly Interface
+
+- **Responsive Design**: Works seamlessly on mobile devices and desktops
 - **Touch-friendly Interface**: Optimized for touch devices
 - **Responsive Navigation**: Mobile-optimized navigation system
+- **Adaptive Layouts**: Content adjusts to different screen sizes
+
+## 📸 Screenshots
+
+<details>
+<summary><b>🏠 Dashboard Views</b></summary>
+
+![Admin Dashboard](screenshots/admin_dashboard.png)
+_Admin Dashboard with overview statistics and quick actions_
+
+![Student Dashboard](screenshots/student_dashboard.png)
+_Student Dashboard showing attendance, course progress, and notices_
+
+![Teacher Dashboard](screenshots/teacher_dashboard.png)
+_Teacher Dashboard with class schedule and student performance metrics_
+
+</details>
+
+<details>
+<summary><b>👥 User Management</b></summary>
+
+![User Profiles](screenshots/user_profiles.png)
+_User profile management interface_
+
+![Role Management](screenshots/role_management.png)
+_Role-based access control settings_
+
+</details>
+
+<details>
+<summary><b>📚 Academic Features</b></summary>
+
+![Course Management](screenshots/course_management.png)
+_Course creation and management interface_
+
+![Attendance System](screenshots/attendance_system.png)
+_Attendance tracking and reporting_
+
+![Leave Management](screenshots/leave_management.png)
+_Leave request and approval workflow_
+
+</details>
+
+<details>
+<summary><b>📱 Mobile Responsive Design</b></summary>
+
+![Mobile Dashboard](screenshots/mobile_dashboard.png)
+_Dashboard view on mobile devices_
+
+![Mobile Navigation](screenshots/mobile_navigation.png)
+_Responsive navigation menu on smaller screens_
+
+</details>
+
+> **Note:** The above screenshots showcase key interfaces of the Student Management System. Replace these placeholder images with actual screenshots by adding your images to a `screenshots` directory in the project root.
 
 ## 🎯 Project Architecture
 

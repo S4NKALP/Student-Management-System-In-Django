@@ -1,0 +1,1287 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load app_filters %}
+{% block extrahead %}
+{{ block.super }}
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+<!-- JavaScript Dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+
+<!-- Firebase Configuration -->
+<script src="{% static 'js/firebase-config.js' %}"></script>
+
+<!-- Firebase Initialization -->
+<script src="{% static 'js/firebase-init.js' %}"></script>
+
+<!-- Admin Dashboard JS -->
+<script src="{% static 'js/admin_dashboard.js' %}" defer></script>
+
+<script>
+    // Initialize Firebase and request notification permission when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Call getDeviceToken to initialize Firebase and request notification permission
+        if (typeof getDeviceToken === 'function') {
+            getDeviceToken().catch(error => {
+                console.error('Error initializing Firebase:', error);
+            });
+        }
+    });
+</script>
+{% endblock %}
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    :root {
+        --primary: #2196F3;
+        --primary-light: #BBDEFB;
+        --primary-dark: #1976D2;
+        --secondary: #607D8B;
+        --success: #4CAF50;
+        --info: #00BCD4;
+        --warning: #FFC107;
+        --danger: #F44336;
+        --light: #FAFAFA;
+        --dark: #212121;
+        --gray: #9E9E9E;
+    }
+
+    body {
+        background-color: var(--light);
+        color: var(--dark);
+    }
+
+    .content-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 24px;
+        margin-bottom: 24px;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .content-card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .welcome-section {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 32px;
+        border-radius: 8px;
+        margin-bottom: 32px;
+    }
+
+    .summary-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .summary-card .card-header {
+        background: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 16px;
+    }
+
+    .summary-card .card-body {
+        padding: 24px;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .stat-label {
+        color: var(--secondary);
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 16px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .completed {
+        background: #E8F5E9;
+        color: #2E7D32;
+    }
+
+    .ongoing {
+        background: #FFF3E0;
+        color: #E65100;
+    }
+
+    .upcoming {
+        background: #E3F2FD;
+        color: #1565C0;
+    }
+
+    .leave-pending {
+        background: #FFF8E1;
+        color: #F57F17;
+    }
+
+    .leave-approved {
+        background: #E8F5E9;
+        color: #2E7D32;
+    }
+
+    .leave-rejected {
+        background: #FFEBEE;
+        color: #C62828;
+    }
+
+    .btn-primary {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .btn-success {
+        background-color: var(--success);
+        border-color: var(--success);
+    }
+
+    .btn-info {
+        background-color: var(--info);
+        border-color: var(--info);
+    }
+
+    .btn-warning {
+        background-color: var(--warning);
+        border-color: var(--warning);
+    }
+
+    .btn-danger {
+        background-color: var(--danger);
+        border-color: var(--danger);
+    }
+
+    .progress {
+        height: 8px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 5px;
+    }
+
+    .progress-bar {
+        border-radius: 4px;
+    }
+
+    .table th {
+        color: var(--secondary);
+        font-weight: 600;
+        border-bottom-width: 1px;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    /* Teacher Ratings Section */
+    .teacher-rating-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .teacher-rating-card:hover {
+        transform: translateY(-4px);
+    }
+
+    /* Monthly Statistics Section */
+    .stat-box {
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .stat-box:hover {
+        transform: translateY(-4px);
+    }
+
+    .stat-box i {
+        font-size: 2.5rem;
+        margin-bottom: 16px;
+    }
+
+    /* Institute Feedback Section */
+    .feedback-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .rating-stars i {
+        color: var(--warning);
+        margin-right: 2px;
+    }
+
+    /* Activity Scroll */
+    .activity-scroll {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 5px;
+        scrollbar-width: thin;
+    }
+
+    .scrollable-content {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 5px;
+        scrollbar-width: thin;
+    }
+
+    .stats-scroll {
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 5px;
+        scrollbar-width: thin;
+    }
+
+    .table-scroll {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 5px;
+        scrollbar-width: thin;
+    }
+
+    /* Custom scrollbar styles */
+    .activity-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .activity-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .activity-scroll::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+
+    .activity-scroll::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+        .welcome-section {
+            padding: 28px;
+        }
+        .content-card {
+            padding: 20px;
+        }
+        .stat-number {
+            font-size: 2.2rem;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .welcome-section {
+            padding: 24px;
+        }
+        .content-card {
+            padding: 16px;
+        }
+        .stat-box {
+            padding: 20px;
+        }
+        .stat-box i {
+            font-size: 2rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .welcome-section {
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .welcome-section h2 {
+            font-size: 1.5rem;
+        }
+        .summary-card .card-body {
+            padding: 16px;
+        }
+        .stat-number {
+            font-size: 2rem;
+        }
+        .content-card {
+            padding: 16px;
+        }
+        .teacher-rating-card,
+        .feedback-card {
+            padding: 16px;
+        }
+        .activity-scroll {
+            max-height: 200px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .welcome-section {
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .welcome-section h2 {
+            font-size: 1.3rem;
+        }
+        .welcome-section p {
+            font-size: 0.9rem;
+        }
+        .content-card {
+            padding: 12px;
+        }
+        .stat-number {
+            font-size: 1.8rem;
+        }
+        .stat-box {
+            padding: 16px;
+        }
+        .stat-box i {
+            font-size: 1.8rem;
+        }
+        .teacher-rating-card,
+        .feedback-card {
+            padding: 12px;
+        }
+        .activity-scroll {
+            max-height: 180px;
+        }
+        .table-responsive {
+            margin: 0 -12px;
+        }
+    }
+
+    @media (max-width: 375px) {
+        .welcome-section {
+            padding: 12px;
+        }
+        .welcome-section h2 {
+            font-size: 1.2rem;
+        }
+        .welcome-section p {
+            font-size: 0.8rem;
+        }
+        .content-card {
+            padding: 10px;
+        }
+        .stat-number {
+            font-size: 1.6rem;
+        }
+        .stat-box {
+            padding: 12px;
+        }
+        .stat-box i {
+            font-size: 1.6rem;
+        }
+        .teacher-rating-card,
+        .feedback-card {
+            padding: 10px;
+        }
+        .activity-scroll {
+            max-height: 160px;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+        }
+    }
+
+    /* Touch Device Optimizations */
+    @media (hover: none) {
+        .summary-card:hover,
+        .teacher-rating-card:hover,
+        .stat-box:hover {
+            transform: none;
+        }
+        .btn, .nav-link {
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    /* High Contrast Mode Support */
+    @media (prefers-contrast: high) {
+        .summary-card,
+        .teacher-rating-card,
+        .stat-box,
+        .feedback-card {
+            border: 2px solid currentColor;
+        }
+    }
+
+    /* Reduced Motion Support */
+    @media (prefers-reduced-motion: reduce) {
+        .summary-card,
+        .teacher-rating-card,
+        .stat-box {
+            transition: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        <img src="{% static site_logo %}" alt="{{ site_header }}" class="brand-image" style="height: 30px;">
+        {{ site_header }}
+    </a>
+</h1>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card welcome-section">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="flex-grow-1">
+                        <h2 class="mb-1">Welcome, Admin!</h2>
+                        <p class="mb-0">Student Management Dashboard</p>
+                    </div>
+                    <a href="{% url 'logout' %}" class="btn btn-light">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats Row -->
+    <div class="row mb-4">
+        <!-- Student Stats -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="summary-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 small"><i class="fas fa-users text-primary me-2"></i>Students</h5>
+                </div>
+                <div class="card-body p-2 activity-scroll">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block text-muted small">Total Students</span>
+                            <h3>{{ total_students }}</h3>
+                        </div>
+                        <div class="text-end">
+                            <span class="d-block text-muted small">Active</span>
+                            <h4 class="text-success">{{ active_students }}</h4>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Male Students</small>
+                            <span class="badge bg-info p-2">{{ male_students }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Female Students</small>
+                            <span class="badge bg-warning p-2">{{ female_students }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="mb-0">Inactive</small>
+                            <span class="badge bg-danger p-2">{{ inactive_students }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff Stats -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="summary-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 small"><i class="fas fa-chalkboard-teacher text-info me-2"></i>Staff</h5>
+                </div>
+                <div class="card-body p-2 activity-scroll">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block text-muted small">Total Staff</span>
+                            <h3>{{ total_staff }}</h3>
+                        </div>
+                        <div class="text-end">
+                            <span class="d-block text-muted small">Active</span>
+                            <h4 class="text-success">{{ active_staff }}</h4>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Teachers</small>
+                            <span class="badge bg-info p-2">{{ total_teachers }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Non-Teaching</small>
+                            <span class="badge bg-warning p-2">{{ non_teaching_staff }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="mb-0">Inactive</small>
+                            <span class="badge bg-danger p-2">{{ inactive_staff }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent Stats -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="summary-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 small"><i class="fas fa-user-friends text-warning me-2"></i>Parents</h5>
+                </div>
+                <div class="card-body p-2 activity-scroll">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block text-muted small">Total Parents</span>
+                            <h3>{{ total_parents }}</h3>
+                        </div>
+                        <div class="text-end">
+                            <span class="d-block text-muted small">Active</span>
+                            <h4 class="text-success">{{ active_parents }}</h4>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Parents with Students</small>
+                            <span class="badge bg-info p-2">{{ parents_with_students }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Parents with Multiple Students</small>
+                            <span class="badge bg-warning p-2">{{ parents_with_multiple_students }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="mb-0">Inactive</small>
+                            <span class="badge bg-danger p-2">{{ inactive_parents }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Stats -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="summary-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 small"><i class="fas fa-book text-success me-2"></i>Courses</h5>
+                </div>
+                <div class="card-body p-2 activity-scroll">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block text-muted small">Total Courses</span>
+                            <h3>{{ total_courses }}</h3>
+                        </div>
+                        <div class="text-end">
+                            <span class="d-block text-muted small">Active</span>
+                            <h4 class="text-success">{{ active_courses }}</h4>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Total Subjects</small>
+                            <span class="badge bg-info p-2">{{ total_subjects }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="mb-0">Total Batches</small>
+                            <span class="badge bg-warning p-2">{{ total_batches }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="mb-0">Inactive</small>
+                            <span class="badge bg-danger p-2">{{ inactive_courses }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teacher Ratings -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-star text-warning me-2"></i>Top Rated Teachers
+                </h5>
+                <div class="table-responsive activity-scroll">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Teacher</th>
+                                <th>Student Rating</th>
+                                <th>Parent Rating</th>
+                                <th>Total Feedbacks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for teacher in teacher_ratings %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if teacher.image %}
+                                            <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-user-tie text-secondary"></i>
+                                    </div>
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="mb-0">{{ teacher.name }}</h6>
+                                            <small class="text-muted">{{ teacher.designation }}</small>
+                                </div>
+                                    </div>
+                            </td>
+                            <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">{{ teacher.avg_student_rating|floatformat:1 }}</span>
+                                        <div class="rating-stars">
+                                            {% for i in "12345"|make_list %}
+                                                {% if forloop.counter <= teacher.avg_student_rating %}
+                                                    <i class="fas fa-star text-warning"></i>
+                                    {% else %}
+                                                    <i class="far fa-star text-warning"></i>
+                                    {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">{{ teacher.avg_parent_rating|floatformat:1 }}</span>
+                                        <div class="rating-stars">
+                                            {% for i in "12345"|make_list %}
+                                                {% if forloop.counter <= teacher.avg_parent_rating %}
+                                                    <i class="fas fa-star text-warning"></i>
+                                                {% else %}
+                                                    <i class="far fa-star text-warning"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ teacher.total_feedbacks }}</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                                <td colspan="4" class="text-center">
+                                    <small class="text-muted">No teacher ratings available</small>
+                                </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="row mb-4">
+        <!-- Recent Notices -->
+        <div class="col-12 mb-4">
+            <div class="content-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullhorn text-primary me-2"></i>Recent Notices
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openAddNoticeModal()">
+                        <i class="fas fa-plus me-2"></i>Add Notice
+                    </button>
+                </div>
+                <div class="activity-scroll">
+                    {% for notice in recent_notices %}
+                    <div class="d-flex align-items-start mb-3 pb-3 border-bottom">
+                        <div class="flex-shrink-0 me-3">
+                            {% if notice.image %}
+                            <img src="{{ notice.image.url }}" alt="{{ notice.title }}" class="rounded" style="width: 60px; height: 60px; object-fit: cover;">
+                            {% else %}
+                            <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-bullhorn text-primary"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="mb-0 d-block fw-medium">{{ notice.title }}</small>
+                            <small class="text-muted">{{ notice.message|truncatechars:50 }}</small>
+                            <small class="d-block text-muted">{{ notice.created_at|timesince }} ago</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center">
+                        <small class="text-muted">No recent notices</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Requests -->
+    <div class="row mb-4">
+        <!-- Staff Leave Requests -->
+        <div class="col-xl-6 mb-4">
+        <div class="content-card">
+            <h5 class="mb-3">
+                    <i class="fas fa-user-tie text-info me-2"></i>Staff Leave Requests
+            </h5>
+                <div class="activity-scroll" id="staff-leaves-container">
+                    {% for leave in staff_leaves %}
+                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-calendar-times text-info"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="mb-0 d-block fw-medium">{{ leave.staff.name }}</small>
+                            <small class="text-muted">From: {{ leave.start_date|date:"M d, Y" }}</small>
+                            <small class="text-muted d-block">To: {{ leave.end_date|date:"M d, Y" }}</small>
+                            <small class="text-muted d-block">{{ leave.message|truncatechars:50 }}</small>
+                            <div class="mt-2">
+                                <form method="post" action="{% url 'approve_staff_leave' leave.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'reject_staff_leave' leave.id %}" class="d-inline ms-2">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-times me-1"></i>Reject
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center">
+                        <small class="text-muted">No pending staff leave requests</small>
+                    </div>
+                        {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Leave Requests -->
+        <div class="col-xl-6 mb-4">
+            <div class="content-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-user-graduate text-warning me-2"></i>Student Leave Requests
+                </h5>
+                <div class="activity-scroll" id="student-leaves-container">
+                    {% for leave in student_leaves %}
+                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-calendar-times text-warning"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="mb-0 d-block fw-medium">{{ leave.student.name }}</small>
+                            <small class="text-muted">From: {{ leave.start_date|date:"M d, Y" }}</small>
+                            <small class="text-muted d-block">To: {{ leave.end_date|date:"M d, Y" }}</small>
+                            <small class="text-muted d-block">{{ leave.message|truncatechars:50 }}</small>
+                            <div class="mt-2">
+                                <form method="post" action="{% url 'approve_student_leave' leave.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'reject_student_leave' leave.id %}" class="d-inline ms-2">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-times me-1"></i>Reject
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center">
+                        <small class="text-muted">No pending student leave requests</small>
+                    </div>
+                        {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Recent Feedback -->
+    <div class="row mb-4">
+        <div class="col-xl-6 mb-4">
+        <div class="content-card">
+            <h5 class="mb-3">
+                    <i class="fas fa-comments text-success me-2"></i>Recent Institute Feedback
+            </h5>
+                <div class="activity-scroll">
+                    {% for feedback in recent_feedback %}
+                    <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
+                        <div class="flex-shrink-0 me-3">
+                            {% if not feedback.is_anonymous %}
+                                {% if feedback.student %}
+                                    {% if feedback.student.image %}
+                                        <img src="{{ feedback.student.image.url }}" alt="{{ feedback.student.name }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content: center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user-graduate text-secondary"></i>
+                                        </div>
+                                    {% endif %}
+                                {% elif feedback.staff %}
+                                    {% if feedback.staff.image %}
+                                        <img src="{{ feedback.staff.image.url }}" alt="{{ feedback.staff.name }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content: center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user-tie text-secondary"></i>
+                                        </div>
+                                    {% endif %}
+                                {% elif feedback.parent %}
+                                    {% if feedback.parent.image %}
+                                        <img src="{{ feedback.parent.image.url }}" alt="{{ feedback.parent.name }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content: center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user-friends text-secondary"></i>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
+                                <div class="rounded-circle bg-light d-flex align-items-center justify-content: center" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user-secret text-secondary"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            {% if not feedback.is_anonymous %}
+                                {% if feedback.student %}
+                                    <small class="mb-0 d-block fw-medium">{{ feedback.student.name }} (Student)</small>
+                                    <small class="text-muted d-block">
+                                        {{ feedback.student.course.name }} - 
+                                        {% if feedback.student.course.duration_type == 'Semester' %}
+                                            Semester {{ feedback.student.current_period }}
+                                        {% else %}
+                                            Year {{ feedback.student.current_period }}
+                                        {% endif %}
+                                    </small>
+                                {% elif feedback.staff %}
+                                    <small class="mb-0 d-block fw-medium">{{ feedback.staff.name }} ({{ feedback.staff.designation }})</small>
+                                {% elif feedback.parent %}
+                                    <small class="mb-0 d-block fw-medium">{{ feedback.parent.name }} (Parent)</small>
+                                    {% with student=feedback.parent.students.first %}
+                                        {% if student %}
+                                            <small class="text-muted d-block">
+                                                Parent of {{ student.name }} - 
+                                                {{ student.course.name }}
+                                                {% if student.course.duration_type == 'Semester' %}
+                                                    (Semester {{ student.current_period }})
+                                                {% else %}
+                                                    (Year {{ student.current_period }})
+                                                {% endif %}
+                                            </small>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            {% else %}
+                                <small class="mb-0 d-block fw-medium">Anonymous</small>
+                            {% endif %}
+                            <div class="d-flex align-items-center mt-1">
+                                <span class="badge bg-info me-2">{{ feedback.get_feedback_type_display }}</span>
+                                <div class="rating-stars">
+                                    {% for i in "12345"|make_list %}
+                                        <i class="{% if forloop.counter <= feedback.rating %}fas{% else %}far{% endif %} fa-star text-warning"></i>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% if feedback.feedback_text %}
+                                <small class="d-block text-muted mt-1">{{ feedback.feedback_text|truncatechars:100 }}</small>
+                            {% endif %}
+                            <small class="d-block text-muted mt-1">{{ feedback.created_at|timesince }} ago</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                        <div class="text-center">
+                            <small class="text-muted">No recent institute feedback</small>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Parent-Teacher Meetings -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-check text-primary me-2"></i>Parent-Teacher Meetings
+                </h5>
+                        <button type="button" class="btn btn-primary" onclick="openScheduleMeetingModal()">
+                            <i class="fas fa-plus me-2"></i>Schedule Meeting
+                        </button>
+                                </div>
+                    <div class="table-responsive activity-scroll">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Duration</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for meeting in meetings %}
+                                <tr>
+                                    <td>{{ meeting.meeting_date|date:"M d, Y" }}</td>
+                                    <td>{{ meeting.meeting_time|time:"h:i A" }}</td>
+                                    <td>{{ meeting.duration }} minutes</td>
+                                    <td>
+                                        {% if meeting.is_online %}
+                                            <span class="badge bg-info">Online</span>
+                                            {% if meeting.meeting_link %}
+                                                <a href="{{ meeting.meeting_link }}" target="_blank" class="ms-1">
+                                                    <i class="fas fa-link"></i>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">In-person</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if meeting.status == 'scheduled' %}bg-primary{% elif meeting.status == 'completed' %}bg-success{% elif meeting.status == 'cancelled' %}bg-danger{% else %}bg-warning{% endif %}">
+                                            {{ meeting.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if meeting.status == 'scheduled' %}
+                                            <button class="btn btn-success btn-sm" onclick="completeMeeting({{ meeting.id }})">
+                                                <i class="fas fa-check me-1"></i>Complete
+                                            </button>
+                                            <button class="btn btn-warning btn-sm" onclick="rescheduleMeeting({{ meeting.id }})">
+                                                <i class="fas fa-calendar-alt me-1"></i>Reschedule
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" onclick="cancelMeeting({{ meeting.id }})">
+                                                <i class="fas fa-times me-1"></i>Cancel
+                                            </button>
+                                        {% endif %}
+                                        {% if meeting.notes or meeting.status == 'completed' %}
+                                            <button class="btn btn-info btn-sm" onclick="viewMeetingNotes({{ meeting.id }})">
+                                                <i class="fas fa-sticky-note me-1"></i>Notes
+                                            </button>
+                                        {% endif %}
+                                        {% if meeting.agenda %}
+                                            <button class="btn btn-primary btn-sm" onclick="viewMeetingAgenda({{ meeting.id }})">
+                                                <i class="fas fa-clipboard-list me-1"></i>Agenda
+                                            </button>
+                                        {% endif %}
+                                        {% if meeting.status == 'cancelled' and meeting.cancellation_reason %}
+                                            <button class="btn btn-secondary btn-sm" onclick="viewCancellationReason({{ meeting.id }})">
+                                                <i class="fas fa-question-circle me-1"></i>Reason
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        <small class="text-muted">No meetings scheduled</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                                </div>
+                            </div>
+                                </div>
+                                </div>
+
+    <!-- Schedule Meeting Modal -->
+    <div id="scheduleMeetingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeScheduleMeetingModal();">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+            <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0; font-size: 18px;">Schedule New Meeting</h5>
+                <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeScheduleMeetingModal()">&times;</button>
+                                </div>
+            <div style="padding: 20px;">
+                <div id="scheduleMeetingError" class="alert alert-danger" style="display: none;"></div>
+                <div id="scheduleMeetingLoading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                            </div>
+                    <p class="mt-2">Scheduling meeting...</p>
+                        </div>
+                <form id="scheduleMeetingForm" onsubmit="return false;">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="meetingDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="meetingDate" name="meeting_date" required min="{{ today|date:'Y-m-d' }}">
+                        <div class="invalid-feedback">Please select a valid date</div>
+                            </div>
+                    <div class="mb-3">
+                        <label for="meetingTime" class="form-label">Time</label>
+                        <input type="time" class="form-control" id="meetingTime" name="meeting_time" required>
+                        <div class="invalid-feedback">Please select a valid time</div>
+                            </div>
+                    <div class="mb-3">
+                        <label for="meetingDuration" class="form-label">Duration (minutes)</label>
+                        <input type="number" class="form-control" id="meetingDuration" name="duration" min="15" max="120" value="30" required>
+                        <div class="invalid-feedback">Duration must be between 15 and 120 minutes</div>
+                        </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isOnline" name="is_online">
+                            <label class="form-check-label" for="isOnline">Online Meeting</label>
+                    </div>
+                </div>
+                    <div class="mb-3" id="meetingLinkContainer" style="display: none;">
+                        <label for="meetingLink" class="form-label">Meeting Link</label>
+                        <input type="url" class="form-control" id="meetingLink" name="meeting_link" placeholder="https://meet.google.com/...">
+                        <div class="invalid-feedback">Please enter a valid meeting link</div>
+                </div>
+                    <div class="mb-3">
+                        <label for="scheduleMeetingAgenda" class="form-label">Agenda</label>
+                        <textarea class="form-control" id="scheduleMeetingAgenda" name="agenda" rows="3" placeholder="Brief description of what you'd like to discuss"></textarea>
+            </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeScheduleMeetingModal()">Cancel</button>
+                        <button type="button" class="btn" style="background-color: #3F51B5; color: white;" onclick="submitMeetingForm()">Schedule Meeting</button>
+                    </div>
+                </form>
+        </div>
+    </div>
+</div>
+
+    <!-- Meeting Notes Modal -->
+    <div id="viewNotesModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeNotesModal();">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+            <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0; font-size: 18px;">Meeting Notes</h5>
+                <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeNotesModal()">&times;</button>
+                    </div>
+            <div style="padding: 20px;">
+                <div id="notesError" class="alert alert-danger" style="display: none;"></div>
+                <div id="notesLoading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                </div>
+                    <p class="mt-2">Loading notes...</p>
+                    </div>
+                <div id="meetingNotesContent" style="display: none;">
+                    <p id="viewMeetingNotesText" style="margin: 0; white-space: pre-wrap;"></p>
+                </div>
+                    </div>
+                </div>
+                    </div>
+
+    <!-- Meeting Agenda Modal -->
+    <div id="viewAgendaModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAgendaModal();">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+            <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0; font-size: 18px;">Meeting Agenda</h5>
+                <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAgendaModal()">&times;</button>
+                </div>
+            <div style="padding: 20px;">
+                <div id="agendaError" class="alert alert-danger" style="display: none;"></div>
+                <div id="agendaLoading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+            </div>
+                    <p class="mt-2">Loading agenda...</p>
+                </div>
+                <div id="meetingAgendaContent" style="display: none;">
+                    <p id="viewMeetingAgendaText" style="margin: 0; white-space: pre-wrap;"></p>
+                </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Cancel Meeting Modal -->
+    <div id="cancelMeetingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeCancelModal();">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+            <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0; font-size: 18px;">Cancel Meeting</h5>
+                <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeCancelModal()">&times;</button>
+                                        </div>
+            <div style="padding: 20px;">
+                <div id="cancelError" class="alert alert-danger" style="display: none;"></div>
+                <div id="cancelLoading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                                        </div>
+                    <p class="mt-2">Cancelling meeting...</p>
+                                                </div>
+                <form id="cancelMeetingForm" onsubmit="return false;">
+                    {% csrf_token %}
+                    <input type="hidden" id="cancelMeetingId" name="meeting_id">
+                    <div class="mb-3">
+                        <label for="cancellationReason" class="form-label">Reason for Cancellation</label>
+                        <textarea class="form-control" id="cancellationReason" name="reason" rows="3" required></textarea>
+                        <div class="invalid-feedback">Please provide a reason for cancellation</div>
+                                                </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeCancelModal()">Close</button>
+                        <button type="button" class="btn" style="background-color: #F44336; color: white;" onclick="submitCancelForm()">Cancel Meeting</button>
+                                            </div>
+                </form>
+                                                </div>
+                                                </div>
+                                            </div>
+
+    <!-- Reschedule Meeting Modal -->
+    <div id="rescheduleMeetingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeRescheduleModal();">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+            <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0; font-size: 18px;">Reschedule Meeting</h5>
+                <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeRescheduleModal()">&times;</button>
+                                            </div>
+            <div style="padding: 20px;">
+                <div id="rescheduleError" class="alert alert-danger" style="display: none;"></div>
+                <div id="rescheduleLoading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                                            </div>
+                    <p class="mt-2">Rescheduling meeting...</p>
+                                </div>
+                <form id="rescheduleMeetingForm" onsubmit="return false;">
+                    {% csrf_token %}
+                    <input type="hidden" id="rescheduleMeetingId" name="meeting_id">
+                    <div class="mb-3">
+                        <label for="rescheduleDate" class="form-label">New Date</label>
+                        <input type="date" class="form-control" id="rescheduleDate" name="meeting_date" required>
+                        <div class="invalid-feedback">Please select a valid date</div>
+                                </div>
+                    <div class="mb-3">
+                        <label for="rescheduleTime" class="form-label">New Time</label>
+                        <input type="time" class="form-control" id="rescheduleTime" name="meeting_time" required>
+                        <div class="invalid-feedback">Please select a valid time</div>
+                                </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeRescheduleModal()">Close</button>
+                        <button type="button" class="btn" style="background-color: #3F51B5; color: white;" onclick="submitRescheduleForm()">Reschedule Meeting</button>
+                                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Meeting Modal -->
+    <div id="completeMeetingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeCompleteModal();">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+            <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0; font-size: 18px;">Complete Meeting</h5>
+                <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeCompleteModal()">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <div id="completeError" class="alert alert-danger" style="display: none;"></div>
+                <div id="completeLoading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Completing meeting...</p>
+                </div>
+                <form id="completeMeetingForm" onsubmit="return false;">
+                    {% csrf_token %}
+                    <input type="hidden" id="completeMeetingId" name="meeting_id">
+                    <div class="mb-3">
+                        <label for="completeMeetingNotes" class="form-label">Meeting Notes</label>
+                        <textarea class="form-control" id="completeMeetingNotes" name="notes" rows="3" placeholder="Enter any notes or summary from the meeting"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeCompleteModal()">Close</button>
+                        <button type="button" class="btn" style="background-color: #4CAF50; color: white;" onclick="submitCompleteForm()">Complete Meeting</button>
+                    </div>
+                </form>
+            </div>
+</div>
+</div>
+
+    <!-- Cancellation Reason Modal -->
+    <div id="viewReasonModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeReasonModal();">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+            <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0; font-size: 18px;">Cancellation Reason</h5>
+                <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeReasonModal()">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <div id="reasonError" class="alert alert-danger" style="display: none;"></div>
+                <div id="reasonLoading" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading reason...</p>
+                </div>
+                <div id="meetingReasonContent" style="display: none;">
+                    <p id="viewMeetingReasonText" style="margin: 0; white-space: pre-wrap;"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Notice Modal -->
+<div id="addNoticeModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddNoticeModal();">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+        <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <h5 style="margin: 0; font-size: 18px;">Add New Notice</h5>
+            <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddNoticeModal()">&times;</button>
+        </div>
+        <div style="padding: 20px;">
+            <div id="addNoticeError" class="alert alert-danger" style="display: none;"></div>
+            <div id="addNoticeLoading" class="text-center" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Adding notice...</p>
+            </div>
+            <form id="addNoticeForm" onsubmit="return false;">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="noticeTitle" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="noticeTitle" name="title" required>
+                    <div class="invalid-feedback">Please enter a title</div>
+                </div>
+                <div class="mb-3">
+                    <label for="noticeMessage" class="form-label">Message</label>
+                    <textarea class="form-control" id="noticeMessage" name="message" rows="3" required></textarea>
+                    <div class="invalid-feedback">Please enter a message</div>
+                </div>
+                <div class="mb-3">
+                    <label for="noticeImage" class="form-label">Image (Optional)</label>
+                    <input type="file" class="form-control" id="noticeImage" name="image" accept="image/*">
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeAddNoticeModal()">Cancel</button>
+                    <button type="button" class="btn" style="background-color: #3F51B5; color: white;" onclick="submitNoticeForm()">Post Notice</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

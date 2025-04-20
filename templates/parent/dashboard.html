@@ -1,0 +1,1336 @@
+{% extends 'shared/base.html' %}
+{% load static %}
+{% load tz %}
+{% load app_filters %}
+
+{% block extra_js %}
+<script src="{% static 'js/rating.js' %}"></script>
+<script src="{% static 'js/student_modals.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Add CSRF token to the page -->
+{% csrf_token %}
+
+<div class="container-fluid py-4">
+  <!-- Welcome Section -->
+  {% include 'shared/welcome_section.html' with user=parent %}
+
+  <!-- Dashboard Content -->
+  <div id="dashboardSection" class="content-section active">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <!-- Students Summary Card -->
+      <div class="col-md-4 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0 small"><i class="fas fa-users me-1"></i> Students</h5>
+          </div>
+          <div class="card-body p-2">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <span class="d-block text-muted small">Total Students</span>
+                <h3>{{ attendance_summary.total_students }}</h3>
+              </div>
+              <div class="text-end">
+                <span class="d-block text-muted small">Present Today</span>
+                <h3 class="text-success">{{ attendance_summary.students_present_today }}</h3>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <small class="mb-0">Absent Today</small>
+              <span class="badge bg-danger p-2">{{ attendance_summary.students_absent_today }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Course Progress Card -->
+      <div class="col-md-4 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0 small"><i class="fas fa-graduation-cap me-1"></i> Course Progress</h5>
+          </div>
+          <div class="card-body p-2">
+            {% if course_progress %}
+              {% for progress in course_progress|slice:":3" %}
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-muted">{{ progress.student }} - {{ progress.course }}</small>
+                    <span class="badge {% if progress.status == 'Completed' %}bg-success{% elif progress.status == 'In Progress' %}bg-warning{% else %}bg-secondary{% endif %}">
+                      {{ progress.status }}
+                    </span>
+                  </div>
+                  <div class="progress" style="height: 5px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress.progress }}%"></div>
+                  </div>
+                  <small class="text-muted">{{ progress.progress }}%</small>
+                </div>
+              {% endfor %}
+              {% if course_progress|length > 3 %}
+                <div class="text-center">
+                  <small class="text-muted">+{{ course_progress|length|add:"-3" }} more courses</small>
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-center text-muted mb-0">No course progress data available</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Leaves Card -->
+      <div class="col-md-4 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0 small"><i class="fas fa-calendar-minus me-1"></i> Recent Leaves</h5>
+          </div>
+          <div class="card-body p-2">
+            {% if recent_leaves %}
+              {% for leave in recent_leaves %}
+                <div class="mb-2">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">{{ leave.student.name }}</small>
+                    <span class="badge {% if leave.status == 1 %}bg-success{% elif leave.status == 2 %}bg-danger{% else %}bg-warning{% endif %}">
+                      {% if leave.status == 1 %}Approved{% elif leave.status == 2 %}Rejected{% else %}Pending{% endif %}
+                    </span>
+                  </div>
+                  <small class="text-muted d-block">{{ leave.start_date|date:"M d, Y" }} - {{ leave.end_date|date:"M d, Y" }}</small>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="text-center text-muted mb-0">No recent leaves</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Notices Card -->
+      <div class="col-md-4 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0 small">
+              <i class="fas fa-bullhorn me-1"></i> Recent Notices
+            </h5>
+          </div>
+          <div class="card-body p-2">
+            {% if notices %}
+              {% for notice in notices|slice:":3" %}
+                <div class="notice-item mb-2 p-2 border-bottom">
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h6 class="mb-0 text-primary">{{ notice.title|truncatechars:30 }}</h6>
+                    <small class="text-muted">{{ notice.created_at|timesince }} ago</small>
+                  </div>
+                  <p class="mb-1 small text-muted">{{ notice.message|truncatechars:50 }}</p>
+                  {% if notice.file %}
+                    <a href="{{ notice.file.url }}" class="btn btn-sm btn-outline-primary btn-sm mt-1" target="_blank">
+                      <i class="fas fa-download me-1"></i> Download
+                    </a>
+                  {% endif %}
+                </div>
+              {% endfor %}
+              {% if notices|length > 3 %}
+                <!-- <div class="text-center mt-2">
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="showSection('noticeSection')">
+                    <i class="fas fa-bullhorn me-1"></i> View All Notices
+                  </button>
+                </div> -->
+              {% endif %}
+            {% else %}
+              <div class="text-center py-3">
+                <i class="fas fa-bullhorn text-muted mb-2" style="font-size: 2rem;"></i>
+                <p class="text-muted mb-0">No notices available</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Students List -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="content-card">
+          <h4 class="card-title mb-3">
+            <i class="fas fa-users me-2"></i> My Children
+          </h4>
+          <div class="table-responsive">
+            <table class="table table-responsive">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Course</th>
+                  <th>Current Period</th>
+                  <th>Attendance</th>
+                  <th>Course Progress</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student_info in student_data %}
+                  <tr data-student-id="{{ student_info.student.id }}">
+                    <td>
+                      <div class="d-flex align-items-center">
+                        {% if student_info.student.image %}
+                          <img src="{{ student_info.student.image.url }}" alt="{{ student_info.student.name }}" class="rounded-circle me-2" style="width: 32px; height: 32px;">
+                        {% else %}
+                          <div class="student-avatar me-2">
+                            <i class="fas fa-user"></i>
+                          </div>
+                        {% endif %}
+                        {{ student_info.student.name }}
+                      </div>
+                    </td>
+                    <td>{{ student_info.student.course.name|default:"Not assigned" }}</td>
+                    <td>
+                      {% if student_info.student.course %}
+                        {% if student_info.student.course.duration_type == 'Semester' %}
+                          Semester {{ student_info.student.current_period }}
+                        {% else %}
+                          Year {{ student_info.student.current_period }}
+                        {% endif %}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% with attended_classes=student_info.student.attendance_records.all|filter_attended|length %}
+                        {% if student_info.student.course.duration_type == 'Semester' %}
+                          {% with total_period_days=180 %}
+                            {% with attendance_rate=attended_classes|div:total_period_days|multiply:100 %}
+                              <div class="progress" style="height: 5px; width: 100px;">
+                                <div class="progress-bar {% if attendance_rate < 75 %}bg-danger{% else %}bg-success{% endif %}"
+                                     role="progressbar"
+                                     style="width: {{ attendance_rate }}%">
+                                </div>
+                              </div>
+                              <small class="text-muted">{{ attendance_rate|floatformat:1 }}%</small>
+                            {% endwith %}
+                          {% endwith %}
+                        {% else %}
+                          {% with total_period_days=365 %}
+                            {% with attendance_rate=attended_classes|div:total_period_days|multiply:100 %}
+                              <div class="progress" style="height: 5px; width: 100px;">
+                                <div class="progress-bar {% if attendance_rate < 75 %}bg-danger{% else %}bg-success{% endif %}"
+                                     role="progressbar"
+                                     style="width: {{ attendance_rate }}%">
+                                </div>
+                              </div>
+                              <small class="text-muted">{{ attendance_rate|floatformat:1 }}%</small>
+                            {% endwith %}
+                          {% endwith %}
+                        {% endif %}
+                      {% endwith %}
+                    </td>
+                    <td>
+                      {% with tracking=student_info.student.course_trackings.first %}
+                        {% if tracking %}
+                          <div class="progress" style="height: 5px; width: 100px;">
+                            <div class="progress-bar {% if tracking.completion_percentage >= 75 %}bg-success{% elif tracking.completion_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                                 role="progressbar"
+                                 style="width: {{ tracking.completion_percentage }}%">
+                            </div>
+                          </div>
+                          <small class="text-muted">{{ tracking.completion_percentage }}%</small>
+                        {% else %}
+                          <span class="text-muted">No data</span>
+                        {% endif %}
+                      {% endwith %}
+                    </td>
+                    <td>
+                      <span class="badge {% if student_info.student.status == 'Active' %}bg-success{% elif student_info.student.status == 'Leave' %}bg-warning{% else %}bg-secondary{% endif %}">
+                        {{ student_info.student.status }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="badge bg-primary border-0" onclick="viewStudentDetails({{ student_info.student.id }})">
+                        <i class="fas fa-eye me-1"></i> View Details
+                      </button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notices Section -->
+  <div id="noticeSection" class="content-section">
+    <div class="content-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+          <i class="fas fa-bullhorn me-2"></i> All Notices
+        </h3>
+      </div>
+      <div class="row">
+        {% if notices %}
+          {% for notice in notices %}
+            <div class="col-md-6 mb-4">
+              <div class="card h-100">
+                {% if notice.image %}
+                  <img src="{{ notice.image.url }}" class="card-img-top" alt="{{ notice.title }}">
+                {% endif %}
+                <div class="card-body">
+                  <h5 class="card-title">{{ notice.title }}</h5>
+                  <p class="card-text">{{ notice.message }}</p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">{{ notice.created_at|date:"M d, Y" }}</small>
+                    {% if notice.file %}
+                      <a href="{{ notice.file.url }}" class="btn btn-sm btn-primary" target="_blank">
+                        <i class="fas fa-download me-1"></i>Download
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="col-12">
+            <div class="text-center py-5">
+              <i class="fas fa-bullhorn text-muted mb-3" style="font-size: 3rem;"></i>
+              <p class="text-muted mb-0">No notices available</p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance Section -->
+  <div id="attendanceSection" class="content-section" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-clipboard-check me-2"></i> Attendance Records
+      </h3>
+
+      <!-- Attendance Summary Cards -->
+      <div class="row mb-4">
+        {% for student_info in student_data %}
+          <div class="col-md-6 col-lg-4 mb-3">
+            <div class="summary-card h-100">
+              <div class="card-header">
+                <h5 class="card-title mb-0 small">
+                  <i class="fas fa-user me-1"></i> {{ student_info.student.name }}
+                </h5>
+              </div>
+              <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <div>
+                    <span class="d-block text-muted small">Days Attended</span>
+                    <h3>{{ student_info.student.attendance_records.all|filter_attended|length }}</h3>
+                  </div>
+                  <div class="text-end">
+                    <span class="d-block text-muted small">Attendance Rate</span>
+                    {% with attended_classes=student_info.student.attendance_records.all|filter_attended|length %}
+                      {% if student_info.student.course.duration_type == 'Semester' %}
+                        {% with total_period_days=180 %}
+                          {% with attendance_rate=attended_classes|div:total_period_days|multiply:100 %}
+                            <h3 class="text-success">{{ attendance_rate|floatformat:1 }}%</h3>
+                            <div class="d-flex justify-content-between mb-1">
+                              <div><small>0%</small></div>
+                              <div><small>100%</small></div>
+                            </div>
+                            <div class="progress" style="height: 8px; border-radius: 4px;">
+                              <div class="progress-bar bg-success"
+                                   role="progressbar"
+                                   style="width: {{ attendance_rate }}%"
+                                   aria-valuenow="{{ attendance_rate }}"
+                                   aria-valuemin="0"
+                                   aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted d-block mt-1">Minimum required: 75%</small>
+                          {% endwith %}
+                        {% endwith %}
+                      {% else %}
+                        {% with total_period_days=365 %}
+                          {% with attendance_rate=attended_classes|div:total_period_days|multiply:100 %}
+                            <h3 class="text-success">{{ attendance_rate|floatformat:1 }}%</h3>
+                            <div class="d-flex justify-content-between mb-1">
+                              <div><small>0%</small></div>
+                              <div><small>100%</small></div>
+                            </div>
+                            <div class="progress" style="height: 8px; border-radius: 4px;">
+                              <div class="progress-bar bg-success"
+                                   role="progressbar"
+                                   style="width: {{ attendance_rate }}%"
+                                   aria-valuenow="{{ attendance_rate }}"
+                                   aria-valuemin="0"
+                                   aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted d-block mt-1">Minimum required: 75%</small>
+                          {% endwith %}
+                        {% endwith %}
+                      {% endif %}
+                    {% endwith %}
+                  </div>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <small class="mb-0">Present Today</small>
+                  <span class="badge {% if student_info.student.is_present_today %}bg-success{% else %}bg-danger{% endif %} p-2">
+                    {% if student_info.student.is_present_today %}Present{% else %}Absent{% endif %}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Attendance Records Table -->
+      <div class="table-responsive">
+        <table class="table table-responsive table-hover">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Date</th>
+              <th>Subject</th>
+              <th>Teacher</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student_info in student_data %}
+              {% for record in student_info.student.attendance_records.all|slice:":10" %}
+                <tr>
+                  <td>{{ student_info.student.name }}</td>
+                  <td>{{ record.attendance.date|date:"M d, Y" }}</td>
+                  <td>{{ record.attendance.routine.subject.name }}</td>
+                  <td>{{ record.attendance.teacher.name }}</td>
+                  <td>
+                    <span class="status-badge {% if record.student_attend %}bg-success{% else %}bg-danger{% endif %}">
+                      {% if record.student_attend %}Present{% else %}Absent{% endif %}
+                    </span>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center">No attendance records found for {{ student_info.student.name }}.</td>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Routine Section -->
+  <div id="routineSection" class="content-section" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-calendar me-2"></i> Class Routines
+      </h3>
+
+      <!-- Student Selection Tabs -->
+      <ul class="nav nav-tabs mb-4" id="studentRoutineTabs" role="tablist">
+        {% for student_info in student_data %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link {% if forloop.first %}active{% endif %}"
+                    id="student-{{ student_info.student.id }}-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#student-{{ student_info.student.id }}"
+                    type="button"
+                    role="tab"
+                    aria-controls="student-{{ student_info.student.id }}"
+                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+              {{ student_info.student.name }}
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <!-- Student Routine Content -->
+      <div class="tab-content" id="studentRoutineContent">
+        {% for student_info in student_data %}
+          <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+               id="student-{{ student_info.student.id }}"
+               role="tabpanel"
+               aria-labelledby="student-{{ student_info.student.id }}-tab">
+
+            <div class="mb-3">
+              <h4 class="mb-2">
+                <i class="fas fa-user me-2"></i> {{ student_info.student.name }}'s Schedule
+              </h4>
+              <p class="text-muted mb-3">
+                {% if student_info.course_name %}
+                  {{ student_info.course_name }} -
+                  {% if student_info.course_duration_type == 'Semester' %}
+                    Semester {{ student_info.current_period }}
+                  {% else %}
+                    Year {{ student_info.current_period }}
+                  {% endif %}
+                {% else %}
+                  No course assigned
+                {% endif %}
+              </p>
+
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Time</th>
+                      <th>Subject</th>
+                      <th>Code</th>
+                      <th>Teacher</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if student_info.current_period_routines %}
+                      {% for routine in student_info.current_period_routines %}
+                        <tr>
+                          <td>{{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }}</td>
+                          <td>{{ routine.subject.name }}</td>
+                          <td>{{ routine.subject.code|default:"-" }}</td>
+                          <td>{{ routine.teacher.name }}</td>
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr>
+                        <td colspan="4" class="text-center py-4">
+                          <div class="empty-state">
+                            <i class="fas fa-calendar-times mb-2"></i>
+                            <p class="mb-0">No routine available for {{ student_info.student.name }}.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback Section -->
+  <div id="feedbackSection" class="content-section" style="display: none;">
+    <div class="content-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+          <i class="fas fa-comments me-2"></i> Feedback
+        </h3>
+        <button class="btn btn-primary" onclick="openParentFeedbackModal()">
+          <i class="fas fa-plus me-2"></i> Give Feedback
+        </button>
+      </div>
+
+      <div class="row">
+        <!-- Teacher Feedback -->
+        <div class="col-md-6 mb-4">
+          <h4 class="mb-3">Teacher Feedback</h4>
+          {% if recent_feedback %}
+            <div class="feedback-list">
+              {% for feedback in recent_feedback %}
+                <div class="feedback-card">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                      <div>
+                        <h5 class="mb-1">{{ feedback.teacher.name }}</h5>
+                        <small class="text-muted">For {{ feedback.student.name }}</small>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                          {% else %}
+                            <i class="far fa-star text-warning"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-message mt-3">
+                    <p>{{ feedback.feedback_text }}</p>
+                  </div>
+                  <div class="feedback-footer mt-2">
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-comments"></i>
+              <p>No teacher feedback submitted yet.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Institute Feedback -->
+        <div class="col-md-6 mb-4">
+          <h4 class="mb-3">Institute Feedback</h4>
+          {% if recent_institute_feedback %}
+            <div class="feedback-list">
+              {% for feedback in recent_institute_feedback %}
+                <div class="feedback-card">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                      <div>
+                        <h5 class="mb-1">{{ feedback.feedback_type }}</h5>
+                        <small class="text-muted">For {{ feedback.student.name }}</small>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                          {% else %}
+                            <i class="far fa-star text-warning"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-message mt-3">
+                    <p>{{ feedback.feedback_text }}</p>
+                  </div>
+                  <div class="feedback-footer mt-2">
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-building"></i>
+              <p>No institute feedback submitted yet.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subjects Section -->
+  <div id="subjectsSection" class="content-section" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-book me-2"></i> Subjects
+      </h3>
+
+      <!-- Student Selection Tabs -->
+      <ul class="nav nav-tabs mb-4" id="studentSubjectTabs" role="tablist">
+        {% for student_info in student_data %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link {% if forloop.first %}active{% endif %}"
+                    id="subject-student-{{ student_info.student.id }}-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#subject-student-{{ student_info.student.id }}"
+                    type="button"
+                    role="tab"
+                    aria-controls="subject-student-{{ student_info.student.id }}"
+                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+              {{ student_info.student.name }}
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <!-- Student Subjects Content -->
+      <div class="tab-content" id="studentSubjectContent">
+        {% for student_info in student_data %}
+          <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+               id="subject-student-{{ student_info.student.id }}"
+               role="tabpanel"
+               aria-labelledby="subject-student-{{ student_info.student.id }}-tab">
+
+            <div class="mb-3">
+              <h4 class="mb-2">
+                <i class="fas fa-user me-2"></i> {{ student_info.student.name }}'s Subjects
+              </h4>
+              <p class="text-muted mb-3">
+                {% if student_info.course_name %}
+                  {{ student_info.course_name }} -
+                  {% if student_info.course_duration_type == 'Semester' %}
+                    Semester {{ student_info.current_period }}
+                  {% else %}
+                    Year {{ student_info.current_period }}
+                  {% endif %}
+                {% else %}
+                  No course assigned
+                {% endif %}
+              </p>
+
+              {% if student_info.current_subjects %}
+                <div class="row g-3">
+                  {% for subject in student_info.current_subjects %}
+                    <div class="col-md-6 col-lg-4">
+                      <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                          <h5 class="card-title">{{ subject.name }}</h5>
+                          <p class="card-text">
+                            <small class="text-muted d-block">Code: {{ subject.code|default:"Not assigned" }}</small>
+                          </p>
+                          {% with subject_routine=student_info.current_period_routines|filter_by_subject:subject %}
+                            {% if subject_routine %}
+                              <p class="mb-2 text-muted">
+                                <i class="fas fa-clock me-2"></i>
+                                {{ subject_routine.start_time|time:"h:i A" }} - {{ subject_routine.end_time|time:"h:i A" }}
+                              </p>
+                              <p class="mb-0">
+                                <i class="fas fa-chalkboard-teacher me-2"></i>
+                                {{ subject_routine.teacher.name }}
+                              </p>
+                            {% endif %}
+                          {% endwith %}
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="empty-state">
+                  <i class="fas fa-book mb-2"></i>
+                  <p class="mb-0">No subjects available for {{ student_info.student.name }}.</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Leave Requests Section -->
+  <div id="leaveSection" class="content-section" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-calendar-minus me-2"></i> Leave Requests History
+      </h3>
+
+      <!-- Student Selection Tabs -->
+      <ul class="nav nav-tabs mb-4" id="studentLeaveTabs" role="tablist">
+        {% for student_info in student_data %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link {% if forloop.first %}active{% endif %}"
+                    id="leave-student-{{ student_info.student.id }}-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#leave-student-{{ student_info.student.id }}"
+                    type="button"
+                    role="tab"
+                    aria-controls="leave-student-{{ student_info.student.id }}"
+                    aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+              {{ student_info.student.name }}
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <!-- Student Leave Requests Content -->
+      <div class="tab-content" id="studentLeaveContent">
+        {% for student_info in student_data %}
+          <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+               id="leave-student-{{ student_info.student.id }}"
+               role="tabpanel"
+               aria-labelledby="leave-student-{{ student_info.student.id }}-tab">
+
+            <div class="mb-3">
+              <h4 class="mb-2">
+                <i class="fas fa-user me-2"></i> {{ student_info.student.name }}'s Leave History
+              </h4>
+
+              {% with student_leaves=student_info.student.leave_requests.all %}
+                {% if student_leaves %}
+                  <div class="table-responsive">
+                    <table class="table table-hover table-responsive">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Applied On</th>
+                          <th>Start Date</th>
+                          <th>End Date</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for leave in student_leaves %}
+                          <tr>
+                            <td>{{ leave.created_at|date:"M d, Y" }}</td>
+                            <td>{{ leave.start_date|date:"M d, Y" }}</td>
+                            <td>{{ leave.end_date|date:"M d, Y" }}</td>
+                            <td>
+                              <span class="badge {% if leave.status == 1 %}bg-success{% elif leave.status == 2 %}bg-danger{% else %}bg-warning{% endif %}">
+                                {% if leave.status == 1 %}Approved{% elif leave.status == 2 %}Rejected{% else %}Pending{% endif %}
+                              </span>
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <div class="empty-state">
+                    <i class="fas fa-calendar-times mb-2"></i>
+                    <p class="mb-0">No leave requests found for {{ student_info.student.name }}.</p>
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Section -->
+  <div id="profileSection" class="content-section" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-user-circle me-2"></i> My Profile
+      </h3>
+
+      <div class="row">
+        <!-- Profile Picture and Basic Info -->
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+              <div class="profile-picture-container profile-lg mx-auto mb-3">
+                {% if parent.image %}
+                  <img src="{{ parent.image.url }}" alt="{{ parent.name }}" class="profile-picture rounded-circle">
+                {% else %}
+                  <img src="{% static 'img/user.png' %}" alt="Default User" class="profile-picture rounded-circle">
+                {% endif %}
+              </div>
+              <h4 class="mb-1">{{ parent.name }}</h4>
+              <p class="text-muted mb-3">
+                <i class="fas fa-user-friends me-1"></i> Parent
+              </p>
+              <div class="d-grid gap-2">
+                <button class="btn btn-primary" onclick="openProfileModal()">
+                  <i class="fas fa-camera me-1"></i> Update Photo
+                </button>
+                <button class="btn btn-outline-primary" onclick="openPasswordModal()">
+                  <i class="fas fa-key me-1"></i> Change Password
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="col-md-8 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Personal Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <p class="mb-1 text-muted">Name</p>
+                  <p class="mb-3">{{ parent.name }}</p>
+                </div>
+                <div class="col-md-6">
+                  <p class="mb-1 text-muted">Phone</p>
+                  <p class="mb-3">{{ parent.phone }}</p>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <p class="mb-1 text-muted">Email</p>
+                  <p class="mb-3">{{ parent.email|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <p class="mb-1 text-muted">Address</p>
+                  <p class="mb-3">{{ parent.address|default:"Not provided" }}</p>
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <p class="mb-1 text-muted">Account ID</p>
+                  <p class="mb-3">{{ parent.id }}</p>
+                </div>
+                <div class="col-md-6">
+                  <p class="mb-1 text-muted">Account Status</p>
+                  <p class="mb-3">
+                    <span class="badge {% if parent.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                      {% if parent.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- My Children Section -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light py-2">
+          <h5 class="card-title mb-0"><i class="fas fa-child me-2"></i>My Children</h5>
+        </div>
+        <div class="card-body">
+          {% if parent.students.all %}
+            <div class="table-responsive">
+              <table class="table table-hover table-responsive">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Course</th>
+                    <th>Current Period</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in parent.students.all %}
+                    <tr data-student-id="{{ student.id }}">
+                      <td>
+                        <div class="d-flex align-items-center">
+                          {% if student.image %}
+                            <img src="{{ student.image.url }}" alt="{{ student.name }}" class="rounded-circle me-2" style="width: 32px; height: 32px;">
+                          {% else %}
+                            <div class="student-avatar me-2">
+                              <i class="fas fa-user"></i>
+                            </div>
+                          {% endif %}
+                          {{ student.name }}
+                        </div>
+                      </td>
+                      <td>{{ student.course.name|default:"Not assigned" }}</td>
+                      <td>
+                        {% if student.course %}
+                          {% if student.course.duration_type == 'Semester' %}
+                            Semester {{ student.current_period }}
+                          {% else %}
+                            Year {{ student.current_period }}
+                          {% endif %}
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td>
+                        <span class="badge {% if student.status == 'Active' %}bg-success{% elif student.status == 'Leave' %}bg-warning{% else %}bg-secondary{% endif %}">
+                          {{ student.status }}
+                        </span>
+                      </td>
+                      <td>
+                        <button class="badge bg-primary border-0" onclick="viewStudentDetails({{ student.id }})">
+                          <i class="fas fa-eye me-1"></i> View Details
+                        </button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-users mb-2"></i>
+              <p class="mb-0">No children registered under your account.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meetings Section -->
+  <div id="meetingsSection" class="content-section" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-calendar-check me-2"></i> Parent-Teacher Meetings
+      </h3>
+
+      {% if meetings %}
+        <div class="table-responsive">
+          <table class="table table-hover table-responsive">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Duration</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for meeting in meetings %}
+                <tr>
+                  <td>{{ meeting.meeting_date|date:"M d, Y" }}</td>
+                  <td>{{ meeting.meeting_time|time:"h:i A" }}</td>
+                  <td>{{ meeting.duration }} minutes</td>
+                  <td>
+                    {% if meeting.is_online %}
+                      <span class="badge bg-info">Online</span>
+                      {% if meeting.meeting_link %}
+                        <a href="{{ meeting.meeting_link }}" target="_blank" class="ms-1">
+                          <i class="fas fa-link"></i>
+                        </a>
+                      {% endif %}
+                    {% else %}
+                      <span class="badge bg-secondary">In-person</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge {% if meeting.status == 'scheduled' %}bg-primary{% elif meeting.status == 'completed' %}bg-success{% elif meeting.status == 'cancelled' %}bg-danger{% else %}bg-warning{% endif %}">
+                      {{ meeting.get_status_display }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if meeting.status == 'completed' %}
+                      <button class="badge bg-success border-0" onclick="viewMeetingNotes({{ meeting.id }})">
+                        <i class="fas fa-sticky-note me-1"></i> View Notes
+                      </button>
+                    {% elif meeting.status == 'cancelled' %}
+                      <button class="badge bg-danger border-0" onclick="viewCancellationReason({{ meeting.id }})">
+                        <i class="fas fa-times-circle me-1"></i> View Reason
+                      </button>
+                    {% endif %}
+
+                    {% if meeting.notes %}
+                      <button class="badge bg-info border-0 ms-1" onclick="viewMeetingNotes({{ meeting.id }})">
+                        <i class="fas fa-sticky-note me-1"></i> Notes
+                      </button>
+                    {% endif %}
+
+                    {% if meeting.agenda %}
+                      <button class="badge bg-primary border-0 ms-1" onclick="viewMeetingAgenda({{ meeting.id }})">
+                        <i class="fas fa-clipboard-list me-1"></i> Agenda
+                      </button>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <i class="fas fa-calendar-times mb-2"></i>
+          <p class="mb-0">No meetings found.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Common Modals -->
+{% include 'shared/common_modals.html' with user=parent %}
+
+<!-- Parent-specific Modals -->
+{% include 'parent/modals/feedback_modal.html' %}
+{% include 'parent/modals/meeting_notes_modal.html' %}
+{% include 'parent/modals/meeting_agenda_modal.html' %}
+{% include 'parent/modals/cancellation_reason_modal.html' %}
+{% include 'parent/modals/student_details_modal.html' %}
+
+<!-- Bottom Navigation -->
+{% include 'shared/bottom_nav.html' with user=parent %}
+
+<!-- Section Navigation Script -->
+<script>
+function showSection(sectionId) {
+  // Hide all sections
+  document.querySelectorAll('.content-section').forEach(section => {
+    section.style.display = 'none';
+  });
+
+  // Show selected section
+  const targetSection = document.getElementById(sectionId);
+  if (targetSection) {
+    targetSection.style.display = 'block';
+  }
+
+  // Update active button
+  document.querySelectorAll('.nav-btn, .nav-item').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('onclick')?.includes(sectionId) ||
+        btn.getAttribute('data-section') === sectionId.replace('Section', '')) {
+      btn.classList.add('active');
+    }
+  });
+}
+
+// Student detail view function
+function viewStudentDetails(studentId) {
+  console.log('DEBUG: viewStudentDetails called with studentId:', studentId);
+
+  // Show loading state
+  const modal = document.getElementById('studentDetailsModal');
+  const errorDiv = document.getElementById('studentDetailsError');
+  const loadingDiv = document.getElementById('studentDetailsLoading');
+  const contentDiv = document.getElementById('studentDetailsContent');
+
+  // Reset and show modal with loading state
+  errorDiv.style.display = 'none';
+  loadingDiv.style.display = 'block';
+  contentDiv.style.display = 'none';
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  // Fetch student details
+  fetch(`/app/api/students/${studentId}/details/`)
+    .then(response => {
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('You are not authorized to view this student');
+        } else if (response.status === 404) {
+          throw new Error('Student not found');
+        }
+        throw new Error('Failed to load student details');
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Hide loading, show content
+      loadingDiv.style.display = 'none';
+      contentDiv.style.display = 'block';
+
+      // Update student details
+      document.getElementById('studentName').textContent = data.name || 'N/A';
+      document.getElementById('studentId').textContent = data.id || 'N/A';
+      document.getElementById('studentCourse').textContent = data.course_name || 'Not assigned';
+
+      // Set status with badge
+      let statusBadge = `<span class="badge `;
+      if (data.status === 'Active') {
+        statusBadge += `bg-success">Active</span>`;
+      } else if (data.status === 'Leave') {
+        statusBadge += `bg-warning">Leave</span>`;
+      } else {
+        statusBadge += `bg-secondary">${data.status || 'Unknown'}</span>`;
+      }
+      document.getElementById('studentStatusBadge').innerHTML = statusBadge;
+
+      // Set period
+      document.getElementById('studentPeriod').textContent = data.current_period
+        ? `Period ${data.current_period}`
+        : 'Not assigned';
+
+      // Handle student image
+      if (data.image_url) {
+        document.getElementById('studentImage').innerHTML = `<img src="${data.image_url}" alt="${data.name}" style="width: 100%; height: 100%; object-fit: cover;">`;
+      } else {
+        document.getElementById('studentImage').innerHTML = `<i class="fas fa-user fa-2x text-secondary"></i>`;
+      }
+
+      // Set contact info
+      document.getElementById('studentEmail').textContent = data.email || 'Not provided';
+      document.getElementById('studentPhone').textContent = data.phone || 'Not provided';
+      document.getElementById('studentAddress').textContent = data.address || 'Not provided';
+
+      // Set attendance
+      if (data.attendance_rate) {
+        document.getElementById('studentAttendance').innerHTML = `
+          <div class="d-flex align-items-center">
+            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+              <div class="progress-bar ${data.attendance_rate.rate < 75 ? 'bg-danger' : 'bg-success'}"
+                   role="progressbar"
+                   style="width: ${data.attendance_rate.rate}%">
+              </div>
+            </div>
+            <span class="text-nowrap">${data.attendance_rate.formatted}</span>
+          </div>
+        `;
+      } else {
+        document.getElementById('studentAttendance').textContent = 'No data available';
+      }
+
+      // Set course timeline information
+      document.getElementById('studentCourseName').textContent = data.course_name || 'Not available';
+      document.getElementById('studentCourseCode').textContent = data.course_code || 'Not available';
+      document.getElementById('studentCourseStatus').textContent = data.course_status || 'Not available';
+      document.getElementById('studentCurrentPeriod').textContent = data.current_period || 'Not available';
+      document.getElementById('studentCourseDescription').textContent = data.course_description || 'No description available';
+      document.getElementById('studentPeriodEndDate').textContent = data.expected_end_date || 'Not available';
+      document.getElementById('studentCourseEndDate').textContent = data.course_end_date || 'Not available';
+      document.getElementById('studentProgressBar').style.width = `${data.progress}%`;
+    })
+    .catch(error => {
+      console.error('Error fetching student details:', error);
+      loadingDiv.style.display = 'none';
+      errorDiv.style.display = 'block';
+      errorDiv.textContent = error.message || 'Failed to load student details. Please try again.';
+      contentDiv.style.display = 'none';
+    });
+}
+
+function closeStudentDetailsModal() {
+  const modal = document.getElementById('studentDetailsModal');
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Add escape key handler for student details modal
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    const studentDetailsModal = document.getElementById('studentDetailsModal');
+    if (studentDetailsModal.style.display === 'block') {
+      closeStudentDetailsModal();
+    }
+  }
+});
+
+// Meeting-related functions
+function viewMeetingNotes(meetingId) {
+  fetch(`/app/api/meetings/${meetingId}/notes/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok: ' + response.statusText);
+      }
+      return response.json();
+    })
+    .then(data => {
+      document.getElementById('meetingNotesContent').innerHTML = data.notes || 'No notes available';
+      document.getElementById('meetingNotesModal').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    })
+    .catch(error => {
+      console.error('Error fetching meeting notes:', error);
+      alert('Error loading meeting notes. Please try again.');
+    });
+}
+
+function closeMeetingNotesModal() {
+  document.getElementById('meetingNotesModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function viewMeetingAgenda(meetingId) {
+  fetch(`/app/api/meetings/${meetingId}/agenda/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok: ' + response.statusText);
+      }
+      return response.json();
+    })
+    .then(data => {
+      document.getElementById('meetingAgendaContent').innerHTML = data.agenda || 'No agenda available';
+      document.getElementById('meetingAgendaModal').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    })
+    .catch(error => {
+      console.error('Error fetching meeting agenda:', error);
+      alert('Error loading meeting agenda. Please try again.');
+    });
+}
+
+function closeMeetingAgendaModal() {
+  document.getElementById('meetingAgendaModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function viewCancellationReason(meetingId) {
+  fetch(`/app/api/meetings/${meetingId}/cancellation-reason/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok: ' + response.statusText);
+      }
+      return response.json();
+    })
+    .then(data => {
+      document.getElementById('cancellationReasonContent').innerHTML = data.reason || 'No reason provided';
+      document.getElementById('cancellationReasonModal').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    })
+    .catch(error => {
+      console.error('Error fetching cancellation reason:', error);
+      alert('Error loading cancellation reason. Please try again.');
+    });
+}
+
+function closeCancellationReasonModal() {
+  document.getElementById('cancellationReasonModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Add event listeners for closing modals with Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    const meetingNotesModal = document.getElementById('meetingNotesModal');
+    const meetingAgendaModal = document.getElementById('meetingAgendaModal');
+    const cancellationReasonModal = document.getElementById('cancellationReasonModal');
+
+    if (meetingNotesModal.style.display === 'block') {
+      closeMeetingNotesModal();
+    }
+    if (meetingAgendaModal.style.display === 'block') {
+      closeMeetingAgendaModal();
+    }
+    if (cancellationReasonModal.style.display === 'block') {
+      closeCancellationReasonModal();
+    }
+  }
+});
+</script>
+
+<!-- Navigation Button Styles -->
+<style type="text/css">
+.nav-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background: #f8f9fa;
+  color: #6c757d;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.nav-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+.nav-btn i {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .nav-buttons {
+    justify-content: center;
+  }
+
+  .nav-btn {
+    padding: 0.5rem 1rem;
+  }
+
+  .nav-btn span {
+    display: none;
+  }
+
+  .nav-btn i {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+}
+</style>
+
+{% endblock %}
+
+{% block extrascripts %}
+{{ block.super }}
+<script>
+  // Initialize Firebase and request notification permission when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Call getDeviceToken to initialize Firebase and request notification permission
+    if (typeof getDeviceToken === 'function') {
+      getDeviceToken().catch(error => {
+        console.error('Error initializing Firebase:', error);
+      });
+    }
+  });
+</script>
+{% endblock %}

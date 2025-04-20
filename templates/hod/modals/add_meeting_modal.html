@@ -1,0 +1,73 @@
+{% load static %}
+
+<!-- Add Meeting Modal -->
+<div id="addMeetingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddMeetingModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background-color: #3F51B5; color: white; padding: 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;">
+      <h5 style="margin: 0; font-size: 18px;">Schedule New Meeting</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddMeetingModal()">&times;</button>
+    </div>
+    <div style="padding: 15px;">
+      <form id="addMeetingForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <!-- Left Column -->
+          <div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;" for="meetingDate">Date</label>
+              <input type="date" id="meetingDate" name="meeting_date" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;" for="meetingTime">Time</label>
+              <input type="time" id="meetingTime" name="meeting_time" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;" for="duration">Duration (minutes)</label>
+              <input type="number" id="duration" name="duration" min="15" max="120" value="30" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+          </div>
+          
+          <!-- Right Column -->
+          <div>
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; align-items: center;">
+                <input type="checkbox" id="isOnline" name="is_online" style="margin-right: 8px;">
+                <label for="isOnline" style="font-weight: 500;">Online Meeting</label>
+              </div>
+            </div>
+            <div id="meetingLinkContainer" style="margin-bottom: 12px; display: none;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;" for="meetingLink">Meeting Link</label>
+              <input type="url" id="meetingLink" name="meeting_link" value="" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+          </div>
+        </div>
+        
+        <!-- Full Width Sections -->
+        <div style="margin-top: 15px;">
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;" for="agenda">Agenda</label>
+            <textarea id="agenda" name="agenda" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px;"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    
+    <div style="padding: 12px; border-top: 1px solid #EEEEEE; text-align: right; position: sticky; bottom: 0; background-color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+      <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 8px;" onclick="closeAddMeetingModal()">Cancel</button>
+      <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="submitAddMeetingForm()">Schedule Meeting</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Toggle meeting link field based on online/in-person selection
+document.addEventListener('DOMContentLoaded', function() {
+  if (document.getElementById('isOnline')) {
+    document.getElementById('isOnline').addEventListener('change', function() {
+      const meetingLinkContainer = document.getElementById('meetingLinkContainer');
+      const meetingLinkInput = document.getElementById('meetingLink');
+      meetingLinkContainer.style.display = this.checked ? 'block' : 'none';
+      meetingLinkInput.required = this.checked;
+    });
+  }
+});
+</script> 

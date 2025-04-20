@@ -1,0 +1,125 @@
+<!-- Add Routine Modal -->
+<div id="addRoutineModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5>Add Class Routine</h5>
+      <span class="close" onclick="closeAddRoutineModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="addRoutineForm">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+          <label for="subjectId" class="form-label">Subject</label>
+          <select id="subjectId" name="subject_id" class="form-select" required>
+            <option value="">Select Subject</option>
+            {% for subject in subjects %}
+              <option value="{{ subject.id }}">{{ subject.name }} ({% if course.duration_type == 'Semester' %}Semester{% else %}Year{% endif %} {{ subject.period_or_year }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="mb-3">
+          <label for="teacherId" class="form-label">Teacher</label>
+          <select id="teacherId" name="teacher_id" class="form-select" required>
+            <option value="">Select Teacher</option>
+            {% for teacher in staff %}
+              <option value="{{ teacher.id }}">{{ teacher.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col">
+            <label for="startTime" class="form-label">Start Time</label>
+            <input type="time" id="startTime" name="start_time" class="form-control" required>
+          </div>
+          <div class="col">
+            <label for="endTime" class="form-label">End Time</label>
+            <input type="time" id="endTime" name="end_time" class="form-control" required>
+          </div>
+        </div>
+        
+        <input type="hidden" id="periodOrYear" name="period_or_year">
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn modal-btn-cancel" onclick="closeAddRoutineModal()">Cancel</button>
+      <button type="button" class="modal-btn modal-btn-delete" onclick="submitAddRoutineForm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Routine Modal -->
+<div id="editRoutineModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5>Edit Class Routine</h5>
+      <span class="close" onclick="closeEditRoutineModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="editRoutineForm">
+        {% csrf_token %}
+        <input type="hidden" id="editRoutineId" name="routine_id">
+        
+        <div class="mb-3">
+          <label for="editSubjectId" class="form-label">Subject</label>
+          <select id="editSubjectId" name="subject_id" class="form-select" required>
+            <option value="">Select Subject</option>
+            {% for subject in subjects %}
+              <option value="{{ subject.id }}">{{ subject.name }} ({% if course.duration_type == 'Semester' %}Semester{% else %}Year{% endif %} {{ subject.period_or_year }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="mb-3">
+          <label for="editTeacherId" class="form-label">Teacher</label>
+          <select id="editTeacherId" name="teacher_id" class="form-select" required>
+            <option value="">Select Teacher</option>
+            {% for teacher in staff %}
+              <option value="{{ teacher.id }}">{{ teacher.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col">
+            <label for="editStartTime" class="form-label">Start Time</label>
+            <input type="time" id="editStartTime" name="start_time" class="form-control" required>
+          </div>
+          <div class="col">
+            <label for="editEndTime" class="form-label">End Time</label>
+            <input type="time" id="editEndTime" name="end_time" class="form-control" required>
+          </div>
+        </div>
+        
+        <input type="hidden" id="editPeriodOrYear" name="period_or_year">
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn modal-btn-cancel" onclick="closeEditRoutineModal()">Cancel</button>
+      <button type="button" class="modal-btn modal-btn-delete" onclick="submitEditRoutineForm()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Routine Confirmation Modal -->
+<div id="deleteRoutineModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5>Confirm Delete</h5>
+      <span class="close" onclick="closeDeleteRoutineModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete this routine? This action cannot be undone.</p>
+      <form id="deleteRoutineForm">
+        {% csrf_token %}
+        <input type="hidden" id="deleteRoutineId" name="routine_id">
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn modal-btn-cancel" onclick="closeDeleteRoutineModal()">Cancel</button>
+      <button type="button" class="modal-btn modal-btn-delete" onclick="submitDeleteRoutineForm()">Delete</button>
+    </div>
+  </div>
+</div> 

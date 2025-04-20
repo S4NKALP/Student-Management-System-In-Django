@@ -1,0 +1,132 @@
+<!-- Student Details Modal -->
+<div id="studentDetailsModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeStudentDetailsModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Student Details</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeStudentDetailsModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: 80vh; overflow-y: auto;">
+      <div id="studentDetailsError" class="alert alert-danger" style="display: none;"></div>
+      <div id="studentDetailsLoading" class="text-center" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading student details...</p>
+      </div>
+      <div id="studentDetailsContent">
+        <div class="row">
+          <!-- Student Basic Info -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-header bg-light py-2">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Basic Information</h5>
+              </div>
+              <div class="card-body">
+                <div class="text-center mb-3">
+                  <div id="studentImage" class="mx-auto mb-2" style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-user fa-2x text-secondary"></i>
+                  </div>
+                  <h5 id="studentName" class="mb-1">Student Name</h5>
+                  <p id="studentCourse" class="text-muted mb-0">Course</p>
+                </div>
+
+                <div class="row">
+                  <div class="col-6">
+                    <p class="text-muted mb-1">ID</p>
+                    <p id="studentId" class="mb-3">-</p>
+                  </div>
+                  <div class="col-6">
+                    <p class="text-muted mb-1">Status</p>
+                    <p id="studentStatusBadge" class="mb-3">-</p>
+                  </div>
+                  <div class="col-6">
+                    <p class="text-muted mb-1">Current Period</p>
+                    <p id="studentPeriod" class="mb-3">-</p>
+                  </div>
+                  <div class="col-6">
+                    <p class="text-muted mb-1">Attendance</p>
+                    <p id="studentAttendance" class="mb-3">-</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Student Contact Info -->
+          <div class="col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-header bg-light py-2">
+                <h5 class="card-title mb-0"><i class="fas fa-address-book me-2"></i>Contact Information</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-12">
+                    <p class="text-muted mb-1">Email</p>
+                    <p id="studentEmail" class="mb-3">-</p>
+                  </div>
+                  <div class="col-12">
+                    <p class="text-muted mb-1">Phone</p>
+                    <p id="studentPhone" class="mb-3">-</p>
+                  </div>
+                  <div class="col-12">
+                    <p class="text-muted mb-1">Address</p>
+                    <p id="studentAddress" class="mb-3">-</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Course Timeline Information -->
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-light py-2">
+            <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i>Course Timeline</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3">
+                <p class="text-muted mb-1">Course Name</p>
+                <p id="studentCourseName" class="mb-3">-</p>
+              </div>
+              <div class="col-md-3">
+                <p class="text-muted mb-1">Course Code</p>
+                <p id="studentCourseCode" class="mb-3">-</p>
+              </div>
+              <div class="col-md-3">
+                <p class="text-muted mb-1">Course Status</p>
+                <p id="studentCourseStatus" class="mb-3">-</p>
+              </div>
+              <div class="col-md-3">
+                <p class="text-muted mb-1">Current Period</p>
+                <p id="studentCurrentPeriod" class="mb-3">-</p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 mb-3">
+                <p class="text-muted mb-1">Course Description</p>
+                <p id="studentCourseDescription" class="mb-3">-</p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <p class="text-muted mb-1">Current Period End Date</p>
+                <p id="studentPeriodEndDate" class="mb-3">-</p>
+              </div>
+              <div class="col-md-4">
+                <p class="text-muted mb-1">Expected Course Completion</p>
+                <p id="studentCourseEndDate" class="mb-3">-</p>
+              </div>
+              <div class="col-md-4">
+                <p class="text-muted mb-1">Progress</p>
+                <div class="progress mb-3">
+                  <div id="studentProgressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

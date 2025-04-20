@@ -1,0 +1,145 @@
+{% load static %}
+
+<!-- Add Student Modal -->
+<div id="addStudentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddStudentModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background-color: #3F51B5; color: white; padding: 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;">
+      <h5 style="margin: 0; font-size: 18px;">Add New Student</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddStudentModal()">&times;</button>
+    </div>
+    <div style="padding: 15px;">
+      <form id="addStudentForm">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <!-- Left Column -->
+          <div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Name <span style="color: red;">*</span></label>
+              <input type="text" id="addStudentName" name="name" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Phone <span style="color: red;">*</span></label>
+              <input type="tel" id="addStudentPhone" name="phone" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+              <small style="color: #666; display: block; margin-top: 2px; font-size: 11px;">This will be used as the login ID</small>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Batch <span style="color: red;">*</span></label>
+              <select id="addStudentBatch" name="batch" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required>
+                <option value="">Select Batch</option>
+                {% for batch in batches %}
+                <option value="{{ batch.id }}">{{ batch.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Status <span style="color: red;">*</span></label>
+              <select id="addStudentStatus" name="status" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required>
+                <option value="">Select Status</option>
+                <option value="Active">Active</option>
+                <option value="Leave">Leave</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Email</label>
+              <input type="email" id="addStudentEmail" name="email" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Gender</label>
+              <select id="addStudentGender" name="gender" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Birth Date</label>
+              <input type="date" id="addStudentBirthDate" name="birth_date" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+          </div>
+          <!-- Right Column -->
+          <div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Temporary Address</label>
+              <textarea id="addStudentTempAddress" name="temporary_address" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px;"></textarea>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Permanent Address</label>
+              <textarea id="addStudentPermAddress" name="permanent_address" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px;"></textarea>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Parent/Guardian Name</label>
+              <input type="text" id="addStudentParentName" name="parent_name" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Parent/Guardian Phone <span style="color: red;">*</span></label>
+              <input type="tel" id="addStudentParentPhone" name="parent_phone" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+              <small style="color: #666; display: block; margin-top: 2px; font-size: 11px;">This will be used to create parent account</small>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Citizenship Number</label>
+              <input type="text" id="addStudentCitizenshipNo" name="citizenship_no" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div style="padding: 12px; border-top: 1px solid #EEEEEE; text-align: right; position: sticky; bottom: 0; background-color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+      <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 8px;" onclick="closeAddStudentModal()">Cancel</button>
+      <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="submitAddStudentForm()">Add Student</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openAddStudentModal() {
+  document.getElementById('addStudentModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAddStudentModal() {
+  document.getElementById('addStudentModal').style.display = 'none';
+  document.body.style.overflow = '';
+  document.getElementById('addStudentForm').reset();
+}
+
+function submitAddStudentForm() {
+  const formData = new FormData(document.getElementById('addStudentForm'));
+  
+  fetch('{% url "add_student" %}', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.text().then(text => {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('Invalid JSON response:', text);
+        throw new Error('Invalid JSON response from server');
+      }
+    });
+  })
+  .then(data => {
+    if (data.success) {
+      closeAddStudentModal();
+      showMessageModal('Success', data.message);
+      // Refresh the student list
+      location.reload();
+    } else {
+      showMessageModal('Error', data.message || 'Failed to add student');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showMessageModal('Error', error.message || 'Failed to add student. Please try again.');
+  });
+}
+</script> 

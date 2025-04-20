@@ -1,24 +1,31 @@
-import random
-import string
-import requests
-from django.template.loader import render_to_string
-from django.core.mail import send_mail
-from django.conf import settings
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.utils import timezone
-import pyotp
+# Standard library imports
 import base64
-from .models import TOTPSecret, ResetToken, Student, Staff
+import random
+import os
+
+# Core Django imports
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils import timezone
+
+# Third-party app imports
+import pyotp
+
+# Local app imports
+from app.models import ResetToken, Staff, Student, TOTPSecret
 
 # OTP expiration time in seconds (5 minutes)
-OTP_EXPIRY = 300
+OTP_EXPIRY = int(os.getenv('OTP_EXPIRY', 300))
+
+
+# --------------------------------------------------------------------
+# OTP and Secret Key Generation
+# --------------------------------------------------------------------
 
 
 def generate_secret_key():
     """Generate a random secret key for TOTP"""
-    return base64.b32encode(random.getrandbits(160).to_bytes(20, 'big')).decode('utf-8')
+    return base64.b32encode(random.getrandbits(160).to_bytes(20, "big")).decode("utf-8")
 
 
 def generate_otp(secret_key):
@@ -27,17 +34,20 @@ def generate_otp(secret_key):
     return totp.now()
 
 
+# --------------------------------------------------------------------
+# OTP Storage and Verification
+# --------------------------------------------------------------------
+
+
 def store_secret_key(identifier, secret_key):
     """Store secret key in database"""
     # Delete any existing secrets for this identifier
     TOTPSecret.objects.filter(identifier=identifier).delete()
-    
+
     # Create new secret with expiration
     expires_at = timezone.now() + timezone.timedelta(seconds=OTP_EXPIRY)
     return TOTPSecret.objects.create(
-        identifier=identifier,
-        secret_key=secret_key,
-        expires_at=expires_at
+        identifier=identifier, secret_key=secret_key, expires_at=expires_at
     )
 
 
@@ -45,17 +55,22 @@ def verify_otp(identifier, otp):
     """Verify OTP using TOTP"""
     try:
         # Get the most recent secret for this identifier
-        secret = TOTPSecret.objects.filter(identifier=identifier).latest('created_at')
-        
+        secret = TOTPSecret.objects.filter(identifier=identifier).latest("created_at")
+
         # Check if secret is expired
         if secret.is_expired():
             return False
-        
+
         # Verify OTP
         totp = pyotp.TOTP(secret.secret_key, interval=OTP_EXPIRY)
         return totp.verify(otp)
     except TOTPSecret.DoesNotExist:
         return False
+
+
+# --------------------------------------------------------------------
+# SMS Communication
+# --------------------------------------------------------------------
 
 
 def send_otp_sms(phone, otp):
@@ -65,19 +80,18 @@ def send_otp_sms(phone, otp):
         student = Student.objects.filter(phone=phone).first()
         staff = Staff.objects.filter(phone=phone).first()
         user = student or staff
-        
+
         # Get user's name
         user_name = user.name if user else "User"
-        
+
         # Calculate expiry time in minutes
         expiry_minutes = OTP_EXPIRY // 60
 
         # Render SMS message using template
-        message = render_to_string("login/sms_templates/otp_message.txt", {
-            "user_name": user_name,
-            "otp": otp,
-            "expiry_time": expiry_minutes
-        })
+        message = render_to_string(
+            "login/sms_templates/otp_message.txt",
+            {"user_name": user_name, "otp": otp, "expiry_time": expiry_minutes},
+        )
 
         # This is a placeholder. You need to replace with actual SMS API implementation
         # Example using a generic SMS API
@@ -100,6 +114,11 @@ def send_otp_sms(phone, otp):
         return False
 
 
+# --------------------------------------------------------------------
+# Email Communication
+# --------------------------------------------------------------------
+
+
 def send_password_reset_email(user, request, email):
     """
     Send password reset code to user's email using HTML template
@@ -107,10 +126,10 @@ def send_password_reset_email(user, request, email):
     try:
         # Generate a secret key for TOTP
         secret_key = generate_secret_key()
-        
+
         # Store the secret key in database
         store_secret_key(email, secret_key)
-        
+
         # Generate TOTP
         totp = pyotp.TOTP(secret_key, interval=OTP_EXPIRY)
         reset_code = totp.now()
@@ -151,17 +170,20 @@ def verify_reset_code(email, code):
     return verify_otp(email, code)
 
 
+# --------------------------------------------------------------------
+# Token Management
+# --------------------------------------------------------------------
+
+
 def store_reset_token(token, identifier):
     """Store reset token in database"""
     # Delete any existing tokens for this identifier
     ResetToken.objects.filter(identifier=identifier).delete()
-    
+
     # Create new token with expiration (15 minutes)
     expires_at = timezone.now() + timezone.timedelta(minutes=15)
     return ResetToken.objects.create(
-        token=token,
-        identifier=identifier,
-        expires_at=expires_at
+        token=token, identifier=identifier, expires_at=expires_at
     )
 
 
@@ -169,18 +191,22 @@ def verify_reset_token(token, identifier):
     """Verify reset token from database"""
     try:
         reset_token = ResetToken.objects.get(token=token)
-        
+
         # Check if token is expired
         if reset_token.is_expired():
             return False
-            
+
         return reset_token.identifier == identifier
     except ResetToken.DoesNotExist:
         return False
+
+
+# --------------------------------------------------------------------
+# Cleanup Functions
+# --------------------------------------------------------------------
 
 
 def cleanup_expired_tokens():
     """Clean up expired TOTP secrets and reset tokens"""
     TOTPSecret.objects.filter(expires_at__lt=timezone.now()).delete()
     ResetToken.objects.filter(expires_at__lt=timezone.now()).delete()
-

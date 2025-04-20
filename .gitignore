@@ -1,4 +1,3 @@
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -141,6 +140,15 @@ docs/
 !media/
 media/*
 
+!media/default.png
+
+!media/registration_form/
+media/registration_form/*
+!media/registration_form/README.txt
+
+!media/result_sheet/
+media/result_sheet/*
+!media/result_sheet/README.txt
 
 # Custom
 dump.rdb
@@ -150,4 +158,18 @@ dump.rdb
 firebase-config.json
 firebase.json
 static/js/firebase-config.js
-static/firebase-messaging-sw.js
+firebase-key.json
+
+# Environment files
+.env
+
+# Database files
+db.sqlite3
+
+# Local configuration files
+local_settings.py
+
+# Sensitive Files
+*_key.json
+*_credentials.json
+*_secret.json

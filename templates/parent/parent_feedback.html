@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="content-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h3 class="mb-0">
+            <i class="fas fa-star me-2"></i> Submit Feedback
+          </h3>
+          <a href="{% url 'parent_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+          </a>
+        </div>
+
+        <form method="post" class="feedback-form">
+          {% csrf_token %}
+          
+          <!-- Student Selection -->
+          <div class="mb-3">
+            <label for="student" class="form-label">Select Student</label>
+            <select class="form-select" id="student" name="student" required>
+              <option value="">Choose your child...</option>
+              {% for student in students %}
+                <option value="{{ student.id }}">{{ student.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <!-- Teacher Selection -->
+          <div class="mb-3">
+            <label for="teacher" class="form-label">Select Teacher</label>
+            <select class="form-select" id="teacher" name="teacher" required>
+              <option value="">Choose a teacher...</option>
+              {% for teacher in teachers %}
+                <option value="{{ teacher.id }}">{{ teacher.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <!-- Rating -->
+          <div class="mb-3">
+            <label class="form-label">Rating</label>
+            <div class="rating-stars d-flex">
+              <i class="far fa-star fs-4 text-warning rating-star" data-value="1" onclick="selectRating(this, 'selected_rating')"></i>
+              <i class="far fa-star fs-4 text-warning rating-star" data-value="2" onclick="selectRating(this, 'selected_rating')"></i>
+              <i class="far fa-star fs-4 text-warning rating-star" data-value="3" onclick="selectRating(this, 'selected_rating')"></i>
+              <i class="far fa-star fs-4 text-warning rating-star" data-value="4" onclick="selectRating(this, 'selected_rating')"></i>
+              <i class="far fa-star fs-4 text-warning rating-star" data-value="5" onclick="selectRating(this, 'selected_rating')"></i>
+              <input type="hidden" name="rating" id="selected_rating" value="" required>
+              <div class="invalid-feedback d-block" id="rating-error" style="display: none;">Please select a rating</div>
+            </div>
+          </div>
+          
+          <!-- Feedback Text -->
+          <div class="mb-3">
+            <label for="feedback_text" class="form-label">Your Feedback</label>
+            <textarea class="form-control" id="feedback_text" name="feedback_text" rows="4" required></textarea>
+          </div>
+          
+          <!-- Submit Button -->
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-paper-plane me-1"></i> Submit Feedback
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rating System JavaScript -->
+<script>
+function selectRating(star, inputId) {
+  const value = parseInt(star.getAttribute('data-value'));
+  document.getElementById(inputId).value = value;
+  
+  // Update star display
+  const allStars = star.parentNode.querySelectorAll('.rating-star');
+  allStars.forEach(s => {
+    const starValue = parseInt(s.getAttribute('data-value'));
+    if (starValue <= value) {
+      s.classList.remove('far');
+      s.classList.add('fas');
+      s.classList.add('selected');
+    } else {
+      s.classList.remove('fas');
+      s.classList.add('far');
+      s.classList.remove('selected');
+    }
+  });
+  
+  // Hide error message
+  document.getElementById('rating-error').style.display = 'none';
+}
+
+// Form validation
+document.querySelector('.feedback-form').addEventListener('submit', function(e) {
+  const ratingInput = document.getElementById('selected_rating');
+  if (!ratingInput.value) {
+    e.preventDefault();
+    document.getElementById('rating-error').style.display = 'block';
+    document.getElementById('rating-error').scrollIntoView({ behavior: 'smooth' });
+  }
+});
+</script>
+
+<!-- Rating System Styles -->
+<style>
+.rating-stars {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.rating-star {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rating-star:hover,
+.rating-star.active,
+.rating-star.selected {
+  color: #FFD700 !important;
+  transform: scale(1.1);
+}
+</style>
+
+{% endblock %} 

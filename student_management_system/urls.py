@@ -27,24 +27,29 @@ from app import auth
 
 # Main URL patterns for the project
 urlpatterns = [
+    # Application URLs ------------------------------------------------
     path("app/", include("app.urls")),
     path("admin/", custom_admin_site.urls),
-    
-    # Root URL redirects to dashboard
+    # Root Redirect --------------------------------------------------
     path("", RedirectView.as_view(url="/app/dashboard/", permanent=False)),
-    
-    # Authentication URLs
-    path('login/', auth_views.LoginView.as_view(template_name='login/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
-    
-    # Password reset URLs
-    path('password-reset/', auth.reset_password_options, name='password_reset'),
-    
-    # Firebase service worker URL
-    path('firebase-messaging-sw.js', views.serve_firebase_sw),
+    # Authentication -------------------------------------------------
+    path("login/", auth.custom_login, name="login"),
+    path("logout/", auth_views.LogoutView.as_view(next_page="/login/"), name="logout"),
+    # Password Management --------------------------------------------
+    path("password-reset/", auth.reset_password_options, name="password_reset"),
+    # Firebase Service -----------------------------------------------
+    path("firebase-messaging-sw.js", views.serve_firebase_sw),
 ]
 
-# Add static and media file serving in development
+# Static and Media Files (Development Only) --------------------------
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Error Handlers ----------------------------------------------------
+handler400 = "app.error_handlers.handler400"
+handler403 = "app.error_handlers.handler403"
+handler404 = "app.error_handlers.handler404"
+handler500 = "app.error_handlers.handler500"
+handler505 = "app.error_handlers.handler505"
+

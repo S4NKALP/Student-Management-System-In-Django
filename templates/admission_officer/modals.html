@@ -1,0 +1,1076 @@
+{% load static %}
+
+<!-- Add Student Modal -->
+<div id="addStudentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddStudentModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow: hidden;">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Add New Student</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddStudentModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: calc(90vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <form id="addStudentForm" method="post" action="/app/add-student/" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="name" class="form-label">Full Name *</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+          </div>
+          <div class="col-md-6">
+            <label for="phone" class="form-label">Phone Number *</label>
+            <input type="tel" class="form-control" id="phone" name="phone" required pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email">
+          </div>
+          <div class="col-md-6">
+            <label for="gender" class="form-label">Gender</label>
+            <select class="form-select" id="gender" name="gender">
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="birth_date" class="form-label">Birth Date</label>
+            <input type="date" class="form-control" id="birth_date" name="birth_date">
+          </div>
+          <div class="col-md-6">
+            <label for="course" class="form-label">Course *</label>
+            <select class="form-select" id="course" name="course" required>
+              <option value="">Select Course</option>
+              <!-- Courses will be loaded dynamically -->
+            </select>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="batches" class="form-label">Batch *</label>
+            <select class="form-select" id="batches" name="batches" required>
+              <option value="">Select Batch</option>
+              <!-- Batches will be loaded dynamically -->
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="current_period" class="form-label">Current Period</label>
+            <input type="number" class="form-control" id="current_period" name="current_period" value="1" min="1">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="parent_name" class="form-label">Parent Name</label>
+            <input type="text" class="form-control" id="parent_name" name="parent_name">
+          </div>
+          <div class="col-md-6">
+            <label for="parent_phone" class="form-label">Parent Phone</label>
+            <input type="tel" class="form-control" id="parent_phone" name="parent_phone" pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="permanent_address" class="form-label">Permanent Address</label>
+            <input type="text" class="form-control" id="permanent_address" name="permanent_address">
+          </div>
+          <div class="col-md-6">
+            <label for="citizenship_number" class="form-label">Citizenship No.</label>
+            <input type="text" class="form-control" id="citizenship_number" name="citizenship_number">
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <small class="text-muted">Fields marked with * are required</small>
+          <br>
+          <small class="text-muted">Default password will be set to: 123</small>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" onclick="closeAddStudentModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Batch Modal -->
+<div id="addBatchModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddBatchModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow: hidden;">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Add New Batch</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddBatchModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: calc(90vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <form id="addBatchForm" method="post" action="/app/add-batch/">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+          <label for="batch_name" class="form-label">Batch Name *</label>
+          <input type="text" class="form-control" id="batch_name" name="name" required placeholder="e.g. Batch 2023">
+        </div>
+        
+        <div class="mb-3">
+          <label for="start_date" class="form-label">Start Date *</label>
+          <input type="date" class="form-control" id="start_date" name="start_date" required>
+          <small class="text-muted">This will be used as the batch year</small>
+        </div>
+        
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="batch_is_active" name="is_active" checked>
+          <label class="form-check-label" for="batch_is_active">Active</label>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" onclick="closeAddBatchModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Batch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Course Modal -->
+<div id="addCourseModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddCourseModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 700px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow: hidden;">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Add New Course</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddCourseModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: calc(90vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <form id="addCourseForm" method="post" action="/app/add-course/">
+        {% csrf_token %}
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="course_name" class="form-label">Course Name *</label>
+            <input type="text" class="form-control" id="course_name" name="name" required>
+          </div>
+          <div class="col-md-6">
+            <label for="code" class="form-label">Course Code</label>
+            <input type="text" class="form-control" id="code" name="code">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="duration_type" class="form-label">Duration Type *</label>
+            <select class="form-select" id="duration_type" name="duration_type" required>
+              <option value="">Select Duration Type</option>
+              <option value="Semester">Semester</option>
+              <option value="Year">Year</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="duration" class="form-label">Duration (Years) *</label>
+            <input type="number" class="form-control" id="duration" name="duration" min="1" placeholder="4" required>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="description" class="form-label">Description</label>
+          <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+        </div>
+        
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="course_is_active" name="is_active" checked>
+          <label class="form-check-label" for="course_is_active">Active</label>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" onclick="closeAddCourseModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Course</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Course Tracking Modal -->
+<div id="addCourseTrackingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddCourseTrackingModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 700px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow: hidden;">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Add Course Tracking</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddCourseTrackingModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: calc(90vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <form id="addCourseTrackingForm" method="post" action="/app/add-course-tracking/">
+        {% csrf_token %}
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="student" class="form-label">Student *</label>
+            <select class="form-select" id="student" name="student" required>
+              <option value="">Select Student</option>
+              <!-- Students will be loaded dynamically -->
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="track_course" class="form-label">Course *</label>
+            <select class="form-select" id="track_course" name="course" required>
+              <option value="">Select Course</option>
+              <!-- Courses will be loaded dynamically -->
+            </select>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="tracking_start_date" class="form-label">Start Date *</label>
+            <input type="date" class="form-control" id="tracking_start_date" name="start_date" required>
+          </div>
+          <div class="col-md-6">
+            <label for="expected_end_date" class="form-label">Expected End Date</label>
+            <input type="date" class="form-control" id="expected_end_date" name="expected_end_date">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="tracking_current_period" class="form-label">Current Period *</label>
+            <input type="number" class="form-control" id="tracking_current_period" name="current_period" min="1" placeholder="1" required>
+          </div>
+          <div class="col-md-6">
+            <label for="progress_status" class="form-label">Progress Status</label>
+            <select class="form-select" id="progress_status" name="progress_status">
+              <option value="">Select Status</option>
+              <option value="Not Started">Not Started</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Dropped">Dropped</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="notes" class="form-label">Notes</label>
+          <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" onclick="closeAddCourseTrackingModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Tracking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- View Student Modal -->
+<div id="viewStudentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeViewStudentModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow: hidden;">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Student Details</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeViewStudentModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: calc(90vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <div id="viewStudentContent">
+        <!-- Student details will be loaded here -->
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Loading student details...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div id="editStudentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeEditStudentModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow: hidden;">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Edit Student</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeEditStudentModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: calc(90vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <form id="editStudentForm" method="post" action="/app/edit-student/" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" id="edit_student_id" name="student_id">
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="edit_name" class="form-label">Full Name *</label>
+            <input type="text" class="form-control" id="edit_name" name="name" required>
+          </div>
+          <div class="col-md-6">
+            <label for="edit_phone" class="form-label">Phone Number *</label>
+            <input type="tel" class="form-control" id="edit_phone" name="phone" required pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="edit_email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="edit_email" name="email">
+          </div>
+          <div class="col-md-6">
+            <label for="edit_gender" class="form-label">Gender</label>
+            <select class="form-select" id="edit_gender" name="gender">
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="edit_birth_date" class="form-label">Birth Date</label>
+            <input type="date" class="form-control" id="edit_birth_date" name="birth_date">
+          </div>
+          <div class="col-md-6">
+            <label for="edit_course" class="form-label">Course *</label>
+            <select class="form-select" id="edit_course" name="course" required>
+              <option value="">Select Course</option>
+              <!-- Courses will be loaded dynamically -->
+            </select>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="edit_batches" class="form-label">Batch *</label>
+            <select class="form-select" id="edit_batches" name="batches" required>
+              <option value="">Select Batch</option>
+              <!-- Batches will be loaded dynamically -->
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="edit_status" class="form-label">Status</label>
+            <select class="form-select" id="edit_status" name="status">
+              <option value="Active">Active</option>
+              <option value="Leave">Leave</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="edit_parent_name" class="form-label">Parent Name</label>
+            <input type="text" class="form-control" id="edit_parent_name" name="parent_name">
+          </div>
+          <div class="col-md-6">
+            <label for="edit_parent_phone" class="form-label">Parent Phone</label>
+            <input type="tel" class="form-control" id="edit_parent_phone" name="parent_phone" pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="edit_permanent_address" class="form-label">Permanent Address</label>
+            <input type="text" class="form-control" id="edit_permanent_address" name="permanent_address">
+          </div>
+          <div class="col-md-6">
+            <label for="edit_citizenship_number" class="form-label">Citizenship No.</label>
+            <input type="text" class="form-control" id="edit_citizenship_number" name="citizenship_number">
+          </div>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" onclick="closeEditStudentModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for Modal Operations -->
+<script>
+  // Function to open the add student modal
+  window.openAddStudentModal = function() {
+    // Reset form before showing modal
+    document.getElementById('addStudentForm').reset();
+    
+    // Load courses for dropdown
+    fetch('/app/get-courses/', {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const courseSelect = document.querySelector('#course');
+      courseSelect.innerHTML = '<option value="">Select Course</option>';
+      
+      if (data.success && data.courses.length > 0) {
+        data.courses.forEach(course => {
+          courseSelect.innerHTML += `<option value="${course.id}">${course.name}</option>`;
+        });
+      }
+    })
+    .catch(error => console.error('Error loading courses:', error));
+    
+    // Load batches for dropdown
+    fetch('/app/get-batches/', {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => {
+      console.log('Batch fetch response:', response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Batch data received:', data);
+      const batchSelect = document.querySelector('#batches');
+      // Clear existing options and add an empty placeholder as the first option
+      batchSelect.innerHTML = '<option value="" selected>Select Batch</option>';
+      
+      if (data.success && data.batches && data.batches.length > 0) {
+        console.log(`Adding ${data.batches.length} batches to dropdown`);
+        // Simple list of batches with year info in the name
+        data.batches.forEach(batch => {
+          const displayName = batch.display_name || `${batch.name} (${batch.year})`;
+          batchSelect.innerHTML += `<option value="${batch.id}">${displayName}</option>`;
+        });
+      } else {
+        console.warn('No batches found in data or success=false:', data);
+        batchSelect.innerHTML = '<option value="" selected>No batches available</option>';
+      }
+    })
+    .catch(error => {
+      console.error('Error loading batches:', error);
+      const batchSelect = document.querySelector('#batches');
+      batchSelect.innerHTML = '<option value="" selected>Failed to load batches</option>';
+    });
+    
+    // Show the modal
+    document.getElementById('addStudentModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  };
+  
+  // Function to close the add student modal
+  window.closeAddStudentModal = function() {
+    document.getElementById('addStudentModal').style.display = 'none';
+    document.body.style.overflow = '';
+  };
+  
+  // Function to open the add batch modal
+  window.openAddBatchModal = function() {
+    // Reset form before showing modal
+    document.getElementById('addBatchForm').reset();
+    
+    // Show the modal
+    document.getElementById('addBatchModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  };
+  
+  // Function to close the add batch modal
+  window.closeAddBatchModal = function() {
+    document.getElementById('addBatchModal').style.display = 'none';
+    document.body.style.overflow = '';
+  };
+  
+  // Function to open the add course modal
+  window.openAddCourseModal = function() {
+    // Reset form before showing modal
+    document.getElementById('addCourseForm').reset();
+    
+    // Show the modal
+    document.getElementById('addCourseModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  };
+  
+  // Function to close the add course modal
+  window.closeAddCourseModal = function() {
+    document.getElementById('addCourseModal').style.display = 'none';
+    document.body.style.overflow = '';
+  };
+  
+  // Function to open the add course tracking modal
+  window.openAddCourseTrackingModal = function() {
+    // Reset form before showing modal
+    document.getElementById('addCourseTrackingForm').reset();
+    
+    // Load students for dropdown
+    console.log("Fetching students...");
+    fetch('/app/admission-get-students/', {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => {
+      console.log("Student fetch response status:", response.status);
+      return response.json();
+    })
+    .then(data => {
+      console.log("Student data received:", data);
+      const studentSelect = document.querySelector('#student');
+      if (!studentSelect) {
+        console.error("Cannot find student select element with ID 'student'");
+        return;
+      }
+      
+      studentSelect.innerHTML = '<option value="">Select Student</option>';
+      
+      if (data.success && data.students && data.students.length > 0) {
+        console.log(`Adding ${data.students.length} students to dropdown`);
+        data.students.forEach(student => {
+          studentSelect.innerHTML += `<option value="${student.id}">${student.name}</option>`;
+        });
+      } else {
+        console.warn("No students found in data or success=false", data);
+      }
+    })
+    .catch(error => {
+      console.error("Error loading students:", error);
+      alert("Failed to load students. Check console for details.");
+    });
+    
+    // Load courses for dropdown
+    fetch('/app/get-courses/', {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const courseSelect = document.querySelector('#track_course');
+      courseSelect.innerHTML = '<option value="">Select Course</option>';
+      
+      if (data.success && data.courses.length > 0) {
+        data.courses.forEach(course => {
+          courseSelect.innerHTML += `<option value="${course.id}">${course.name}</option>`;
+        });
+      }
+    })
+    .catch(error => console.error('Error loading courses:', error));
+    
+    // Show the modal
+    document.getElementById('addCourseTrackingModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  };
+  
+  // Function to close the add course tracking modal
+  window.closeAddCourseTrackingModal = function() {
+    document.getElementById('addCourseTrackingModal').style.display = 'none';
+    document.body.style.overflow = '';
+  };
+</script>
+
+<!-- JavaScript for Student View/Edit Operations -->
+<script>
+  // Event listeners for student action buttons
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners to all buttons with data-action attributes
+    const actionButtons = document.querySelectorAll('button[data-action]');
+    actionButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const action = this.getAttribute('data-action');
+        const studentId = this.getAttribute('data-id');
+        
+        if (action === 'view') {
+          viewStudent(studentId);
+        } else if (action === 'edit') {
+          editStudent(studentId);
+        }
+      });
+    });
+  });
+  
+  // Function to open the view student modal
+  function viewStudent(studentId) {
+    // Show the modal with loading indicator
+    document.getElementById('viewStudentModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Fetch student details
+    fetch(`/app/get-student/${studentId}/`, {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const student = data.student;
+        
+        // Build HTML content for student details
+        let content = `
+          <div class="row">
+            <div class="col-md-4 text-center mb-4">
+              ${student.image ? 
+                `<img src="${student.image}" alt="${student.name}" class="img-fluid rounded mb-3" style="max-height: 200px;">` : 
+                `<div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 200px; width: 100%;">
+                   <i class="fas fa-user fa-4x text-secondary"></i>
+                 </div>`
+              }
+              <h4>${student.name}</h4>
+              <p class="badge ${student.status === 'Active' ? 'bg-success' : student.status === 'Leave' ? 'bg-warning' : 'bg-secondary'}">
+                ${student.status}
+              </p>
+            </div>
+            
+            <div class="col-md-8">
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h5 class="border-bottom pb-2 mb-3">Personal Information</h5>
+                  <div class="row">
+                    <div class="col-md-6 mb-2">
+                      <strong>Phone:</strong> ${student.phone}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                      <strong>Email:</strong> ${student.email || 'Not provided'}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                      <strong>Gender:</strong> ${student.gender || 'Not provided'}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                      <strong>Birth Date:</strong> ${student.birth_date || 'Not provided'}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                      <strong>Citizenship:</strong> ${student.citizenship_number || 'Not provided'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h5 class="border-bottom pb-2 mb-3">Academic Information</h5>
+                  <div class="row">
+                    <div class="col-md-6 mb-2">
+                      <strong>Course:</strong> ${student.course ? student.course.name : 'Not assigned'}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                      <strong>Batch:</strong> ${student.batches && student.batches.length > 0 ? 
+                        student.batches.map(b => b.name).join(', ') : 'Not assigned'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h5 class="border-bottom pb-2 mb-3">Parent Information</h5>
+                  <div class="row">
+                    <div class="col-md-6 mb-2">
+                      <strong>Name:</strong> ${student.parent_name || 'Not provided'}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                      <strong>Phone:</strong> ${student.parent_phone || 'Not provided'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="row">
+                <div class="col-12">
+                  <h5 class="border-bottom pb-2 mb-3">Address</h5>
+                  <p><strong>Permanent Address:</strong> ${student.permanent_address || 'Not provided'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Update modal content
+        document.getElementById('viewStudentContent').innerHTML = content;
+      } else {
+        document.getElementById('viewStudentContent').innerHTML = `
+          <div class="alert alert-danger">
+            Failed to load student details: ${data.message || 'Unknown error'}
+          </div>
+        `;
+      }
+    })
+    .catch(error => {
+      console.error('Error loading student details:', error);
+      document.getElementById('viewStudentContent').innerHTML = `
+        <div class="alert alert-danger">
+          Failed to load student details. Please try again later.
+        </div>
+      `;
+    });
+  }
+  
+  // Function to close the view student modal
+  function closeViewStudentModal() {
+    document.getElementById('viewStudentModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  
+  // Function to open the edit student modal
+  function editStudent(studentId) {
+    // Show the modal with loading indicator
+    document.getElementById('editStudentModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Set the student ID in the hidden field
+    document.getElementById('edit_student_id').value = studentId;
+    
+    // Load courses for dropdown
+    fetch('/app/get-courses/', {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const courseSelect = document.querySelector('#edit_course');
+      courseSelect.innerHTML = '<option value="">Select Course</option>';
+      
+      if (data.success && data.courses.length > 0) {
+        data.courses.forEach(course => {
+          courseSelect.innerHTML += `<option value="${course.id}">${course.name}</option>`;
+        });
+      }
+    })
+    .catch(error => console.error('Error loading courses:', error));
+    
+    // Load batches for dropdown
+    fetch('/app/get-batches/', {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const batchSelect = document.querySelector('#edit_batches');
+      batchSelect.innerHTML = '<option value="">Select Batch</option>';
+      
+      if (data.success && data.batches && data.batches.length > 0) {
+        data.batches.forEach(batch => {
+          const displayName = batch.display_name || `${batch.name} (${batch.year})`;
+          batchSelect.innerHTML += `<option value="${batch.id}">${displayName}</option>`;
+        });
+      }
+    })
+    .catch(error => console.error('Error loading batches:', error));
+    
+    // Fetch student details to populate the form
+    fetch(`/app/get-student/${studentId}/`, {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const student = data.student;
+        
+        // Populate form fields
+        document.getElementById('edit_name').value = student.name || '';
+        document.getElementById('edit_phone').value = student.phone || '';
+        document.getElementById('edit_email').value = student.email || '';
+        document.getElementById('edit_gender').value = student.gender || '';
+        document.getElementById('edit_birth_date').value = student.birth_date || '';
+        document.getElementById('edit_parent_name').value = student.parent_name || '';
+        document.getElementById('edit_parent_phone').value = student.parent_phone || '';
+        document.getElementById('edit_permanent_address').value = student.permanent_address || '';
+        document.getElementById('edit_citizenship_number').value = student.citizenship_number || '';
+        document.getElementById('edit_status').value = student.status || 'Active';
+        
+        // Set course and batch after a small delay to ensure the dropdowns are populated
+        setTimeout(() => {
+          if (student.course && student.course.id) {
+            document.getElementById('edit_course').value = student.course.id;
+          }
+          
+          if (student.batches && student.batches.length > 0) {
+            document.getElementById('edit_batches').value = student.batches[0].id;
+          }
+        }, 500);
+      } else {
+        alert('Failed to load student details: ' + (data.message || 'Unknown error'));
+      }
+    })
+    .catch(error => {
+      console.error('Error loading student details:', error);
+      alert('Failed to load student details. Please try again later.');
+    });
+  }
+  
+  // Function to close the edit student modal
+  function closeEditStudentModal() {
+    document.getElementById('editStudentModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+</script>
+
+<!-- View Course Tracking Modal -->
+<div id="viewTrackingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeViewTrackingModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 700px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow: hidden;">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Course Tracking Details</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeViewTrackingModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: calc(90vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <div id="viewTrackingContent">
+        <!-- Course tracking details will be loaded here -->
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Loading course tracking details...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Course Tracking Modal -->
+<div id="editTrackingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeEditTrackingModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 700px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow: hidden;">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Edit Course Tracking</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeEditTrackingModal()">&times;</button>
+    </div>
+    <div style="padding: 20px; max-height: calc(90vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <form id="editTrackingForm" method="post" action="/app/edit-course-tracking/">
+        {% csrf_token %}
+        <input type="hidden" id="edit_tracking_id" name="tracking_id">
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="edit_tracking_student" class="form-label">Student</label>
+            <input type="text" class="form-control" id="edit_tracking_student" readonly>
+          </div>
+          <div class="col-md-6">
+            <label for="edit_tracking_course" class="form-label">Course</label>
+            <input type="text" class="form-control" id="edit_tracking_course" readonly>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="edit_tracking_start_date" class="form-label">Start Date *</label>
+            <input type="date" class="form-control" id="edit_tracking_start_date" name="start_date" required>
+          </div>
+          <div class="col-md-6">
+            <label for="edit_tracking_expected_end_date" class="form-label">Expected End Date</label>
+            <input type="date" class="form-control" id="edit_tracking_expected_end_date" name="expected_end_date">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="edit_tracking_current_period" class="form-label">Current Period *</label>
+            <input type="number" class="form-control" id="edit_tracking_current_period" name="current_period" min="1" required>
+          </div>
+          <div class="col-md-6">
+            <label for="edit_tracking_progress_status" class="form-label">Progress Status</label>
+            <select class="form-select" id="edit_tracking_progress_status" name="progress_status">
+              <option value="Not Started">Not Started</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Dropped">Dropped</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="edit_tracking_completion_percentage" class="form-label">Completion Percentage</label>
+          <input type="range" class="form-range" id="edit_tracking_completion_percentage" name="completion_percentage" min="0" max="100" step="5" oninput="updateCompletionValue(this.value)">
+          <div class="text-center" id="completion_value_display">50%</div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="edit_tracking_notes" class="form-label">Notes</label>
+          <textarea class="form-control" id="edit_tracking_notes" name="notes" rows="3"></textarea>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary" onclick="closeEditTrackingModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Course Tracking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for Course Tracking Operations -->
+<script>
+  // Update completion percentage display
+  function updateCompletionValue(val) {
+    document.getElementById('completion_value_display').textContent = val + '%';
+  }
+  
+  // Function to view course tracking
+  function viewTracking(trackingId) {
+    // Show the modal with loading indicator
+    document.getElementById('viewTrackingModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Fetch tracking details
+    fetch(`/app/get-course-tracking/${trackingId}/`, {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const tracking = data.tracking;
+        
+        // Format dates for display
+        const startDate = new Date(tracking.start_date).toLocaleDateString();
+        const expectedEndDate = tracking.expected_end_date ? new Date(tracking.expected_end_date).toLocaleDateString() : 'Not set';
+        
+        // Get status color
+        let statusColor = 'secondary';
+        if (tracking.progress_status === 'In Progress') statusColor = 'warning';
+        else if (tracking.progress_status === 'Completed') statusColor = 'success';
+        else if (tracking.progress_status === 'Dropped') statusColor = 'danger';
+        
+        // Build HTML content for tracking details
+        let content = `
+          <div class="card mb-4">
+            <div class="card-header bg-light">
+              <h5 class="mb-0">Student & Course Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="fw-bold">Student:</div>
+                  <div>${tracking.student.name}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="fw-bold">Course:</div>
+                  <div>${tracking.course.name}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card mb-4">
+            <div class="card-header bg-light">
+              <h5 class="mb-0">Progress Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="fw-bold">Start Date:</div>
+                  <div>${startDate}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="fw-bold">Expected End Date:</div>
+                  <div>${expectedEndDate}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="fw-bold">Current Period:</div>
+                  <div>${tracking.current_period_display}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="fw-bold">Status:</div>
+                  <div><span class="badge bg-${statusColor}">${tracking.progress_status}</span></div>
+                </div>
+                <div class="col-12 mb-3">
+                  <div class="fw-bold">Completion:</div>
+                  <div class="progress" style="height: 20px;">
+                    <div class="progress-bar bg-${statusColor}" role="progressbar" style="width: ${tracking.completion_percentage}%;" 
+                         aria-valuenow="${tracking.completion_percentage}" aria-valuemin="0" aria-valuemax="100">
+                      ${tracking.completion_percentage}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-header bg-light">
+              <h5 class="mb-0">Additional Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="fw-bold">Notes:</div>
+              <div>${tracking.notes || 'No notes added'}</div>
+            </div>
+          </div>
+        `;
+        
+        // Update modal content
+        document.getElementById('viewTrackingContent').innerHTML = content;
+      } else {
+        document.getElementById('viewTrackingContent').innerHTML = `
+          <div class="alert alert-danger">
+            Failed to load tracking details: ${data.message || 'Unknown error'}
+          </div>
+        `;
+      }
+    })
+    .catch(error => {
+      console.error('Error loading tracking details:', error);
+      document.getElementById('viewTrackingContent').innerHTML = `
+        <div class="alert alert-danger">
+          Failed to load tracking details. Please try again later.
+        </div>
+      `;
+    });
+  }
+  
+  // Function to close the view tracking modal
+  function closeViewTrackingModal() {
+    document.getElementById('viewTrackingModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  
+  // Function to edit course tracking
+  function editTracking(trackingId) {
+    // Show the modal with loading indicator
+    document.getElementById('editTrackingModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Set the tracking ID in the hidden field
+    document.getElementById('edit_tracking_id').value = trackingId;
+    
+    // Fetch tracking details to populate the form
+    fetch(`/app/get-course-tracking/${trackingId}/`, {
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const tracking = data.tracking;
+        
+        // Populate form fields
+        document.getElementById('edit_tracking_student').value = tracking.student.name;
+        document.getElementById('edit_tracking_course').value = tracking.course.name;
+        document.getElementById('edit_tracking_start_date').value = tracking.start_date;
+        document.getElementById('edit_tracking_expected_end_date').value = tracking.expected_end_date || '';
+        document.getElementById('edit_tracking_current_period').value = tracking.current_period;
+        document.getElementById('edit_tracking_progress_status').value = tracking.progress_status;
+        
+        // Set completion percentage
+        const completionSlider = document.getElementById('edit_tracking_completion_percentage');
+        completionSlider.value = tracking.completion_percentage;
+        updateCompletionValue(tracking.completion_percentage);
+        
+        document.getElementById('edit_tracking_notes').value = tracking.notes || '';
+      } else {
+        alert('Failed to load tracking details: ' + (data.message || 'Unknown error'));
+        closeEditTrackingModal();
+      }
+    })
+    .catch(error => {
+      console.error('Error loading tracking details:', error);
+      alert('Failed to load tracking details. Please try again later.');
+      closeEditTrackingModal();
+    });
+  }
+  
+  // Function to close the edit tracking modal
+  function closeEditTrackingModal() {
+    document.getElementById('editTrackingModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+</script> 

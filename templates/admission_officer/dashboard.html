@@ -1,0 +1,985 @@
+{% extends 'shared/base.html' %}
+{% load static %}
+{% load tz %}
+{% load app_filters %}
+
+{% block extrahead %}
+<style>
+  /* Quick Action Links Styling */
+  .quick-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    color: #212529;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  
+  .quick-link:hover {
+    background-color: #e9ecef;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    color: var(--primary);
+  }
+  
+  .quick-link i {
+    font-size: 1.2rem;
+    margin-right: 12px;
+    width: 24px;
+    text-align: center;
+    color: var(--primary);
+  }
+  
+  .quick-link span {
+    font-weight: 500;
+  }
+  
+  @media (max-width: 768px) {
+    .quick-link {
+      padding: 10px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Add CSRF token to the page -->
+{% csrf_token %}
+
+<div class="container-fluid py-4">
+  <!-- Welcome Section -->
+  {% include 'shared/welcome_section.html' with user=officer %}
+
+  <!-- Dashboard Content -->
+  <div id="dashboardSection" class="content-section active">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i> Students</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ total_students }}</h2>
+              <p class="text-muted">Total Students</p>
+            </div>
+            <div class="text-center">
+              <div class="d-flex justify-content-around">
+                <div>
+                  <h4 class="fw-bold mb-0">{{ active_students }}</h4>
+                  <p class="text-muted">Active</p>
+                </div>
+                <div>
+                  <h4 class="fw-bold mb-0">{{ new_students }}</h4>
+                  <p class="text-muted">New (30 days)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-graduation-cap me-2"></i> Courses</h5>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <h2 class="fw-bold mb-0">{{ total_courses }}</h2>
+              <p class="text-muted">Total Courses</p>
+            </div>
+            <div class="text-center">
+              <div class="d-flex justify-content-around">
+                <div>
+                  <h4 class="fw-bold mb-0">{{ active_courses }}</h4>
+                  <p class="text-muted">Active</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-layer-group me-2"></i> Batches</h5>
+          </div>
+          <div class="card-body text-center">
+            <h2 class="fw-bold mb-3">{{ total_batches }}</h2>
+            <div class="d-flex justify-content-around">
+              <div>
+                <h4 class="fw-bold mb-0">{{ active_batches }}</h4>
+                <p class="text-muted">Active</p>
+              </div>
+              <div>
+                <button type="button" class="btn btn-sm btn-primary" onclick="openAddBatchModal()">
+                  <i class="fas fa-plus-circle"></i> Add
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-calendar-minus me-2"></i> Leave Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between mb-3">
+              <p class="mb-0">Pending</p>
+              <span class="badge leave-pending">{{ pending_leaves }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+              <p class="mb-0">Approved</p>
+              <span class="badge leave-approved">{{ approved_leaves }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+              <p class="mb-0">Rejected</p>
+              <span class="badge leave-rejected">{{ rejected_leaves }}</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-2" id="requestLeaveBtn" onclick="openLeaveModal()">
+              <i class="fas fa-plus-circle me-2"></i> Request Leave
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions Section -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="content-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="fas fa-bolt me-2"></i> Quick Actions</h5>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <a href="#" class="btn btn-outline-primary d-flex align-items-center mb-2 p-2" onclick="openAddStudentModal(); return false;">
+                <i class="fas fa-user-plus me-2"></i>
+                <span>Add New Student</span>
+              </a>
+              
+              <a href="#" class="btn btn-outline-primary d-flex align-items-center mb-2 p-2" onclick="openAddBatchModal(); return false;">
+                <i class="fas fa-layer-group me-2"></i>
+                <span>Add New Batch</span>
+              </a>
+            </div>
+            <div class="col-md-6">
+              <a href="#" class="btn btn-outline-primary d-flex align-items-center mb-2 p-2" onclick="openAddCourseTrackingModal(); return false;">
+                <i class="fas fa-chart-line me-2"></i>
+                <span>Add Course Tracking</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notices -->
+    <div class="row">
+      <div class="col-lg-6 mb-4 notice-section">
+        <div class="content-card">
+          <h5 class="mb-3"><i class="fas fa-bullhorn me-2"></i> Recent Notices</h5>
+          {% if notices %}
+            <div class="list-group" style="max-height: 300px; overflow-y: auto;">
+              {% for notice in notices %}
+                <div class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between flex-wrap">
+                    <h6 class="mb-1">{{ notice.title }}</h6>
+                    <small class="text-muted">{{ notice.created_at|timesince }} ago</small>
+                  </div>
+                  <p class="mb-1">{{ notice.message }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No recent notices.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Leave Requests -->
+      <div class="col-lg-6 mb-4">
+        <div class="content-card">
+          <h5 class="mb-3"><i class="fas fa-calendar-minus me-2"></i> Leave Requests</h5>
+          {% if recent_leaves %}
+            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+              <table class="table table-responsive table-hover">
+                <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                  <tr>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for leave in recent_leaves %}
+                    <tr>
+                      <td>{{ leave.start_date|date:"M d, Y" }}</td>
+                      <td>{{ leave.end_date|date:"M d, Y" }}</td>
+                      <td>{{ leave.message|truncatechars:50 }}</td>
+                      <td>
+                        <span class="badge
+                          {% if leave.status == 0 %}leave-pending
+                          {% elif leave.status == 1 %}leave-approved
+                          {% else %}leave-rejected{% endif %}">
+                          {{ leave.get_status_display }}
+                        </span>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> No leave requests found.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Students Section -->
+  <div id="studentsSection" class="content-section">
+    <div class="content-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0"><i class="fas fa-users me-2"></i> Student Management</h5>
+        <button type="button" class="btn btn-primary" onclick="openAddStudentModal()">
+          <i class="fas fa-user-plus me-1"></i> Add Student
+        </button>
+      </div>
+      
+      <!-- Search and Filter Section -->
+      <div class="row mb-4">
+        <div class="col-md-8">
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control" id="studentSearch" placeholder="Search by name, phone, or course..." onkeyup="filterStudents()">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" id="statusFilter" onchange="filterStudents()">
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Leave">Leave</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Student List Table -->
+      <div class="table-responsive">
+        <table class="table table-hover table-responsive id="studentTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Student Details</th>
+              <th>Contact Info</th>
+              <th>Parent Details</th>
+              <th>Course & Batch</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students|dictsort:"id" %}
+            <tr>
+              <td>{{ student.id }}</td>
+              <td>
+                <div class="d-flex align-items-center">
+                  {% if student.image %}
+                    <img src="{{ student.image.url }}" alt="{{ student.name }}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                  {% endif %}
+                  <div>
+                    <strong>{{ student.name }}</strong>
+                    {% if student.gender %}
+                      <br><small class="text-muted">{{ student.gender }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div>
+                  <i class="fas fa-phone me-1"></i> {{ student.phone }}<br>
+                  {% if student.email %}
+                    <i class="fas fa-envelope me-1"></i> {{ student.email }}<br>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div>
+                  {% if student.parent_name %}
+                    <i class="fas fa-user me-1"></i> {{ student.parent_name }}<br>
+                  {% endif %}
+                  {% if student.parent_phone %}
+                    <i class="fas fa-phone me-1"></i> {{ student.parent_phone }}
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div>
+                  {% if student.course %}
+                    <strong>{{ student.course.name }}</strong>
+                    {% if student.course.code %}({{ student.course.code }}){% endif %}
+                  {% endif %}
+                  <br>
+                  {% for batch in student.batches.all %}
+                    <span class="badge bg-info">{{ batch.name }}</span>
+                    {% if not forloop.last %}, {% endif %}
+                  {% empty %}
+                    <small class="text-muted">No batch assigned</small>
+                  {% endfor %}
+                </div>
+              </td>
+              <td>
+                <span class="badge {% if student.status == 'Active' %}bg-success{% elif student.status == 'Leave' %}bg-warning{% else %}bg-secondary{% endif %}">
+                  {{ student.status|default:"Not Set" }}
+                </span>
+              </td>
+              <td>
+                <div class="btn-group btn-group-custom">
+                  <button type="button" 
+                          class="btn btn-sm btn-primary" 
+                          data-action="view"
+                          data-id="{{ student.id }}">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button type="button" 
+                          class="btn btn-sm btn-info" 
+                          data-action="edit"
+                          data-id="{{ student.id }}">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center">No students found</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batches Section -->
+  <div id="batchesSection" class="content-section">
+    <div class="content-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i> Batch Management</h5>
+        <button type="button" class="btn btn-primary" onclick="openAddBatchModal()">
+          <i class="fas fa-plus-circle me-1"></i> Add Batch
+        </button>
+      </div>
+      
+      <!-- Batch List Table -->
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Year</th>
+              <th>Status</th>
+              <th>Students</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for batch in batches %}
+            <tr>
+              <td>{{ batch.name }}</td>
+              <td>{{ batch.year|date:"Y"|default:"-" }}</td>
+              <td>
+                <span class="badge {% if batch.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                  {{ batch.is_active|yesno:"Active,Inactive" }}
+                </span>
+              </td>
+              <td>{{ batch.students.count }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center">No batches found</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Courses Section -->
+  <div id="coursesSection" class="content-section">
+    <div class="content-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i> Course List</h5>
+      </div>
+      
+      <!-- Course list will be loaded here -->
+      <div id="courseListContainer">
+        <div class="table-responsive">
+          <table class="table table-hover table-responsive">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Duration</th>
+                <th>Type</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for course in courses %}
+              <tr>
+                <td>{{ course.name }}</td>
+                <td>{{ course.code|default:"-" }}</td>
+                <td>
+                  {% if course.duration_type == "Semester" %}
+                    {{ course.duration }} years ({{ course.duration|multiply:2 }} semesters)
+                  {% else %}
+                    {{ course.duration }} years
+                  {% endif %}
+                </td>
+                <td>{{ course.duration_type }}</td>
+                <td>
+                  <span class="badge {% if course.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                    {{ course.is_active|yesno:"Active,Inactive" }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Course Tracking Section -->
+  <div class="content-section" id="courseTrackingSection" style="display: none;">
+    <div class="content-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Course Tracking Management</h5>
+        <button type="button" class="btn btn-sm btn-primary" onclick="openAddCourseTrackingModal()">
+          <i class="fas fa-plus-circle me-1"></i> Add New
+        </button>
+      </div>
+
+      <!-- Search and Filter Section -->
+      <div class="row mb-4">
+        <div class="col-md-8">
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control" id="trackingSearch" placeholder="Search by student or course name..." onkeyup="filterTrackings()">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" id="progressFilter" onchange="filterTrackings()">
+            <option value="">All Progress Status</option>
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Dropped">Dropped</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Course Tracking List -->
+      <div class="table-responsive">
+        <table class="table table-hover table-responsive" id="trackingTable">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Course</th>
+              <th>Progress</th>
+              <th>Completion %</th>
+              <th>Start Date</th>
+              <th>Period</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tracking in recent_trackings %}
+            <tr data-tracking-id="{{ tracking.id }}">
+              <td>{{ tracking.student.name }}</td>
+              <td>{{ tracking.course.name }}</td>
+              <td>
+                <span class="status-badge {% if tracking.progress_status == 'Completed' %}bg-success{% elif tracking.progress_status == 'In Progress' %}bg-warning{% else %}bg-secondary{% endif %}">
+                  {{ tracking.progress_status }}
+                </span>
+              </td>
+              <td>
+                <div class="progress">
+                  <div class="progress-bar" 
+                       role="progressbar" 
+                       style="width: {{ tracking.completion_percentage }}%"
+                       aria-valuenow="{{ tracking.completion_percentage }}" 
+                       aria-valuemin="0" 
+                       aria-valuemax="100">
+                  </div>
+                </div>
+                <div class="progress-text">{{ tracking.completion_percentage }}%</div>
+              </td>
+              <td>{{ tracking.start_date|date:"M d, Y" }}</td>
+              <td>{{ tracking.current_period_display }}</td>
+              <td>
+                <div class="btn-group btn-group-custom">
+                  <button type="button" class="btn btn-sm btn-primary" onclick="viewTracking('{{ tracking.id }}')">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-info" onclick="editTracking('{{ tracking.id }}')">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Course Tracking Modal -->
+  <div id="addCourseTrackingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddCourseTrackingModal();">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 700px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow: hidden;">
+      <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+        <h5 style="margin: 0; font-size: 18px;">Add Course Tracking</h5>
+        <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddCourseTrackingModal()">&times;</button>
+      </div>
+      <div style="padding: 20px; max-height: calc(90vh - 60px); overflow-y: auto; -webkit-overflow-scrolling: touch;">
+        <form id="addCourseTrackingForm" method="post" action="/app/add-course-tracking/">
+          {% csrf_token %}
+          
+          <div class="row mb-3">
+            <div class="col-md-6 mb-3 mb-md-0">
+              <label for="student" class="form-label">Student *</label>
+              <select class="form-select" id="student" name="student" required>
+                <option value="">Select Student</option>
+                {% for student in students %}
+                  <option value="{{ student.id }}">{{ student.name }} ({{ student.phone }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="track_course" class="form-label">Course *</label>
+              <select class="form-select" id="track_course" name="course" required>
+                <option value="">Select Course</option>
+                {% for course in courses %}
+                  <option value="{{ course.id }}">{{ course.name }}{% if course.code %} ({{ course.code }}){% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-6 mb-3 mb-md-0">
+              <label for="tracking_start_date" class="form-label">Start Date *</label>
+              <input type="date" class="form-control" id="tracking_start_date" name="start_date" required>
+            </div>
+            <div class="col-md-6">
+              <label for="expected_end_date" class="form-label">Expected End Date</label>
+              <input type="date" class="form-control" id="expected_end_date" name="expected_end_date">
+            </div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-6 mb-3 mb-md-0">
+              <label for="current_period" class="form-label">Current Period</label>
+              <input type="number" class="form-control" id="current_period" name="current_period" value="1" min="1">
+            </div>
+            <div class="col-md-6">
+              <label for="progress_status" class="form-label">Progress Status</label>
+              <select class="form-select" id="progress_status" name="progress_status">
+                <option value="Not Started">Not Started</option>
+                <option value="In Progress" selected>In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Dropped">Dropped</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="notes" class="form-label">Notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+          </div>
+          
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary" onclick="closeAddCourseTrackingModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Course Tracking</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Section -->
+  <div id="profileSection" class="content-section">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-user mr-2"></i> Profile Information
+      </h3>
+      <div class="row">
+        <!-- Profile Header with Image and Actions -->
+        <div class="col-12 mb-4">
+          <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex align-items-center mb-3 mb-md-0">
+              {% if officer.image %}
+                <img src="{{ officer.image.url }}" alt="{{ officer.name }}" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+              {% else %}
+                <img src="{% static 'img/user.png' %}" alt="Default User" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+              {% endif %}
+              <div>
+                <h4 class="mb-1">{{ officer.name }}</h4>
+                <p class="mb-0 text-muted">
+                  <span class="me-3"><i class="fas fa-id-card me-1"></i> {{ officer.id }}</span>
+                  <span class="me-3"><i class="fas fa-envelope me-1"></i> {{ officer.email }}</span>
+                  <span><i class="fas fa-phone me-1"></i> {{ officer.phone }}</span>
+                </p>
+                <div class="mt-2">
+                  <span class="badge {% if officer.is_active %}bg-success{% else %}bg-danger{% endif %} me-2">
+                    {{ officer.is_active|yesno:"Active,Inactive" }}
+                  </span>
+                  <span class="badge bg-info">{{ officer.designation }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="profile-actions d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-primary" onclick="openProfileModal()">
+                <i class="fas fa-camera me-1"></i> Update Photo
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="openPasswordModal()">
+                <i class="fas fa-key me-1"></i> Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Information Section -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-user-circle me-2"></i>Personal Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Full Name</small>
+                  <p class="mb-0 fw-medium">{{ officer.name }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Gender</small>
+                  <p class="mb-0 fw-medium">{{ officer.gender|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Birth Date</small>
+                  <p class="mb-0 fw-medium">{{ officer.birth_date|date:"M d, Y"|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Marital Status</small>
+                  <p class="mb-0 fw-medium">{{ officer.marital_status|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Citizenship No.</small>
+                  <p class="mb-0 fw-medium">{{ officer.citizenship_no|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Passport</small>
+                  <p class="mb-0 fw-medium">{{ officer.passport|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-address-book me-2"></i>Contact Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Email Address</small>
+                  <p class="mb-0 fw-medium">{{ officer.email|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Phone Number</small>
+                  <p class="mb-0 fw-medium">{{ officer.phone|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Parent Name</small>
+                  <p class="mb-0 fw-medium">{{ officer.parent_name|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Parent Phone</small>
+                  <p class="mb-0 fw-medium">{{ officer.parent_phone|default:"Not provided" }}</p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Temporary Address</small>
+                  <p class="mb-0 fw-medium">{{ officer.temporary_address|default:"Not provided" }}</p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Permanent Address</small>
+                  <p class="mb-0 fw-medium">{{ officer.permanent_address|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Employment Information -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-briefcase me-2"></i>Employment Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Employee ID</small>
+                  <p class="mb-0 fw-medium">{{ officer.id }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Designation</small>
+                  <p class="mb-0 fw-medium">{{ officer.designation|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Joining Date</small>
+                  <p class="mb-0 fw-medium">{{ officer.joining_date|date:"M d, Y"|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Status</small>
+                  <p class="mb-0 fw-medium">
+                    <span class="badge {% if officer.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                      {{ officer.is_active|yesno:"Active,Inactive" }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leave Section -->
+  <div id="leaveSection" class="content-section">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-calendar-minus mr-2"></i> Leave Management
+      </h3>
+      <div class="row mb-4">
+        <div class="col-12">
+          <button type="button" class="btn btn-primary" onclick="openLeaveModal()">
+            <i class="fas fa-plus-circle me-2"></i>Request Leave
+          </button>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+              <i class="fas fa-clock text-warning mb-3" style="font-size: 2rem;"></i>
+              <h3 class="text-warning mb-2">{{ pending_leaves }}</h3>
+              <p class="mb-0">Pending Requests</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+              <i class="fas fa-check-circle text-success mb-3" style="font-size: 2rem;"></i>
+              <h3 class="text-success mb-2">{{ approved_leaves }}</h3>
+              <p class="mb-0">Approved Requests</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+              <i class="fas fa-times-circle text-danger mb-3" style="font-size: 2rem;"></i>
+              <h3 class="text-danger mb-2">{{ rejected_leaves }}</h3>
+              <p class="mb-0">Rejected Requests</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <h5 class="mb-3"><i class="fas fa-history me-2"></i> Leave History</h5>
+        <div class="table-responsive">
+          <table class="table table-responsive table-hover">
+            <thead>
+              <tr>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Applied On</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_leaves %}
+                {% for leave in recent_leaves %}
+                  <tr>
+                    <td>{{ leave.start_date|date:"M d, Y" }}</td>
+                    <td>{{ leave.end_date|date:"M d, Y" }}</td>
+                    <td>{{ leave.message }}</td>
+                    <td>
+                      <span class="badge
+                        {% if leave.status == 0 %}leave-pending
+                        {% elif leave.status == 1 %}leave-approved
+                        {% else %}leave-rejected{% endif %}">
+                        {{ leave.get_status_display }}
+                      </span>
+                    </td>
+                    <td>{{ leave.created_at|date:"M d, Y" }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5" class="text-center">No leave history available</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notice Section -->
+  <div id="noticeSection" class="content-section">
+    <div class="content-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i> Notices</h5>
+      </div>
+      
+      <!-- Notice List -->
+      <div class="table-responsive">
+        <table class="table table-hover table-responsive">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Message</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for notice in notices %}
+            <tr>
+              <td>{{ notice.title }}</td>
+              <td>{{ notice.message|truncatechars:100 }}</td>
+              <td>{{ notice.created_at|date:"M d, Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="text-center">No notices found</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Common Modals -->
+{% include 'shared/common_modals.html' with user=officer %}
+
+<!-- Admission Officer-specific Modals -->
+{% include 'admission_officer/modals.html' %}
+
+<!-- Bottom Navigation -->
+{% include 'shared/bottom_nav.html' with user=officer %}
+
+{% endblock content %}
+
+{% block extrastyle %}
+{{ block.super }}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+<style>
+  /* Progress Bar Styles */
+  .progress {
+    height: 8px;
+    background-color: #eef2f7;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 4px;
+    width: 120px;
+  }
+  
+  .progress-bar {
+    border-radius: 10px;
+    transition: width 0.6s ease;
+    background-color: #6366f1;
+  }
+  
+  .progress-bar.bg-success {
+    background-color: #22c55e !important;
+  }
+  
+  .progress-bar.bg-warning {
+    background-color: #f59e0b !important;
+  }
+  
+  .progress-bar.bg-danger {
+    background-color: #ef4444 !important;
+  }
+  
+  .progress-text {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  
+  .status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .status-badge.bg-warning {
+    background-color: #fef3c7 !important;
+    color: #d97706;
+  }
+  
+  .status-badge.bg-success {
+    background-color: #dcfce7 !important;
+    color: #15803d;
+  }
+  
+  .btn-group-custom {
+    display: inline-flex;
+    gap: 0.25rem;
+  }
+</style>
+{% endblock %}
+
+{% block extrascripts %}
+{{ block.super }}
+<script src="{% static 'js/admission_officer.js' %}"></script>
+{% endblock %} 

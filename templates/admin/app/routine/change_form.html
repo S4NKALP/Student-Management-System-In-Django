@@ -186,8 +186,8 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="id_semester_or_year">Semester/Year</label>
-                            <select name="semester_or_year" id="id_semester_or_year" class="form-control" required disabled>
+                            <label for="id_period_or_year">Period/Year</label>
+                            <select name="period_or_year" id="id_period_or_year" class="form-control" required disabled>
                                 <option value="">Select Course First</option>
                             </select>
                         </div>
@@ -209,7 +209,7 @@
                     <tbody>
                         <tr class="routine-row">
                             <td colspan="5" class="text-center">
-                                Please select course and semester
+                                Please select course and period
                             </td>
                         </tr>
                     </tbody>
@@ -230,7 +230,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const courseSelect = document.getElementById('id_course');
-    const semesterSelect = document.getElementById('id_semester_or_year');
+    const periodSelect = document.getElementById('id_period_or_year');
     const routineTable = document.getElementById('routine-table');
     const addRowBtn = document.querySelector('.btn-add');
     const form = document.getElementById('routine-form');
@@ -253,10 +253,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to update subject options
     function updateSubjectOptions() {
         const courseId = courseSelect.value;
-        const semester = semesterSelect.value;
+        const period = periodSelect.value;
         const tbody = routineTable.querySelector('tbody');
 
-        if (courseId && semester) {
+        if (courseId && period) {
             // Show loading state
             tbody.innerHTML = `
                 <tr>
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </tr>
             `;
 
-            fetch(`/app/get-subjects/?course_id=${courseId}&semester_or_year=${semester}`)
+            fetch(`/app/get-subjects/?course_id=${courseId}&period_or_year=${period}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.subjects && data.subjects.length > 0) {
@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         tbody.innerHTML = `
                             <tr>
                                 <td colspan="5" class="text-center">
-                                    <div>No subjects available for this semester</div>
+                                    <div>No subjects available for this period</div>
                                 </td>
                             </tr>
                         `;
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tbody.innerHTML = `
                 <tr class="routine-row">
                     <td colspan="5" class="text-center">
-                        <div>Please select both course and semester</div>
+                        <div>Please select both course and period</div>
                     </td>
                 </tr>
             `;
@@ -374,52 +374,57 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Function to update semester/year options based on course
-    function updateSemesterOptions() {
+    // Function to update period options based on course
+    function updatePeriodOptions() {
         const selectedOption = courseSelect.options[courseSelect.selectedIndex];
         console.log('Selected course:', selectedOption.text);
         console.log('Duration:', selectedOption.dataset.duration);
         console.log('Duration type:', selectedOption.dataset['duration-type']);
         
         if (courseSelect.value) {
-            const totalSemesters = parseInt(selectedOption.dataset.duration) || 0;
-            console.log('Total semesters:', totalSemesters);
+            const durationType = selectedOption.dataset['duration-type'];
+            const totalPeriods = parseInt(selectedOption.dataset.duration) || 0;
+            const isSemester = durationType === 'Semester';
             
-            // Clear and update the semester select
-            semesterSelect.innerHTML = '<option value="">Select Semester</option>';
+            // Calculate total periods based on duration type
+            const actualTotalPeriods = isSemester ? totalPeriods * 2 : totalPeriods;
+            console.log('Total periods:', actualTotalPeriods);
             
-            if (totalSemesters > 0) {
-                for (let i = 1; i <= totalSemesters; i++) {
+            // Clear and update the period select
+            periodSelect.innerHTML = '<option value="">Select Period</option>';
+            
+            if (actualTotalPeriods > 0) {
+                for (let i = 1; i <= actualTotalPeriods; i++) {
                     const option = document.createElement('option');
                     option.value = i;
-                    option.textContent = `Semester ${i}`;
-                    semesterSelect.appendChild(option);
+                    option.textContent = `${isSemester ? 'Semester' : 'Year'} ${i}`;
+                    periodSelect.appendChild(option);
                 }
-                semesterSelect.disabled = false;
+                periodSelect.disabled = false;
             } else {
                 console.log('No valid duration found for course');
-                semesterSelect.disabled = true;
+                periodSelect.disabled = true;
             }
         } else {
-            semesterSelect.innerHTML = '<option value="">Select Course First</option>';
-            semesterSelect.disabled = true;
+            periodSelect.innerHTML = '<option value="">Select Course First</option>';
+            periodSelect.disabled = true;
         }
         
         // Initialize or update Select2
-        $(semesterSelect).select2({
+        $(periodSelect).select2({
             width: '100%'
         });
     }
 
-    // Update subjects when course or semester changes
+    // Update subjects when course or period changes
     $(courseSelect).on('change', function() {
         console.log('Course changed:', this.value);
-        updateSemesterOptions();
+        updatePeriodOptions();
         updateSubjectOptions();
     });
 
-    $(semesterSelect).on('change', function() {
-        console.log('Semester changed:', this.value);
+    $(periodSelect).on('change', function() {
+        console.log('Period changed:', this.value);
         updateSubjectOptions();
     });
     
@@ -432,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 routineTable.querySelector('tbody').innerHTML = `
                     <tr class="routine-row">
                         <td colspan="5" class="text-center">
-                            <div>All routines removed. Please select a course and semester to add more.</div>
+                            <div>All routines removed. Please select a course and period to add more.</div>
                         </td>
                     </tr>
                 `;
@@ -449,8 +454,8 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        if (!courseSelect.value || !semesterSelect.value) {
-            showStatus('Please select both Course and Semester/Year', true);
+        if (!courseSelect.value || !periodSelect.value) {
+            showStatus('Please select both Course and Period/Year', true);
             return;
         }
         
@@ -496,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     start_time: startTimeInput.value,
                     end_time: endTimeInput.value,
                     course: courseSelect.value,
-                    semester_or_year: semesterSelect.value
+                    period_or_year: periodSelect.value
                 };
                 
                 console.log('Adding routine:', routine);
@@ -535,7 +540,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showStatus('Routines saved successfully');
                 // Clear form data
                 courseSelect.value = '';
-                semesterSelect.value = '';
+                periodSelect.value = '';
                 routineTable.querySelector('tbody').innerHTML = '';
                 // Redirect after a short delay
                 setTimeout(() => {

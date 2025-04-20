@@ -180,7 +180,6 @@ A comprehensive Student Management System built with Django, featuring multi-rol
 
 - **Responsive Design**: Mobile-first approach
 - **Push Notifications**: Real-time updates
-- **Offline Support**: Basic functionality without internet
 - **Mobile Optimization**: Touch-friendly interface
 
 ## 🎯 Project Architecture
@@ -621,7 +620,6 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 ### Mobile Optimization
 
 - Touch-friendly interface
-- Offline support
 - Push notifications
 - Mobile-specific layouts
 - Gesture support

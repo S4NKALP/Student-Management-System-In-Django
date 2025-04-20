@@ -21,7 +21,6 @@ A comprehensive Student Management System built with Django, featuring multi-rol
 - [👥 Role System](#-role-system)
 - [✨ Key Features](#-key-features)
 - [🎯 Project Architecture](#-project-architecture)
-- [💰 Project Costs](#-project-costs)
 - [🌍 Feasibility](#-feasibility)
 - [🚀 Getting Started](#-getting-started)
 - [🔧 Configuration](#-configuration)
@@ -42,69 +41,70 @@ A comprehensive Student Management System built with Django, featuring multi-rol
 <details>
 <summary><b>🔥 Core Technologies</b></summary>
 
-| Technology | Version | Purpose | Documentation |
-|------------|---------|---------|---------------|
-| Python | 3.8+ | Backend Development | [Python Docs](https://docs.python.org/) |
-| Django | 5.2 | Web Framework | [Django Docs](https://docs.djangoproject.com/) |
-| Django REST Framework | 3.16.0 | API Development | [DRF Docs](https://www.django-rest-framework.org/) |
-| Firebase Admin | 6.7.0 | Real-time Features | [Firebase Docs](https://firebase.google.com/docs) |
-| Google Cloud Storage | 3.1.0 | File Storage | [GCS Docs](https://cloud.google.com/storage/docs) |
+| Technology            | Version | Purpose             | Documentation                                      |
+| --------------------- | ------- | ------------------- | -------------------------------------------------- |
+| Python                | 3.8+    | Backend Development | [Python Docs](https://docs.python.org/)            |
+| Django                | 5.2     | Web Framework       | [Django Docs](https://docs.djangoproject.com/)     |
+| Django REST Framework | 3.16.0  | API Development     | [DRF Docs](https://www.django-rest-framework.org/) |
+| Firebase Admin        | 6.7.0   | Real-time Features  | [Firebase Docs](https://firebase.google.com/docs)  |
+| Google Cloud Storage  | 3.1.0   | File Storage        | [GCS Docs](https://cloud.google.com/storage/docs)  |
 
 </details>
 
 <details>
 <summary><b>⚡ Frontend Technologies</b></summary>
 
-| Technology | Version | Purpose | Documentation |
-|------------|---------|---------|---------------|
-| Bootstrap | 5.3.0 | UI Framework | [Bootstrap Docs](https://getbootstrap.com/docs/) |
-| jQuery | Latest | DOM Manipulation | [jQuery Docs](https://api.jquery.com/) |
-| Firebase Web SDK | 9.22.0 | Real-time Updates | [Firebase Web Docs](https://firebase.google.com/docs/web) |
-| Font Awesome | 6.0.0 | Icons | [Font Awesome Docs](https://fontawesome.com/docs) |
+| Technology       | Version | Purpose           | Documentation                                             |
+| ---------------- | ------- | ----------------- | --------------------------------------------------------- |
+| Bootstrap        | 5.3.0   | UI Framework      | [Bootstrap Docs](https://getbootstrap.com/docs/)          |
+| jQuery           | Latest  | DOM Manipulation  | [jQuery Docs](https://api.jquery.com/)                    |
+| Firebase Web SDK | 9.22.0  | Real-time Updates | [Firebase Web Docs](https://firebase.google.com/docs/web) |
+| Font Awesome     | 6.0.0   | Icons             | [Font Awesome Docs](https://fontawesome.com/docs)         |
 
 </details>
 
 <details>
 <summary><b>🛠️ Development Tools</b></summary>
 
-| Tool | Version | Purpose | Documentation |
-|------|---------|---------|---------------|
-| Git | Latest | Version Control | [Git Docs](https://git-scm.com/doc) |
-| WhiteNoise | 6.9.0 | Static File Serving | [WhiteNoise Docs](https://whitenoise.readthedocs.io/) |
-| PyOTP | 2.9.0 | OTP Generation | [PyOTP Docs](https://github.com/pyauth/pyotp) |
-| Django Jazzmin | 3.0.1 | Admin Interface | [Jazzmin Docs](https://django-jazzmin.readthedocs.io/) |
-| Django Mathfilters | 1.0.0 | Math Operations | [Mathfilters Docs](https://github.com/dbrgn/django-mathfilters) |
-| Django Model Utils | 5.0.0 | Model Utilities | [Model Utils Docs](https://django-model-utils.readthedocs.io/) |
+| Tool               | Version | Purpose             | Documentation                                                   |
+| ------------------ | ------- | ------------------- | --------------------------------------------------------------- |
+| Git                | Latest  | Version Control     | [Git Docs](https://git-scm.com/doc)                             |
+| WhiteNoise         | 6.9.0   | Static File Serving | [WhiteNoise Docs](https://whitenoise.readthedocs.io/)           |
+| PyOTP              | 2.9.0   | OTP Generation      | [PyOTP Docs](https://github.com/pyauth/pyotp)                   |
+| Django Jazzmin     | 3.0.1   | Admin Interface     | [Jazzmin Docs](https://django-jazzmin.readthedocs.io/)          |
+| Django Mathfilters | 1.0.0   | Math Operations     | [Mathfilters Docs](https://github.com/dbrgn/django-mathfilters) |
+| Django Model Utils | 5.0.0   | Model Utilities     | [Model Utils Docs](https://django-model-utils.readthedocs.io/)  |
 
 </details>
 
 ### 🖥️ Development Environment
 
-| Component | Details |
-|-----------|---------|
-| **Operating System** | [Arch Linux](https://archlinux.org/) |
-| **Window Manager** | [Hyprland](https://github.com/hyprwm/Hyprland) |
-| **Status Bar** | [Modus](https://github.com/S4NKALP/Modus) |
-| **Editor** | [Neovim](https://neovim.io/) |
-| **Terminal** | [Kitty](https://sw.kovidgoyal.net/kitty/) |
-| **Shell** | [Zsh](https://www.zsh.org/) |
+| Component            | Details                                        |
+| -------------------- | ---------------------------------------------- |
+| **Operating System** | [Arch Linux](https://archlinux.org/)           |
+| **Window Manager**   | [Hyprland](https://github.com/hyprwm/Hyprland) |
+| **Status Bar**       | [Modus](https://github.com/S4NKALP/Modus)      |
+| **Editor**           | [Neovim](https://neovim.io/)                   |
+| **Terminal**         | [Kitty](https://sw.kovidgoyal.net/kitty/)      |
+| **Shell**            | [Zsh](https://www.zsh.org/)                    |
 
 ## 👥 Role System
 
 ### 🎓 User Roles and Permissions
 
-| Role | Description | Key Features |
-|------|-------------|--------------|
-| **Super Admin** | System administrator with full access | - Full system control<br>- User management<br>- System configuration |
-| **HOD (Head of Department)** | Department head with elevated privileges | - Course management<br>- Staff supervision<br>- Department analytics |
-| **Admission Officer** | Handles student admissions | - Student registration<br>- Document verification<br>- Admission tracking |
-| **Teacher** | Academic staff member | - Class management<br>- Attendance tracking<br>- Grade management |
-| **Student** | Primary system user | - Course access<br>- Attendance tracking<br>- Grade viewing |
-| **Parent** | Student guardian | - Student progress tracking<br>- Communication with teachers<br>- Fee management |
+| Role                         | Description                              | Key Features                                                                     |
+| ---------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
+| **Super Admin**              | System administrator with full access    | - Full system control<br>- User management<br>- System configuration             |
+| **HOD (Head of Department)** | Department head with elevated privileges | - Course management<br>- Staff supervision<br>- Department analytics             |
+| **Admission Officer**        | Handles student admissions               | - Student registration<br>- Document verification<br>- Admission tracking        |
+| **Teacher**                  | Academic staff member                    | - Class management<br>- Attendance tracking<br>- Grade management                |
+| **Student**                  | Primary system user                      | - Course access<br>- Attendance tracking<br>- Grade viewing                      |
+| **Parent**                   | Student guardian                         | - Student progress tracking<br>- Communication with teachers<br>- Fee management |
 
 ### 🔐 Authentication System
 
 - **Multi-factor Authentication**
+
   - Phone-based OTP verification
   - TOTP (Time-based One-Time Password)
   - Password reset tokens
@@ -119,12 +119,14 @@ A comprehensive Student Management System built with Django, featuring multi-rol
 ## ✨ Key Features
 
 ### 👥 User Management
+
 - **Multi-role System**: Comprehensive role hierarchy
 - **Secure Authentication**: OTP and TOTP-based verification
 - **Role-based Access Control**: Detailed permission system
 - **User Profiles**: Complete user information management
 
 ### 📚 Academic Management
+
 - **Course Management**: Create and manage courses
 - **Subject Management**: Organize subjects with materials
 - **Class Scheduling**: Advanced timetable system
@@ -132,36 +134,42 @@ A comprehensive Student Management System built with Django, featuring multi-rol
 - **Exam Management**: Complete exam workflow
 
 ### 📊 Attendance System
+
 - **Real-time Tracking**: Live attendance monitoring
 - **Automated Reports**: Detailed attendance analytics
 - **Notification System**: Real-time alerts
 - **Bulk Operations**: Efficient batch processing
 
 ### 📝 Leave Management
+
 - **Multi-level Approval**: Role-based approval workflow
 - **Leave History**: Complete leave tracking
 - **Automated Notifications**: Status updates
 - **Documentation**: Leave record management
 
 ### 👨‍👩‍👧‍👦 Parent-Teacher Interaction
+
 - **Meeting Scheduling**: Online/offline meeting management
 - **Progress Tracking**: Student performance monitoring
 - **Communication**: Direct messaging system
 - **Feedback System**: Comprehensive feedback mechanism
 
 ### 📈 Course Progress Tracking
+
 - **Progress Monitoring**: Real-time course progress
 - **Completion Tracking**: Detailed completion metrics
 - **Performance Analytics**: Student performance analysis
 - **Automated Updates**: Progress notifications
 
 ### 🔄 Feedback System
+
 - **Multi-level Feedback**: Student, parent, and staff feedback
 - **Rating System**: Detailed rating mechanism
 - **Anonymous Feedback**: Option for anonymous submissions
 - **Feedback Analytics**: Comprehensive feedback analysis
 
 ### 🔐 Security Features
+
 - **OTP Verification**: Two-factor authentication
 - **Session Management**: Secure session handling
 - **CSRF Protection**: Cross-site request forgery prevention
@@ -169,6 +177,7 @@ A comprehensive Student Management System built with Django, featuring multi-rol
 - **SQL Injection Prevention**: Secure database queries
 
 ### 📱 Mobile Features
+
 - **Responsive Design**: Mobile-first approach
 - **Push Notifications**: Real-time updates
 - **Offline Support**: Basic functionality without internet
@@ -196,24 +205,28 @@ SMS/
 ## 🔄 Recent Improvements
 
 ### 🧹 Code Reorganization
+
 - **Reduced Redundancy**: Consolidated duplicate code in view functions
 - **Improved Structure**: Created common view utilities and helper functions
 - **Better Code Reuse**: Implemented common handlers for common operations
 - **Standardized Response Format**: Created consistent API response formats
 
 ### ⚡ Performance Optimizations
+
 - **Dependency Management**: Updated and optimized package requirements
 - **Firebase Integration**: Enhanced Firebase functionality and error handling
 - **View Efficiency**: Reduced redundant database queries
 - **API Improvements**: Standardized API response formats for better client handling
 
 ### 🔧 Technical Enhancements
+
 - **Role-based Access**: Improved role verification with utility functions
 - **Error Handling**: Better error detection and user feedback
 - **File Upload Handling**: Centralized file upload handling with validation
 - **Password Security**: Enhanced password strength validation
 
 ### 🧹 Code Cleanup
+
 - **Removed Print Statements**: Eliminated unnecessary print debug statements
 - **Standardized Views**: Consistent view behavior across the application
 - **Simplified Middleware**: Streamlined HTTP error handling
@@ -226,6 +239,7 @@ These improvements make the codebase more maintainable, easier to extend, and mo
 ### 📋 Prerequisites
 
 Before you begin, ensure you have the following installed:
+
 - [Python](https://www.python.org/downloads/) (3.8 or higher)
 - [Git](https://git-scm.com/downloads)
 - [Firebase Account](https://firebase.google.com/) (for notifications)
@@ -234,6 +248,7 @@ Before you begin, ensure you have the following installed:
 ### 🛠️ Installation Steps
 
 #### 1️⃣ Clone the Repository
+
 ```bash
 # Clone the repository
 git clone https://github.com/S4NKALP/Student-Management-System-In-Django.git
@@ -243,6 +258,7 @@ cd Student-Management-System-In-Django
 ```
 
 #### 2️⃣ Set Up Virtual Environment
+
 ```bash
 # Create a virtual environment
 python -m venv venv
@@ -256,12 +272,14 @@ source venv/bin/activate
 ```
 
 #### 3️⃣ Install Dependencies
+
 ```bash
 # Install Python dependencies
 pip install -r requirements.txt
 ```
 
 #### 4️⃣ Configure Environment Variables
+
 ```bash
 # Copy the example environment file
 cp .env.example .env
@@ -276,6 +294,7 @@ cp .env.example .env
 ```
 
 #### 5️⃣ Set Up Firebase
+
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Create a new project or select an existing one
 3. Enable the following services:
@@ -285,6 +304,7 @@ cp .env.example .env
    - Cloud Messaging
 
 #### 2️⃣ Service Account Key (`firebase-key.json`)
+
 1. In Firebase Console, go to Project Settings > Service Accounts
 2. Click "Generate New Private Key"
 3. Save the downloaded JSON file as `firebase-key.json` in your project root
@@ -294,11 +314,13 @@ cp .env.example .env
    ```
 
 #### 3️⃣ Firebase Configuration Files
+
 1. Copy the example files and rename them:
+
    ```bash
    # Copy Firebase config example
    cp static/js/firebase-config.example.js static/js/firebase-config.js
-   
+
    # Copy Firebase messaging service worker example
    cp static/firebase-messaging-sw.example.js static/firebase-messaging-sw.js
    ```
@@ -309,6 +331,7 @@ cp .env.example .env
    - Replace other placeholder values with your actual Firebase configuration
 
 #### 4️⃣ Firebase Cloud Messaging (FCM) Setup
+
 1. In Firebase Console, go to Project Settings > Cloud Messaging
 2. Generate a new Server Key
 3. Add the key to your `.env` file:
@@ -317,6 +340,7 @@ cp .env.example .env
    ```
 
 #### 5️⃣ Testing Firebase Setup
+
 1. Run the development server
 2. Open the browser console
 3. Check for any Firebase-related errors
@@ -325,12 +349,14 @@ cp .env.example .env
 ### 📱 Accessing the Application
 
 Once everything is set up, you can access:
+
 - **Admin Panel**: http://localhost:8000/admin
 - **Main Application**: http://localhost:8000
 
 ### 🚨 Troubleshooting Guide
 
 #### 🔧 Common Issues
+
 - **Firebase Setup**: Ensure proper configuration in `firebase-config.js` and `firebase-key.json`
 - **Static Files**: Run `python manage.py collectstatic` if static files are not loading
 - **Database Issues**: Check database settings in `.env` file
@@ -339,7 +365,9 @@ Once everything is set up, you can access:
 ## 🔧 Configuration
 
 ### Environment Variables
+
 Create a `.env` file in the project root:
+
 ```env
 # Django Settings
 DEBUG=True
@@ -378,6 +406,7 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 ## 📦 Dependencies
 
 ### Backend
+
 - Django 5.2
 - Django REST Framework 3.16.0
 - Firebase Admin 6.7.0
@@ -389,6 +418,7 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - Django Model Utils 5.0.0
 
 ### Frontend
+
 - Bootstrap 5.3.0
 - jQuery Latest
 - Firebase Web SDK 9.22.0
@@ -397,12 +427,14 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 ## 🔐 Security Features
 
 ### Authentication
+
 - OTP and TOTP-based authentication
 - Session management
 - Password hashing
 - Password reset tokens
 
 ### Data Protection
+
 - CSRF protection
 - XSS prevention
 - SQL injection prevention
@@ -414,38 +446,48 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 ### Core Models
 
 #### Institute
+
 - `name`, `phone`, `email`, `address`, `pan_no`, `reg_no`, `logo`, `description`
 
 #### Course
+
 - `name`, `code`, `duration`, `duration_type`, `description`, `is_active`
 
 #### Subject
+
 - `name`, `code`, `course`, `period_or_year`, `syllabus_pdf`, `files`
 
 #### Student
+
 - `name`, `status`, `gender`, `birth_date`, `email`, `phone`, `addresses`
 - `marital_status`, `parent_name`, `parent_phone`, `citizenship_no`
 - `batches`, `image`, `course`, `current_period`, `joining_date`, `fcm_token`
 
 #### Staff
+
 - `name`, `phone`, `designation`, `gender`, `birth_date`, `email`, `addresses`
 - `marital_status`, `parent_name`, `parent_phone`, `citizenship_no`, `passport`
 - `image`, `joining_date`, `fcm_token`, `course`
 
 #### Parent
+
 - `name`, `phone`, `email`, `address`, `students`, `image`, `fcm_token`
 
 #### Routine
+
 - `course`, `subject`, `teacher`, `start_time`, `end_time`, `period_or_year`, `is_active`
 
 #### Attendance
+
 - `date`, `routine`, `teacher`, `teacher_attend`, `class_status`
 
 #### Leave Management
+
 - `StaffLeave`: `staff`, `start_date`, `end_date`, `message`, `status`
 - `StudentLeave`: `student`, `start_date`, `end_date`, `message`, `status`
 
 #### Feedback System
+
 - `StudentFeedback`: Student feedback for teachers
 - `ParentFeedback`: Parent feedback for teachers
 - `InstituteFeedback`: Student feedback for institute
@@ -453,21 +495,25 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - `ParentInstituteFeedback`: Parent feedback for institute
 
 #### Course Tracking
+
 - `student`, `course`, `enrollment_date`, `start_date`, `expected_end_date`
 - `actual_end_date`, `progress_status`, `completion_percentage`, `current_period`
 - `period_start_date`, `period_end_date`, `notes`
 
 #### Teacher-Parent Meeting
+
 - `meeting_date`, `meeting_time`, `duration`, `status`, `agenda`, `notes`
 - `cancellation_reason`, `meeting_link`, `is_online`
 
 ### Security Models
+
 - `TOTPSecret`: OTP secret keys
 - `ResetToken`: Password reset tokens
 
 ## 🔌 API Endpoints
 
 ### Authentication & Security
+
 - `POST /password-reset/` - Password reset options
 - `POST /password-reset/phone/` - Phone-based password reset
 - `POST /password-reset/phone/verify/` - Verify phone OTP
@@ -477,6 +523,7 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - `POST /check-weak-password/` - Password strength check
 
 ### Dashboard & Profile
+
 - `GET /dashboard/` - Main dashboard
 - `GET /student-dashboard/` - Student dashboard
 - `GET /teacher-dashboard/` - Teacher dashboard
@@ -487,6 +534,7 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - `POST /change-password/` - Change password
 
 ### Leave Management
+
 - `POST /request-leave/` - Request student leave
 - `POST /request-staff-leave/` - Request staff leave
 - `POST /approve-student-leave/<int:leave_id>/` - Approve student leave
@@ -495,6 +543,7 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - `POST /reject-staff-leave/<int:leave_id>/` - Reject staff leave
 
 ### Feedback System
+
 - `POST /submit-feedback/` - Submit general feedback
 - `POST /submit-institute-feedback/` - Submit institute feedback
 - `POST /submit-staff-institute-feedback/` - Submit staff institute feedback
@@ -502,6 +551,7 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - `POST /submit-parent-institute-feedback/` - Submit parent institute feedback
 
 ### Subject & Course Management
+
 - `GET /subject/<int:subject_id>/files/` - Get subject files
 - `GET /subject/<int:subject_id>/syllabus/` - View subject syllabus
 - `GET /get-subjects/` - Get all subjects
@@ -513,15 +563,18 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - `GET /get-teacher-subjects/` - Get teacher's subjects
 
 ### Attendance Management
+
 - `POST /save-attendance/` - Save attendance
 - `GET /get-attendance-form/` - Get attendance form
 - `GET /get-students/` - Get student list
 
 ### Notice Management
+
 - `POST /add-notice/` - Add new notice
 - `POST /delete-notice/<int:notice_id>/` - Delete notice
 
 ### Parent-Teacher Meeting
+
 - `POST /schedule-meeting/` - Schedule a meeting
 - `POST /update-meeting/<int:meeting_id>/` - Update meeting details
 - `POST /cancel-meeting/<int:meeting_id>/` - Cancel a meeting
@@ -529,25 +582,28 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - `GET /get-upcoming-meetings/` - Get upcoming meetings
 
 ### Course Progress
+
 - `GET /get-course-progress/<int:student_id>/` - Get student's course progress
 - `POST /update-course-progress/` - Update course progress
 - `GET /get-progress-analytics/` - Get progress analytics
 
 ### Firebase Integration
+
 - `POST /saveFCMToken/` - Save Firebase Cloud Messaging token
 
 ### 🔐 Authentication System
 
 #### OTP Verification
+
 - Phone-based OTP verification
 - OTP expiry management
 - OTP resend functionality
 - Secure OTP storage
 
-
 ## 📱 Frontend Features
 
 ### User Interface
+
 - Responsive design
 - Dark/Light mode
 - Custom themes
@@ -555,6 +611,7 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - Mobile-first approach
 
 ### Interactive Features
+
 - Real-time updates
 - File uploads
 - Data visualization
@@ -562,6 +619,7 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - Dynamic content loading
 
 ### Mobile Optimization
+
 - Touch-friendly interface
 - Offline support
 - Push notifications
@@ -571,11 +629,13 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 ## 🔍 Testing
 
 ### Current Test Coverage
+
 - Unit Tests: Basic test structure in place
 - API Tests: Endpoint testing framework available
 - Integration Tests: Setup for comprehensive testing
 
 ### Running Tests
+
 ```bash
 # Run all tests
 python manage.py test
@@ -589,17 +649,21 @@ coverage report
 ```
 
 ### Test Areas
+
 1. Authentication & Authorization
+
    - OTP verification
    - Password reset
    - Role-based access
 
 2. Data Management
+
    - CRUD operations
    - Data validation
    - File handling
 
 3. Business Logic
+
    - Attendance calculation
    - Leave approval workflow
    - Course progress tracking
@@ -612,6 +676,7 @@ coverage report
 ## 📈 Performance
 
 ### Optimization Techniques
+
 - Database indexing
 - Query optimization
 - Caching
@@ -621,6 +686,7 @@ coverage report
 - CDN integration
 
 ### Monitoring
+
 - Performance metrics
 - Error tracking
 - User analytics
@@ -636,6 +702,7 @@ coverage report
 5. Create a Pull Request
 
 ### Code Style
+
 - Follow PEP 8
 - Use type hints
 - Write docstrings
@@ -643,6 +710,7 @@ coverage report
 - Follow Django best practices
 
 ### Commit Messages
+
 - Use present tense
 - Be descriptive
 - Reference issues
@@ -663,6 +731,7 @@ GitHub: https://github.com/S4NKALP
 ```
 
 ### 📝 Citation
+
 If you're using this project in an academic context, you can cite it as:
 
 ```bibtex
@@ -676,6 +745,7 @@ If you're using this project in an academic context, you can cite it as:
 ```
 
 ### 🤝 Acknowledgments
+
 - Thanks to all contributors who have helped improve this project
 - Special thanks to the open-source community for their valuable resources
 - Appreciation to all users who have provided feedback and suggestions
@@ -691,43 +761,3 @@ If you're using this project in an academic context, you can cite it as:
 [![Twitter](https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/sankalp)
 
 </div>
-
-## 💰 Project Costs
-
-### Development & Implementation
-- Backend Development: NPR 200,000
-- Frontend Development: NPR 160,000
-- QA Engineering: NPR 60,000
-- Project Management: NPR 240,000
-- Development Tools & Licenses: NPR 15,000
-- Testing Tools: NPR 10,000
-- Documentation Tools: NPR 5,000
-
-### Annual Infrastructure & Services
-- Firebase Services: NPR 10,000/year
-- Google Cloud Storage: NPR 8,000/year
-- Domain & SSL: NPR 3,000/year
-- Server Hosting: NPR 20,000/year
-
-### Support & Maintenance
-- User Training: NPR 20,000
-- Documentation: NPR 15,000
-- Technical Support (First Year): NPR 30,000
-
-### Total First Year Cost: NPR 601,000
-
-## 🌍 Feasibility
-
-### Target Areas
-- Urban Areas with Internet Connectivity
-- Educational Institutions
-- Government Offices
-- Private Organizations
-- Healthcare Facilities
-
-### Key Considerations
-- Scalable architecture for future expansion
-- Mobile-responsive design
-- Real-time data processing capabilities
-- Secure data handling and storage
-- Offline support capabilities

@@ -37,7 +37,6 @@ A comprehensive Student Management System built with Django, featuring multi-rol
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
 - [🙏 Credits](#-credits)
-- [🔄 Recent Improvements](#-recent-improvements)
 
 ## 💻 Tech Stack
 
@@ -255,37 +254,6 @@ SMS/
 └── student_management_system/  # Project settings
 ```
 
-## 🔄 Recent Improvements
-
-### 🧹 Code Reorganization
-
-- **Reduced Redundancy**: Consolidated duplicate code in view functions
-- **Improved Structure**: Created common view utilities and helper functions
-- **Better Code Reuse**: Implemented common handlers for common operations
-- **Standardized Response Format**: Created consistent API response formats
-
-### ⚡ Performance Optimizations
-
-- **Dependency Management**: Updated and optimized package requirements
-- **Firebase Integration**: Enhanced Firebase functionality and error handling
-- **View Efficiency**: Reduced redundant database queries
-- **API Improvements**: Standardized API response formats for better client handling
-
-### 🔧 Technical Enhancements
-
-- **Role-based Access**: Improved role verification with utility functions
-- **Error Handling**: Better error detection and user feedback
-- **File Upload Handling**: Centralized file upload handling with validation
-- **Password Security**: Enhanced password strength validation
-
-### 🧹 Code Cleanup
-
-- **Removed Print Statements**: Eliminated unnecessary print debug statements
-- **Standardized Views**: Consistent view behavior across the application
-- **Simplified Middleware**: Streamlined HTTP error handling
-- **Better Exception Handling**: More graceful error handling throughout the app
-
-These improvements make the codebase more maintainable, easier to extend, and more efficient in its operation, while maintaining all the original functionality.
 
 ## 🚀 Getting Started
 
@@ -295,6 +263,7 @@ Before you begin, ensure you have the following installed:
 
 - [Python](https://www.python.org/downloads/) (3.8 or higher)
 - [Git](https://git-scm.com/downloads)
+- [UV](https://github.com/astral-sh/uv) (Python package installer and resolver)
 - [Firebase Account](https://firebase.google.com/) (for notifications)
 - [Google Cloud Account](https://cloud.google.com/) (for storage)
 
@@ -310,7 +279,32 @@ git clone https://github.com/S4NKALP/Student-Management-System-In-Django.git
 cd Student-Management-System-In-Django
 ```
 
-#### 2️⃣ Set Up Virtual Environment
+#### 2️⃣ Choose Your Installation Method
+
+##### Method A: Using UV (Recommended)
+
+```bash
+# Install UV (if not already installed)
+pip install uv
+
+# Or install using curl (Linux/Mac)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or install using PowerShell (Windows)
+irm https://astral.sh/uv/install.ps1 | iex
+
+# Run migrations
+uv run manage.py makemigrations
+uv run manage.py migrate
+
+# Create admin user
+uv run manage.py createsuperuser
+
+# Run the server the package will install automatically
+uv run manage.py runserver
+```
+
+##### Method B: Using Traditional venv
 
 ```bash
 # Create a virtual environment
@@ -322,16 +316,23 @@ source venv/bin/activate
 
 # For Windows:
 .\venv\Scripts\activate
-```
 
-#### 3️⃣ Install Dependencies
-
-```bash
-# Install Python dependencies
+# Install dependencies from requirements.txt
 pip install -r requirements.txt
+
+# Run migrations
+python manage.py makemigrations
+python manage.py migrate
+
+# Create admin user
+python manage.py createsuperuser
+
+# Lunch the server
+python manage.py runserver
+
 ```
 
-#### 4️⃣ Configure Environment Variables
+#### 3️⃣ Configure Environment Variables
 
 ```bash
 # Copy the example environment file
@@ -505,58 +506,67 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 #### Course
 
 - `name`, `code`, `duration`, `duration_type`, `description`, `is_active`
+- `batches` (ManyToManyField to Batch)
+- `course_tracking_records` (related_name for CourseTracking)
+- `routine_records` (related_name for Routine)
 
 #### Subject
 
-- `name`, `code`, `course`, `period_or_year`, `syllabus_pdf`, `files`
+- `name`, `code`, `course` (ForeignKey to Course), `period_or_year`, `syllabus_pdf`, `files`
+- `attendance_records` (related_name for Attendance)
 
 #### Student
 
 - `name`, `status`, `gender`, `birth_date`, `email`, `phone`, `addresses`
 - `marital_status`, `parent_name`, `parent_phone`, `citizenship_no`
-- `batches`, `image`, `course`, `current_period`, `joining_date`, `fcm_token`
+- `batches` (ManyToManyField to Batch)
+- `image`, `course` (ForeignKey to Course), `current_period`, `joining_date`, `fcm_token`
+- `meetings` (related_name for TeacherParentMeeting)
+- `leave_requests` (related_name for StudentLeave)
 
 #### Staff
 
 - `name`, `phone`, `designation`, `gender`, `birth_date`, `email`, `addresses`
 - `marital_status`, `parent_name`, `parent_phone`, `citizenship_no`, `passport`
-- `image`, `joining_date`, `fcm_token`, `course`
+- `image`, `joining_date`, `fcm_token`
+- `courses_taught` (related_name for Course)
+- `meetings` (related_name for TeacherParentMeeting)
 
 #### Parent
 
-- `name`, `phone`, `email`, `address`, `students`, `image`, `fcm_token`
+- `name`, `phone`, `email`, `address`, `students` (ManyToManyField to Student)
+- `image`, `fcm_token`
 
 #### Routine
 
-- `course`, `subject`, `teacher`, `start_time`, `end_time`, `period_or_year`, `is_active`
+- `course` (ForeignKey to Course), `subject` (ForeignKey to Subject)
+- `teacher` (ForeignKey to Staff), `start_time`, `end_time`
+- `period_or_year`, `is_active`
+- `attendance_records` (related_name for Attendance)
 
 #### Attendance
 
-- `date`, `routine`, `teacher`, `teacher_attend`, `class_status`
+- `date`, `routine` (ForeignKey to Routine), `teacher` (ForeignKey to Staff)
+- `teacher_attend`, `class_status`
 
 #### Leave Management
 
-- `StaffLeave`: `staff`, `start_date`, `end_date`, `message`, `status`
-- `StudentLeave`: `student`, `start_date`, `end_date`, `message`, `status`
+- `StaffLeave`: `staff` (ForeignKey to Staff), `start_date`, `end_date`, `message`, `status`
+- `StudentLeave`: `student` (ForeignKey to Student), `start_date`, `end_date`, `message`, `status`
 
-#### Feedback System
+#### CourseTracking
 
-- `StudentFeedback`: Student feedback for teachers
-- `ParentFeedback`: Parent feedback for teachers
-- `InstituteFeedback`: Student feedback for institute
-- `StaffInstituteFeedback`: Staff feedback for institute
-- `ParentInstituteFeedback`: Parent feedback for institute
-
-#### Course Tracking
-
-- `student`, `course`, `enrollment_date`, `start_date`, `expected_end_date`
-- `actual_end_date`, `progress_status`, `completion_percentage`, `current_period`
+- `student` (ForeignKey to Student), `course` (ForeignKey to Course)
+- `enrollment_date`, `start_date`, `expected_end_date`, `actual_end_date`
+- `progress_status`, `completion_percentage`, `current_period`
 - `period_start_date`, `period_end_date`, `notes`
 
-#### Teacher-Parent Meeting
+#### TeacherParentMeeting
 
 - `meeting_date`, `meeting_time`, `duration`, `status`, `agenda`, `notes`
 - `cancellation_reason`, `meeting_link`, `is_online`
+- `student` (ForeignKey to Student), `teacher` (ForeignKey to Staff)
+- `attendance_records` (related_name for Attendance)
 
 ### Security Models
 
@@ -595,155 +605,130 @@ OTP_EXPIRY=300  # OTP expiry time in seconds
 - `POST /approve-staff-leave/<int:leave_id>/` - Approve staff leave
 - `POST /reject-staff-leave/<int:leave_id>/` - Reject staff leave
 
-### Feedback System
+### Meeting Management
 
-- `POST /submit-feedback/` - Submit general feedback
-- `POST /submit-institute-feedback/` - Submit institute feedback
-- `POST /submit-staff-institute-feedback/` - Submit staff institute feedback
-- `POST /submit-parent-feedback/` - Submit parent feedback
-- `POST /submit-parent-institute-feedback/` - Submit parent institute feedback
-
-### Subject & Course Management
-
-- `GET /subject/<int:subject_id>/files/` - Get subject files
-- `GET /subject/<int:subject_id>/syllabus/` - View subject syllabus
-- `GET /get-subjects/` - Get all subjects
-- `GET /get-teachers/` - Get all teachers
-- `GET /get-course-duration/` - Get course duration
-- `GET /get-subject-schedule/` - Get subject schedule
-- `POST /manage-subject-files/` - Manage subject files
-- `POST /delete-subject-file/` - Delete subject file
-- `GET /get-teacher-subjects/` - Get teacher's subjects
-
-### Attendance Management
-
-- `POST /save-attendance/` - Save attendance
-- `GET /get-attendance-form/` - Get attendance form
-- `GET /get-students/` - Get student list
-
-### Notice Management
-
-- `POST /add-notice/` - Add new notice
-- `POST /delete-notice/<int:notice_id>/` - Delete notice
-
-### Parent-Teacher Meeting
-
-- `POST /schedule-meeting/` - Schedule a meeting
+- `POST /schedule-meeting/` - Schedule parent-teacher meeting
 - `POST /update-meeting/<int:meeting_id>/` - Update meeting details
-- `POST /cancel-meeting/<int:meeting_id>/` - Cancel a meeting
-- `GET /get-meetings/` - Get all meetings
-- `GET /get-upcoming-meetings/` - Get upcoming meetings
+- `POST /cancel-meeting/<int:meeting_id>/` - Cancel meeting
+- `POST /mark-attendance/<int:meeting_id>/` - Mark meeting attendance
 
 ### Course Progress
 
-- `GET /get-course-progress/<int:student_id>/` - Get student's course progress
-- `POST /update-course-progress/` - Update course progress
-- `GET /get-progress-analytics/` - Get progress analytics
+- `GET /course-progress/<int:student_id>/` - Get student's course progress
+- `GET /subject-progress/<int:subject_id>/` - Get subject progress
+- `POST /update-progress/<int:tracking_id>/` - Update course progress
 
-### Firebase Integration
+### Attendance
 
-- `POST /saveFCMToken/` - Save Firebase Cloud Messaging token
+- `POST /mark-attendance/` - Mark class attendance
+- `GET /attendance-report/<int:student_id>/` - Get student attendance report
+- `GET /class-attendance/<int:routine_id>/` - Get class attendance
 
-### 🔐 Authentication System
+## 🔐 Security Features
 
-#### OTP Verification
+### Authentication
 
-- Phone-based OTP verification
-- OTP expiry management
-- OTP resend functionality
-- Secure OTP storage
+- OTP and TOTP-based authentication
+- Session management
+- Password hashing using Django's built-in hashers
+- Password reset tokens with expiration
+
+### Data Protection
+
+- CSRF protection
+- Input validation
+- File upload security with size and type restrictions
+- Secure file storage using Google Cloud Storage
+
+### Role-based Access Control
+
+- Granular permissions per role
+- Custom permission groups
+- Access level restrictions
+- Activity logging
+
+### API Security
+
+- Token-based authentication
+- Rate limiting
+- Request validation
+- Error handling
 
 ## 📱 Frontend Features
 
+## 🔍 Testing
+
+### Test Coverage
+
+- Unit tests for models
+- Integration tests for views
+- API endpoint tests
+- Security tests
+
+### Test Types
+
+- Model validation tests
+- View response tests
+- Permission tests
+- Integration tests
+
+### Test Tools
+
+- Django Test Client
+- pytest
+- Coverage reporting
+- CI/CD integration
+
+### Responsive Design
+
+- Mobile-first approach
+- Bootstrap 5.3.0 for responsive layouts
+- Custom CSS for specific components
+- Adaptive navigation
+
+### Real-time Updates
+
+- Firebase Cloud Messaging for push notifications
+- WebSocket support for live updates
+- Real-time attendance tracking
+- Instant notification system
+
 ### User Interface
 
-- Responsive design
-- Dark/Light mode
-- Custom themes
-- Accessibility support
-- Mobile-first approach
-
-### Interactive Features
-
-- Real-time updates
-- File uploads
-- Data visualization
-- Interactive forms
-- Dynamic content loading
+- Clean and modern design
+- Intuitive navigation
+- Role-specific dashboards
+- Interactive data visualization
 
 ### Mobile Optimization
 
 - Touch-friendly interface
-- Push notifications
-- Mobile-specific layouts
-- Gesture support
-
-## 🔍 Testing
-
-### Current Test Coverage
-
-- Unit Tests: Basic test structure in place
-- API Tests: Endpoint testing framework available
-- Integration Tests: Setup for comprehensive testing
-
-### Running Tests
-
-```bash
-# Run all tests
-python manage.py test
-
-# Run specific app tests
-python manage.py test app
-
-# Run with coverage
-coverage run --source='.' manage.py test
-coverage report
-```
-
-### Test Areas
-
-1. Authentication & Authorization
-
-   - OTP verification
-   - Password reset
-   - Role-based access
-
-2. Data Management
-
-   - CRUD operations
-   - Data validation
-   - File handling
-
-3. Business Logic
-
-   - Attendance calculation
-   - Leave approval workflow
-   - Course progress tracking
-
-4. Integration
-   - Firebase messaging
-   - File storage
-   - Email/SMS notifications
+- Responsive tables
+- Mobile-optimized forms
+- Adaptive image loading
 
 ## 📈 Performance
 
-### Optimization Techniques
+### Optimization
 
-- Database indexing
-- Query optimization
-- Caching
+- Database query optimization
+- Caching implementation
 - Lazy loading
-- Code minification
 - Asset compression
-- CDN integration
 
 ### Monitoring
 
-- Performance metrics
 - Error tracking
-- User analytics
-- Resource usage
-- API response times
+- Performance metrics
+- User activity logging
+- System health checks
+
+### Scalability
+
+- Horizontal scaling support
+- Load balancing
+- Database sharding
+- Caching strategies
 
 ## 🤝 Contributing
 
@@ -774,33 +759,48 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Credits
 
-If you use this project in your work, please give credit where credit is due:
+If you use this project in your work, please give proper credit by:
 
-```markdown
-Student Management System
-Created by Sankalp
-GitHub: https://github.com/S4NKALP
-```
+1. **Academic Use**:
 
-### 📝 Citation
+   ```markdown
+   Student Management System (SMS) by S4NKALP
+   GitHub: https://github.com/S4NKALP/Student-Management-System-In-Django
+   ```
 
-If you're using this project in an academic context, you can cite it as:
+2. **Commercial Use**:
 
-```bibtex
-@software{StudentManagementSystem2025,
-  author = {Sankalp},
-  title = {Student Management System},
-  year = {2025},
-  publisher = {GitHub},
-  url = {https://github.com/S4NKALP/Student-Management-System-In-Django}
-}
-```
+   ```markdown
+   Based on Student Management System (SMS) by S4NKALP
+   Original Project: https://github.com/S4NKALP/Student-Management-System-In-Django
+   ```
 
-### 🤝 Acknowledgments
+3. **Code References**:
 
-- Thanks to all contributors who have helped improve this project
-- Special thanks to the open-source community for their valuable resources
-- Appreciation to all users who have provided feedback and suggestions
+   ```python
+   # This code is based on Student Management System (SMS)
+   # Original Author: S4NKALP
+   # Source: https://github.com/S4NKALP/Student-Management-System-In-Django
+   ```
+
+4. **Documentation**:
+
+   - Include a reference to the original project in your documentation
+   - Mention any modifications or improvements you've made
+   - Provide a link to the original repository
+
+5. **Presentations/Reports**:
+   - Include the project name and author in your references
+   - Provide the GitHub repository link
+   - Acknowledge any specific features or components used
+
+Remember to respect the MIT License terms while using this project.
+
+### 📝 Acknowledgments
+
+- This project was inspired by the need for a modern, efficient student management system
+- Special thanks to all the testers and users who provided valuable feedback
+- Grateful to the academic community for their support and suggestions
 
 ---
 

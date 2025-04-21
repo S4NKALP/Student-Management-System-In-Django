@@ -16,25 +16,29 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, model_v
 from dotenv import load_dotenv
 import logging
 from functools import lru_cache
+from django.core.exceptions import ValidationError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration version
+# Configuration version for tracking changes
 CONFIG_VERSION = "1.0.0"
+
 
 def parse_optional_int(value: Any) -> Optional[int]:
     """Parse a value into an optional integer."""
-    if value is None or value == '':
+    if value is None or value == "":
         return None
     try:
         return int(value)
     except (ValueError, TypeError):
         return None
 
+
 class DatabaseConfig(BaseModel):
     """Database configuration settings."""
+
     engine: str = Field(default="django.db.backends.sqlite3")
     name: str = Field(default="db.sqlite3")
     timeout: int = Field(default=20)
@@ -43,23 +47,27 @@ class DatabaseConfig(BaseModel):
     user: Optional[str] = None
     password: Optional[str] = None
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def validate_optional_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        if 'port' in values:
-            values['port'] = parse_optional_int(values['port'])
+        if "port" in values:
+            values["port"] = parse_optional_int(values["port"])
         return values
+
 
 class CacheConfig(BaseModel):
     """Cache configuration settings."""
+
     use_redis: bool = Field(default=False)
     redis_url: str = Field(default="redis://localhost:6379/1")
     timeout: int = Field(default=300)
     key_prefix: str = Field(default="sms")
     max_connections: int = Field(default=1000)
 
+
 class EmailConfig(BaseModel):
     """Email configuration settings."""
+
     backend: str = Field(default="django.core.mail.backends.console.EmailBackend")
     default_from_email: str = Field(default="noreply@studentmanagementsystem.com")
     host: Optional[str] = None
@@ -68,15 +76,17 @@ class EmailConfig(BaseModel):
     password: Optional[str] = None
     use_tls: bool = Field(default=True)
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def validate_optional_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        if 'port' in values:
-            values['port'] = parse_optional_int(values['port'])
+        if "port" in values:
+            values["port"] = parse_optional_int(values["port"])
         return values
+
 
 class FirebaseConfig(BaseModel):
     """Firebase configuration settings."""
+
     api_key: str
     auth_domain: str
     project_id: str
@@ -85,20 +95,26 @@ class FirebaseConfig(BaseModel):
     app_id: str
     measurement_id: str
 
+
 class SMSConfig(BaseModel):
     """SMS configuration settings."""
+
     api_key: str
     sender_id: str = Field(default="SMSSYS")
 
+
 class GunicornConfig(BaseModel):
     """Gunicorn configuration settings."""
+
     workers: int = Field(default=4)
     threads: int = Field(default=2)
     timeout: int = Field(default=30)
     keepalive: int = Field(default=2)
 
+
 class Config(BaseModel):
     """Main configuration model."""
+
     version: str = Field(default=CONFIG_VERSION)
     debug: bool = Field(default=False)
     secret_key: str
@@ -114,20 +130,21 @@ class Config(BaseModel):
         env_file = ".env"
         env_file_encoding = "utf-8"
 
+
 @lru_cache()
 def get_config() -> Config:
     """
     Get the application configuration.
-    
+
     Returns:
         Config: The validated configuration object.
-    
+
     Raises:
         ValidationError: If required environment variables are missing or invalid.
     """
     # Load environment variables
     load_dotenv()
-    
+
     try:
         config = Config(
             debug=os.getenv("DJANGO_DEBUG", "False").lower() == "true",
@@ -150,8 +167,12 @@ def get_config() -> Config:
                 max_connections=int(os.getenv("CACHE_MAX_CONNECTIONS", "1000")),
             ),
             email=EmailConfig(
-                backend=os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"),
-                default_from_email=os.getenv("DEFAULT_FROM_EMAIL", "noreply@studentmanagementsystem.com"),
+                backend=os.getenv(
+                    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+                ),
+                default_from_email=os.getenv(
+                    "DEFAULT_FROM_EMAIL", "noreply@studentmanagementsystem.com"
+                ),
                 host=os.getenv("EMAIL_HOST"),
                 port=os.getenv("EMAIL_PORT"),
                 username=os.getenv("EMAIL_USERNAME"),
@@ -178,17 +199,43 @@ def get_config() -> Config:
                 keepalive=int(os.getenv("GUNICORN_KEEPALIVE", "2")),
             ),
         )
-        
+
         # Validate required fields
         if not config.secret_key:
-            raise ValidationError("DJANGO_SECRET_KEY is required")
+            # Check if running tests and provide fallback for testing
+            import sys
+
+            if "test" in sys.argv:
+                config.secret_key = "django-insecure-test-key-only-for-testing"
+            else:
+                from django.core.exceptions import ValidationError
+
+                raise ValidationError(f"DJANGO_SECRET_KEY is required")
+
         if not config.firebase.api_key:
-            raise ValidationError("FIREBASE_API_KEY is required")
+            # Check if running tests
+            import sys
+
+            if "test" in sys.argv:
+                config.firebase.api_key = "test-firebase-api-key"
+            else:
+                from django.core.exceptions import ValidationError
+
+                raise ValidationError(f"FIREBASE_API_KEY is required")
+
         if not config.sms.api_key:
-            raise ValidationError("SMS_API_KEY is required")
-            
+            # Check if running tests
+            import sys
+
+            if "test" in sys.argv:
+                config.sms.api_key = "test-sms-api-key"
+            else:
+                from django.core.exceptions import ValidationError
+
+                raise ValidationError(f"SMS_API_KEY is required")
+
         return config
-        
+
     except ValidationError as e:
         logger.error(f"Configuration validation error: {e}")
         raise
@@ -196,15 +243,16 @@ def get_config() -> Config:
         logger.error(f"Error loading configuration: {e}")
         raise
 
+
 def get_django_settings() -> Dict[str, Any]:
     """
     Convert the configuration to Django settings format.
-    
+
     Returns:
         Dict[str, Any]: Dictionary of Django settings.
     """
     config = get_config()
-    
+
     return {
         "DEBUG": config.debug,
         "SECRET_KEY": config.secret_key,
@@ -219,17 +267,20 @@ def get_django_settings() -> Dict[str, Any]:
                 "PASSWORD": config.database.password,
                 "OPTIONS": {
                     "timeout": config.database.timeout,
-                }
+                },
             }
         },
         "CACHES": {
             "default": {
-                "BACKEND": "django.core.cache.backends.redis.RedisCache" if config.cache.use_redis 
-                          else "django.core.cache.backends.locmem.LocMemCache",
-                "LOCATION": config.cache.redis_url if config.cache.use_redis else "unique-snowflake",
+                "BACKEND": "django.core.cache.backends.redis.RedisCache"
+                if config.cache.use_redis
+                else "django.core.cache.backends.locmem.LocMemCache",
+                "LOCATION": config.cache.redis_url
+                if config.cache.use_redis
+                else "unique-snowflake",
                 "OPTIONS": {
                     "retry_on_timeout": True,
-                    "max_connections": config.cache.max_connections
+                    "max_connections": config.cache.max_connections,
                 },
                 "KEY_PREFIX": config.cache.key_prefix,
                 "TIMEOUT": config.cache.timeout,
@@ -255,4 +306,4 @@ def get_django_settings() -> Dict[str, Any]:
         "GUNICORN_THREADS": config.gunicorn.threads,
         "GUNICORN_TIMEOUT": config.gunicorn.timeout,
         "GUNICORN_KEEPALIVE": config.gunicorn.keepalive,
-    } 
+    }

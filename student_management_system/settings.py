@@ -12,11 +12,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 from student_management_system.jazzmin import JAZZMIN_SETTINGS, JAZZMIN_UI_TWEAKS
+from student_management_system.config import get_django_settings
 
-# Load environment variables
-load_dotenv()
+# Get configuration
+config = get_django_settings()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,12 +25,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = config["SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+DEBUG = config["DEBUG"]
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
+ALLOWED_HOSTS = config["ALLOWED_HOSTS"]
 
 # Application definition
 
@@ -50,13 +50,15 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.middleware.cache.UpdateCacheMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "app.middleware.HTTP505Middleware",  # Custom middleware for handling 505 errors
+    "app.middleware.HTTP505Middleware",
+    "django.middleware.cache.FetchFromCacheMiddleware",
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -95,13 +97,18 @@ WSGI_APPLICATION = "student_management_system.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
-    }
-}
+DATABASES = config["DATABASES"]
 
+# Database optimization settings
+DATABASE_ROUTERS = ['app.routers.DatabaseRouter']
+
+# Query optimization
+DATABASE_OPTIMIZATION = {
+    'DEFAULT_QUERY_TIMEOUT': 30,
+    'MAX_QUERY_SIZE': 1000,
+    'ENABLE_QUERY_CACHE': True,
+    'QUERY_CACHE_TIMEOUT': 300
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -109,9 +116,16 @@ DATABASES = {
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "OPTIONS": {
+            "user_attributes": ("username", "email", "first_name", "last_name"),
+            "max_similarity": 0.7
+        }
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 12,
+        }
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -164,40 +178,87 @@ JAZZMIN_SETTINGS = JAZZMIN_SETTINGS
 JAZZMIN_UI_TWEAKS = JAZZMIN_UI_TWEAKS
 
 # Login redirect URL
-LOGIN_REDIRECT_URL = "/app/dashboard/"
-LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = '/app/dashboard/'
+LOGIN_URL = '/login/'
 
 # Email Configuration
-EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-)
-DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL", "noreply@studentmanagementsystem.com"
-)
+EMAIL_BACKEND = config["EMAIL_BACKEND"]
+DEFAULT_FROM_EMAIL = config["DEFAULT_FROM_EMAIL"]
+EMAIL_HOST = config["EMAIL_HOST"]
+EMAIL_PORT = config["EMAIL_PORT"]
+EMAIL_HOST_USER = config["EMAIL_HOST_USER"]
+EMAIL_HOST_PASSWORD = config["EMAIL_HOST_PASSWORD"]
+EMAIL_USE_TLS = config["EMAIL_USE_TLS"]
 
-# Cache configuration for OTP storage
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": os.getenv("CACHE_LOCATION", "unique-snowflake"),
-    }
-}
+# Cache configuration
+CACHES = config["CACHES"]
+
+# Cache settings
+CACHE_MIDDLEWARE_ALIAS = 'default'
+CACHE_MIDDLEWARE_SECONDS = 300
+CACHE_MIDDLEWARE_KEY_PREFIX = 'sms'
 
 # SMS API configuration
-SMS_API_KEY = os.getenv("SMS_API_KEY", "")
-SMS_SENDER_ID = os.getenv("SMS_SENDER_ID", "SMSSYS")
+SMS_API_KEY = config["SMS_API_KEY"]
+SMS_SENDER_ID = config["SMS_SENDER_ID"]
 
 # CSRF settings
-# CSRF_TRUSTED_ORIGINS = [
-#     "https://*.ngrok-free.app",
-#     "https://*.ngrok.io"
-# ]
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.ngrok-free.app",
+    "https://*.ngrok.io"
+]
 
 # Firebase settings
-FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY", "")
-FIREBASE_AUTH_DOMAIN = os.getenv("FIREBASE_AUTH_DOMAIN", "")
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")
-FIREBASE_STORAGE_BUCKET = os.getenv("FIREBASE_STORAGE_BUCKET", "")
-FIREBASE_MESSAGING_SENDER_ID = os.getenv("FIREBASE_MESSAGING_SENDER_ID", "")
-FIREBASE_APP_ID = os.getenv("FIREBASE_APP_ID", "")
-FIREBASE_MEASUREMENT_ID = os.getenv("FIREBASE_MEASUREMENT_ID", "")
+FIREBASE_API_KEY = config["FIREBASE_API_KEY"]
+FIREBASE_AUTH_DOMAIN = config["FIREBASE_AUTH_DOMAIN"]
+FIREBASE_PROJECT_ID = config["FIREBASE_PROJECT_ID"]
+FIREBASE_STORAGE_BUCKET = config["FIREBASE_STORAGE_BUCKET"]
+FIREBASE_MESSAGING_SENDER_ID = config["FIREBASE_MESSAGING_SENDER_ID"]
+FIREBASE_APP_ID = config["FIREBASE_APP_ID"]
+FIREBASE_MEASUREMENT_ID = config["FIREBASE_MEASUREMENT_ID"]
+
+# Load balancing settings
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Gunicorn settings
+GUNICORN_WORKERS = config["GUNICORN_WORKERS"]
+GUNICORN_THREADS = config["GUNICORN_THREADS"]
+GUNICORN_TIMEOUT = config["GUNICORN_TIMEOUT"]
+GUNICORN_KEEPALIVE = config["GUNICORN_KEEPALIVE"]
+
+# Static files serving optimization
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_MAX_AGE = 31536000  # 1 year
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True
+
+# Security settings
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# Session settings
+SESSION_COOKIE_AGE = 3600  # 1 hour
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# CSRF settings
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Strict'
+CSRF_USE_SESSIONS = True
+
+# Session settings
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Strict'
+
+# Background Tasks Configuration
+BACKGROUND_TASK_RUN_ASYNC = True
+MAX_ATTEMPTS = 3  # Maximum number of retries for failed tasks
+MAX_RUN_TIME = 3600  # Maximum time a task can run (in seconds)

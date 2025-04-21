@@ -9,6 +9,7 @@ from django.db import models, transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.conf import settings
 
 # Third-party app imports
 from model_utils import FieldTracker
@@ -116,6 +117,7 @@ class Course(models.Model):
     )
     description = models.TextField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    batches = models.ManyToManyField("Batch", related_name="courses", blank=True)
 
     def __str__(self):
         return self.name
@@ -123,6 +125,27 @@ class Course(models.Model):
     class Meta:
         verbose_name = "Course"
         verbose_name_plural = "Courses"
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['code']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['duration_type']),
+            models.Index(fields=['name', 'is_active']),  # For active course lookups
+            models.Index(fields=['code', 'is_active']),  # For active course lookups by code
+        ]
+
+    def cleanup_orphaned_data(self):
+        """
+        Clean up orphaned data related to this course
+        """
+        # Clean up subjects using the correct reverse relationship
+        Subject.objects.filter(course=self).delete()
+        
+        # Clean up course tracking records
+        self.student_trackings.all().delete()
+        
+        # Clean up routine records
+        self.routines.all().delete()
 
 
 class Subject(models.Model):
@@ -198,6 +221,26 @@ class Subject(models.Model):
     class Meta:
         unique_together = ["name", "course", "period_or_year"]
         ordering = ["course", "period_or_year", "name"]
+        indexes = [
+            models.Index(fields=['course']),
+            models.Index(fields=['period_or_year']),
+            models.Index(fields=['name']),
+            models.Index(fields=['course', 'period_or_year']),  # For course period subjects
+            models.Index(fields=['name', 'course']),            # For subject lookups
+        ]
+
+    def cleanup_orphaned_data(self):
+        """
+        Clean up orphaned data related to this subject
+        """
+        # Clean up subject files
+        self.subjectfile_set.all().delete()
+        
+        # Clean up routine records
+        self.routines.all().delete()
+        
+        # Clean up attendance records
+        self.attendance_records.all().delete()
 
 
 class SubjectFile(models.Model):
@@ -280,6 +323,7 @@ class Student(AbstractUser):
     joining_date = models.DateField(null=True, blank=True)
     password = models.CharField(max_length=128, editable=False, null=True)
     fcm_token = models.CharField(max_length=500, null=True, blank=True)
+    meetings = models.ManyToManyField("TeacherParentMeeting", related_name="students", blank=True)
 
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS = ["name"]
@@ -355,20 +399,92 @@ class Student(AbstractUser):
         return False
 
     def save(self, *args, **kwargs):
-        # Call the original save method to ensure the student is saved
-        super().save(*args, **kwargs)
+        try:
+            with transaction.atomic():
+                # Validate data before saving
+                self.full_clean()
+                
+                # Call the original save method
+                super().save(*args, **kwargs)
+                
+                # Update related records in the same transaction
+                if hasattr(self, 'course_trackings'):
+                    for tracking in self.course_trackings.all():
+                        tracking.update_completion_percentage()
+        except ValidationError as e:
+            raise ValidationError(f"Validation error: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Error saving student: {str(e)}")
 
-        # After saving, check if we need to sync joining date with batch
-        if hasattr(self, "_batch_to_sync"):
-            batch = self._batch_to_sync
-            if batch and batch.year and not self.joining_date:
-                self.joining_date = batch.year
-                super().save(update_fields=["joining_date"])
-            delattr(self, "_batch_to_sync")
+    def clean(self):
+        """Validate student data before saving"""
+        if self.phone and not self.phone.isdigit():
+            raise ValidationError("Phone number must contain only digits")
+        
+        if self.email and '@' not in self.email:
+            raise ValidationError("Invalid email format")
+        
+        if self.birth_date and self.birth_date > date.today():
+            raise ValidationError("Birth date cannot be in the future")
+        
+        if self.joining_date and self.joining_date > date.today():
+            raise ValidationError("Joining date cannot be in the future")
+
+    def cleanup_orphaned_data(self):
+        """
+        Clean up orphaned data related to this student
+        """
+        # Clean up attendance records
+        self.attendance_records.all().delete()
+        
+        # Clean up course tracking
+        self.course_trackings.all().delete()
+        
+        # Clean up leave records
+        self.leave_requests.all().delete()
+        
+        # Clean up meeting records
+        self.meetings.clear()
+
+    def validate_data(self):
+        """
+        Validate student data before saving
+        """
+        if not self.name:
+            raise ValidationError("Student name is required")
+        if not self.phone:
+            raise ValidationError("Student phone number is required")
+        if not self.gender:
+            raise ValidationError("Student gender is required")
+        if not self.birth_date:
+            raise ValidationError("Student birth date is required")
+
+    def get_notification_tokens(self):
+        """
+        Get FCM tokens for notifications
+        """
+        tokens = set()
+        
+        # Get student's token
+        if self.fcm_token:
+            tokens.add(self.fcm_token)
+            
+        # Get parent's token
+        if self.parent and self.parent.fcm_token:
+            tokens.add(self.parent.fcm_token)
+            
+        return tokens
 
     class Meta:
         verbose_name = "Student"
         verbose_name_plural = "Students"
+        indexes = [
+            models.Index(fields=['phone']),
+            models.Index(fields=['status']),
+            models.Index(fields=['course']),
+            models.Index(fields=['current_period']),
+            models.Index(fields=['joining_date']),
+        ]
 
 
 class Staff(AbstractUser):
@@ -429,6 +545,8 @@ class Staff(AbstractUser):
         related_name="hod",
         help_text="Course for which this staff member is HOD",
     )
+    courses_taught = models.ManyToManyField(Course, related_name="teachers", blank=True)
+    meetings = models.ManyToManyField("TeacherParentMeeting", related_name="staff_members", blank=True)
 
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS = ["name"]
@@ -484,9 +602,71 @@ class Staff(AbstractUser):
                 return True
         return False
 
+    def clean(self):
+        """Validate staff data before saving"""
+        if self.phone and not self.phone.isdigit():
+            raise ValidationError("Phone number must contain only digits")
+        
+        if self.email and '@' not in self.email:
+            raise ValidationError("Invalid email format")
+        
+        if self.birth_date and self.birth_date > date.today():
+            raise ValidationError("Birth date cannot be in the future")
+        
+        if self.joining_date and self.joining_date > date.today():
+            raise ValidationError("Joining date cannot be in the future")
+
+    def cleanup_orphaned_data(self):
+        """
+        Clean up orphaned data related to this staff member
+        """
+        # Clean up attendance records
+        self.attendance_records.all().delete()
+        
+        # Clean up course assignments
+        self.courses_taught.clear()
+        
+        # Clean up meeting records
+        self.meetings.clear()
+
+    def validate_data(self):
+        """
+        Validate staff data before saving
+        """
+        if not self.name:
+            raise ValidationError("Staff name is required")
+        if not self.phone:
+            raise ValidationError("Staff phone number is required")
+        if not self.gender:
+            raise ValidationError("Staff gender is required")
+        if not self.designation:
+            raise ValidationError("Staff designation is required")
+
+    def get_notification_tokens(self):
+        """
+        Get FCM tokens for notifications
+        """
+        tokens = set()
+        
+        # Get staff's token
+        if self.fcm_token:
+            tokens.add(self.fcm_token)
+            
+        return tokens
+
     class Meta:
         verbose_name = "Staff"
         verbose_name_plural = "Staffs"
+        indexes = [
+            models.Index(fields=['phone']),
+            models.Index(fields=['designation']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['course']),
+            # Add these composite indexes
+            models.Index(fields=['designation', 'is_active']),  # For active staff by role
+            models.Index(fields=['course', 'is_active']),       # For course staff
+            models.Index(fields=['phone', 'is_active']),        # For active staff lookups
+        ]
 
 
 class Routine(models.Model):
@@ -514,6 +694,16 @@ class Routine(models.Model):
             "start_time",
             "end_time",
             "period_or_year",
+        ]
+        indexes = [
+            models.Index(fields=['course']),
+            models.Index(fields=['subject']),
+            models.Index(fields=['teacher']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['period_or_year']),
+            models.Index(fields=['course', 'period_or_year']),  # For course routines
+            models.Index(fields=['teacher', 'is_active']),      # For teacher schedules
+            models.Index(fields=['subject', 'is_active']),      # For subject schedules
         ]
 
 
@@ -546,6 +736,16 @@ class Attendance(models.Model):
     class Meta:
         verbose_name = "Attendance"
         verbose_name_plural = "Attendances"
+        indexes = [
+            models.Index(fields=['date']),
+            models.Index(fields=['routine']),
+            models.Index(fields=['teacher']),
+            models.Index(fields=['class_status']),
+            # Add these composite indexes
+            models.Index(fields=['date', 'routine']),           # For date-based routine lookups
+            models.Index(fields=['teacher', 'date']),           # For teacher attendance history
+            models.Index(fields=['routine', 'class_status']),   # For class status filtering
+        ]
 
 
 class AttendanceRecord(models.Model):
@@ -567,6 +767,17 @@ class AttendanceRecord(models.Model):
         related_name="attendance_records",
     )
     student_attend = models.BooleanField(default=False)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['attendance']),
+            models.Index(fields=['student']),
+            models.Index(fields=['student_attend']),
+            # Add these composite indexes
+            models.Index(fields=['student', 'student_attend']),  # For attendance filtering
+            models.Index(fields=['attendance', 'student']),      # For attendance lookups
+            models.Index(fields=['attendance', 'student_attend']), # For attendance status
+        ]
 
 
 # Notice Model
@@ -629,6 +840,15 @@ class StudentLeave(models.Model):
         verbose_name = "Student Leave"
         verbose_name_plural = "Student Leaves"
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=['student']),
+            models.Index(fields=['status']),
+            models.Index(fields=['start_date']),
+            models.Index(fields=['end_date']),
+            models.Index(fields=['student', 'status']),         # For student leave status
+            models.Index(fields=['start_date', 'end_date']),    # For date range queries
+            models.Index(fields=['status', 'start_date']),      # For pending leaves
+        ]
 
 
 # Feedback Models
@@ -835,44 +1055,86 @@ class CourseTracking(models.Model):
         return f"{self.student.name} - {self.course.name}"
 
     def clean(self):
-        if not self.student or not self.course:
-            raise ValidationError("Both student and course are required")
-
-        if (
-            self.start_date
-            and self.expected_end_date
-            and self.start_date > self.expected_end_date
-        ):
-            raise ValidationError("Start date cannot be after expected end date")
-
-        if (
-            self.actual_end_date
-            and self.start_date
-            and self.actual_end_date < self.start_date
-        ):
+        """Validate course tracking data"""
+        if self.enrollment_date and self.enrollment_date > date.today():
+            raise ValidationError("Enrollment date cannot be in the future")
+        
+        if self.start_date and self.start_date > date.today():
+            raise ValidationError("Start date cannot be in the future")
+        
+        if self.expected_end_date and self.expected_end_date < self.start_date:
+            raise ValidationError("Expected end date cannot be before start date")
+        
+        if self.actual_end_date and self.actual_end_date < self.start_date:
             raise ValidationError("Actual end date cannot be before start date")
+        
+        if self.completion_percentage < 0 or self.completion_percentage > 100:
+            raise ValidationError("Completion percentage must be between 0 and 100")
 
-        if (
-            self.period_start_date
-            and self.period_end_date
-            and self.period_start_date > self.period_end_date
-        ):
-            raise ValidationError("Period start date cannot be after period end date")
+    def update_completion_percentage(self):
+        """
+        Update the completion percentage based on subject progress and attendance
+        """
+        try:
+            # Get total subjects for this course
+            total_subjects = Subject.objects.filter(course=self.course).count()
+            if total_subjects == 0:
+                self.completion_percentage = 0
+                return 0
 
-        if self.current_period < 1:
-            raise ValidationError("Current period must be at least 1")
+            # Get completed subjects from SubjectProgress
+            completed_subjects = SubjectProgress.objects.filter(
+                student=self.student,
+                subject__course=self.course,
+                status="Completed"
+            ).count()
 
-        if self.course.duration_type == "Semester":
-            max_periods = self.course.duration * 2
-            if self.current_period > max_periods:
-                raise ValidationError(f"Current semester cannot exceed {max_periods}")
-        else:  # Year based
-            if self.current_period > self.course.duration:
-                raise ValidationError(
-                    f"Current year cannot exceed {self.course.duration}"
-                )
+            # Get attendance percentage for active subjects
+            attended_classes = AttendanceRecord.objects.filter(
+                student=self.student,
+                attendance__routine__subject__course=self.course,
+                student_attend=True
+            ).count()
+
+            total_classes = AttendanceRecord.objects.filter(
+                student=self.student,
+                attendance__routine__subject__course=self.course
+            ).count()
+
+            # Calculate weighted completion percentage
+            subject_weight = 0.7  # 70% weight to subject completion
+            attendance_weight = 0.3  # 30% weight to attendance
+
+            subject_percentage = (completed_subjects / total_subjects) * 100 if total_subjects > 0 else 0
+            attendance_percentage = (attended_classes / total_classes) * 100 if total_classes > 0 else 0
+
+            # Calculate final percentage
+            completion_percentage = int(
+                (subject_percentage * subject_weight) + 
+                (attendance_percentage * attendance_weight)
+            )
+
+            # Ensure percentage is between 0 and 100
+            completion_percentage = max(0, min(100, completion_percentage))
+            
+            # Update progress status based on completion
+            if completion_percentage >= 100:
+                self.progress_status = "Completed"
+                if not self.actual_end_date:
+                    self.actual_end_date = date.today()
+            elif completion_percentage > 0:
+                self.progress_status = "In Progress"
+            else:
+                self.progress_status = "Not Started"
+
+            return completion_percentage
+
+        except Exception as e:
+            print(f"Error updating completion percentage: {str(e)}")
+            return self.completion_percentage
 
     def calculate_completion_percentage(self):
+        """Calculate completion percentage based on duration"""
         if not self.start_date or not self.expected_end_date:
             return 0
 
@@ -910,21 +1172,8 @@ class CourseTracking(models.Model):
 
             return min(100, int(period_progress))
 
-    def get_completion_percentage(self):
-        return self.completion_percentage
-
-    def update_completion_percentage(self):
-        new_percentage = self.calculate_completion_percentage()
-        if new_percentage != self.completion_percentage:
-            self.completion_percentage = new_percentage
-            self.save(update_fields=["completion_percentage"])
-        return new_percentage
-
-    def force_update_percentage(self):
-        return self.update_completion_percentage()
-
     def save(self, *args, **kwargs):
-        if not self.pk:
+        if not self.pk:  # New instance
             self.start_date = self.start_date or date.today()
 
             if self.course.duration_type == "Year":
@@ -941,23 +1190,16 @@ class CourseTracking(models.Model):
             else:
                 self.period_end_date = self.start_date + timedelta(days=365)  # 1 year
 
-        self.clean()
-        self.completion_percentage = self.calculate_completion_percentage()
-
-        # Check if course duration has been completed
-        today = date.today()
-        if self.expected_end_date and today >= self.expected_end_date:
-            self.progress_status = "Completed"
-            if not self.actual_end_date:
-                self.actual_end_date = today
-        elif self.completion_percentage >= 100:
-            self.progress_status = "Completed"
-            if not self.actual_end_date:
-                self.actual_end_date = today
-        elif self.completion_percentage > 0:
-            self.progress_status = "In Progress"
-
         try:
+            self.clean()
+            # Update completion percentage without triggering save again
+            if not hasattr(self, '_updating_completion'):
+                self._updating_completion = True
+                try:
+                    self.completion_percentage = self.update_completion_percentage()
+                finally:
+                    delattr(self, '_updating_completion')
+            
             super().save(*args, **kwargs)
         except Exception as e:
             print(f"Error saving course tracking for {self.student.name}: {str(e)}")
@@ -1031,6 +1273,19 @@ class CourseTracking(models.Model):
         verbose_name_plural = "Course Trackings"
         unique_together = ["student", "course"]
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=['student']),
+            models.Index(fields=['course']),
+            models.Index(fields=['progress_status']),
+            models.Index(fields=['current_period']),
+            models.Index(fields=['enrollment_date']),
+            models.Index(fields=['student', 'progress_status']),
+            models.Index(fields=['course', 'progress_status']),
+            models.Index(fields=['student', 'course', 'progress_status']),
+            models.Index(fields=['completion_percentage']),
+            models.Index(fields=['start_date', 'expected_end_date']),
+            models.Index(fields=['current_period', 'progress_status']),
+        ]
 
 
 # Authentication Models
@@ -1068,6 +1323,59 @@ class ResetToken(models.Model):
 
     def is_expired(self):
         return timezone.now() > self.expires_at
+
+
+class OTPAttempt(models.Model):
+    """Model to track OTP attempts for rate limiting"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='otp_attempts',
+        null=True,
+        blank=True
+    )
+    identifier = models.CharField(max_length=255)  # phone or email
+    attempts = models.IntegerField(default=0)
+    last_attempt = models.DateTimeField(auto_now=True)
+    is_locked = models.BooleanField(default=False)
+    lock_until = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['identifier']),
+            models.Index(fields=['is_locked']),
+            models.Index(fields=['lock_until']),
+        ]
+
+    def increment_attempts(self):
+        """Increment attempt count and handle locking"""
+        self.attempts += 1
+        self.last_attempt = timezone.now()
+        
+        # Lock after 3 failed attempts for 15 minutes
+        if self.attempts >= 3:
+            self.is_locked = True
+            self.lock_until = timezone.now() + timedelta(minutes=15)
+        
+        self.save()
+
+    def reset_attempts(self):
+        """Reset attempt count and unlock"""
+        self.attempts = 0
+        self.is_locked = False
+        self.lock_until = None
+        self.save()
+
+    def is_locked_out(self):
+        """Check if the user is currently locked out"""
+        if not self.is_locked:
+            return False
+            
+        if self.lock_until and timezone.now() > self.lock_until:
+            self.reset_attempts()
+            return False
+            
+        return True
 
 
 class Parent(AbstractUser):
@@ -1145,9 +1453,29 @@ class Parent(AbstractUser):
                 return True
         return False
 
+    def cleanup_orphaned_data(self):
+        """
+        Clean up orphaned data related to this parent
+        """
+        # Clean up meeting records
+        self.meetings.all().delete()
+        
+        # Clean up feedback records
+        self.feedbacks.all().delete()
+        self.institute_feedbacks.all().delete()
+        
+        # Clean up notification tokens
+        self.fcm_token = None
+        self.save(update_fields=['fcm_token'])
+
     class Meta:
         verbose_name = "Parent"
         verbose_name_plural = "Parents"
+        indexes = [
+            models.Index(fields=['phone']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['phone', 'is_active']),        # For active parent lookups
+        ]
 
 
 class TeacherParentMeeting(models.Model):
@@ -1179,6 +1507,13 @@ class TeacherParentMeeting(models.Model):
     class Meta:
         ordering = ["-meeting_date", "-meeting_time"]
         unique_together = ["meeting_date", "meeting_time"]
+        indexes = [
+            models.Index(fields=['meeting_date']),
+            models.Index(fields=['status']),
+            models.Index(fields=['is_online']),
+            models.Index(fields=['meeting_date', 'status']),    # For upcoming meetings
+            models.Index(fields=['status', 'is_online']),       # For online meetings
+        ]
 
     def __str__(self):
         return f"Meeting on {self.meeting_date}"
@@ -1230,3 +1565,27 @@ class TeacherParentMeeting(models.Model):
 
     def can_be_rescheduled(self):
         return self.status in ["scheduled", "rescheduled"] and self.is_upcoming()
+
+
+class SubjectProgress(models.Model):
+    """Model for tracking student progress in individual subjects"""
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='subject_progress')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='student_progress')
+    status = models.CharField(max_length=20, choices=PROGRESS_STATUS_CHOICES, default="Not Started")
+    completion_percentage = models.IntegerField(default=0)
+    last_updated = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ['student', 'subject']
+        ordering = ['-last_updated']
+        indexes = [
+            models.Index(fields=['student']),
+            models.Index(fields=['subject']),
+            models.Index(fields=['status']),
+            models.Index(fields=['student', 'subject']),
+            models.Index(fields=['student', 'status']),
+        ]
+
+    def __str__(self):
+        return f"{self.student.name} - {self.subject.name}: {self.status}"

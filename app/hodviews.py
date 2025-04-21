@@ -11,8 +11,16 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+import os
 
 from app.firebase import send_push_notification, FCMDevice
+from app.utils import (
+    handle_file_upload,
+    cleanup_failed_upload,
+    FileUploadError,
+    ALLOWED_DOCUMENT_TYPES,
+    MAX_DOCUMENT_SIZE
+)
 
 from app.models import (
     Staff,
@@ -167,59 +175,53 @@ def hod_dashboard(request):
 
 @login_required
 def add_subject(request):
-    """Add a new subject to the HOD's course"""
-    try:
-        # Check if user is a HOD
-        if not request.user.groups.filter(name="HOD").exists():
-            return JsonResponse({"success": False, "message": "Only HODs can add subjects."})
-
-        # Get the HOD's course
-        hod = request.user
-        if not hasattr(hod, "course") or not hod.course:
-            return JsonResponse({"success": False, "message": "You are not assigned as HOD of any department."})
-
-        course = hod.course
-
-        if request.method == "POST":
-            # Get form data
+    if request.method == "POST":
+        try:
             name = request.POST.get("name")
             code = request.POST.get("code")
             period_or_year = request.POST.get("period_or_year")
+            syllabus_pdf = request.FILES.get("syllabus_pdf")
 
-            # Validate required fields
             if not name or not period_or_year:
-                return JsonResponse({"success": False, "message": "Subject name and period/year are required."})
+                return JsonResponse(
+                    {"success": False, "error": "Name and period/year are required"}
+                )
+
+            # Handle syllabus PDF upload if provided
+            syllabus_path = None
+            if syllabus_pdf:
+                try:
+                    syllabus_path = handle_file_upload(
+                        syllabus_pdf,
+                        "subject_syllabus",
+                        ALLOWED_DOCUMENT_TYPES,
+                        MAX_DOCUMENT_SIZE
+                    )
+                except FileUploadError as e:
+                    return JsonResponse({"success": False, "error": str(e)})
 
             try:
-                period_or_year = int(period_or_year)
-            except ValueError:
-                return JsonResponse({"success": False, "message": "Invalid period/year value."})
+                # Create subject with uploaded syllabus
+                subject = Subject.objects.create(
+                    name=name,
+                    code=code,
+                    period_or_year=period_or_year,
+                    syllabus_pdf=syllabus_path
+                )
 
-            # Validate period/year against course duration
-            max_periods = course.duration * 2 if course.duration_type == "Semester" else course.duration
-            if period_or_year < 1 or period_or_year > max_periods:
-                return JsonResponse({"success": False, "message": f"Period/Year must be between 1 and {max_periods}."})
+                return JsonResponse(
+                    {"success": True, "message": "Subject added successfully"}
+                )
+            except Exception as e:
+                # Clean up uploaded file if database operation fails
+                if syllabus_path:
+                    cleanup_failed_upload(syllabus_path)
+                return JsonResponse({"success": False, "error": str(e)})
 
-            # Create the subject
-            subject = Subject(
-                name=name,
-                code=code,
-                period_or_year=period_or_year,
-                course=course
-            )
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
 
-            # Handle syllabus PDF if provided
-            if request.FILES.get('syllabus_pdf'):
-                subject.syllabus_pdf = request.FILES['syllabus_pdf']
-
-            subject.save()
-
-            return JsonResponse({"success": True, "message": "Subject added successfully."})
-
-        return JsonResponse({"success": False, "message": "Invalid request method."})
-
-    except Exception as e:
-        return JsonResponse({"success": False, "message": f"An error occurred: {str(e)}"})
+    return JsonResponse({"success": False, "error": "Invalid request method"})
 
 @login_required
 def view_subject(request, subject_id):
@@ -271,79 +273,67 @@ def view_subject(request, subject_id):
         return JsonResponse({"success": False, "message": f"An error occurred: {str(e)}"})
 
 @login_required
-def edit_subject(request, subject_id):
-    """Edit an existing subject"""
-    try:
-        # Check if user is a HOD
-        if not request.user.groups.filter(name="HOD").exists():
-            return JsonResponse({"success": False, "message": "Only HODs can edit subjects."})
-
-        # Get the HOD's course
-        hod = request.user
-        if not hasattr(hod, "course") or not hod.course:
-            return JsonResponse({"success": False, "message": "You are not assigned as HOD of any department."})
-
-        # Get the subject and ensure it belongs to the HOD's course
-        subject = get_object_or_404(Subject, id=subject_id, course=hod.course)
-
-        if request.method == "POST":
-            # Get form data
+def edit_subject(request):
+    if request.method == "POST":
+        try:
+            subject_id = request.POST.get("subject_id")
             name = request.POST.get("name")
             code = request.POST.get("code")
             period_or_year = request.POST.get("period_or_year")
-            teacher_id = request.POST.get("teacher")
-            description = request.POST.get("description")
+            syllabus_pdf = request.FILES.get("syllabus_pdf")
 
-            # Validate required fields
-            if not name or not period_or_year:
-                return JsonResponse({"success": False, "message": "Subject name and period/year are required."})
+            if not subject_id or not name or not period_or_year:
+                return JsonResponse(
+                    {"success": False, "error": "Subject ID, name and period/year are required"}
+                )
 
             try:
-                period_or_year = int(period_or_year)
-            except ValueError:
-                return JsonResponse({"success": False, "message": "Invalid period/year value."})
-
-            # Validate period/year against course duration
-            max_periods = subject.course.duration * 2 if subject.course.duration_type == "Semester" else subject.course.duration
-            if period_or_year < 1 or period_or_year > max_periods:
-                return JsonResponse({"success": False, "message": f"Period/Year must be between 1 and {max_periods}."})
-
-            # Update subject details
-            subject.name = name
-            subject.code = code
-            subject.period_or_year = period_or_year
-            subject.description = description
+                subject = Subject.objects.get(id=subject_id)
+            except Subject.DoesNotExist:
+                return JsonResponse({"success": False, "error": "Subject not found"})
 
             # Handle syllabus PDF upload if provided
-            if request.FILES.get('syllabus_pdf'):
-                subject.syllabus_pdf = request.FILES['syllabus_pdf']
-
-            subject.save()
-
-            # Update or create routine for teacher assignment
-            if teacher_id:
+            syllabus_path = None
+            if syllabus_pdf:
                 try:
-                    teacher = Staff.objects.get(id=teacher_id, course=hod.course)
-                    routine, created = Routine.objects.get_or_create(
-                        subject=subject,
-                        course=hod.course,
-                        defaults={
-                            'teacher': teacher,
-                            'is_active': True
-                        }
+                    syllabus_path = handle_file_upload(
+                        syllabus_pdf,
+                        "subject_syllabus",
+                        ALLOWED_DOCUMENT_TYPES,
+                        MAX_DOCUMENT_SIZE
                     )
-                    if not created:
-                        routine.teacher = teacher
-                        routine.save()
-                except Staff.DoesNotExist:
-                    return JsonResponse({"success": False, "message": "Invalid teacher selected."})
+                except FileUploadError as e:
+                    return JsonResponse({"success": False, "error": str(e)})
 
-            return JsonResponse({"success": True, "message": "Subject updated successfully."})
+            try:
+                # Update subject fields
+                subject.name = name
+                subject.code = code
+                subject.period_or_year = period_or_year
 
-        return JsonResponse({"success": False, "message": "Invalid request method."})
+                # Update syllabus if new one was uploaded
+                if syllabus_path:
+                    # Delete old syllabus if exists
+                    if subject.syllabus_pdf:
+                        if os.path.isfile(subject.syllabus_pdf.path):
+                            os.remove(subject.syllabus_pdf.path)
+                    subject.syllabus_pdf = syllabus_path
 
-    except Exception as e:
-        return JsonResponse({"success": False, "message": f"An error occurred: {str(e)}"})
+                subject.save()
+
+                return JsonResponse(
+                    {"success": True, "message": "Subject updated successfully"}
+                )
+            except Exception as e:
+                # Clean up uploaded file if database operation fails
+                if syllabus_path:
+                    cleanup_failed_upload(syllabus_path)
+                return JsonResponse({"success": False, "error": str(e)})
+
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Invalid request method"})
 
 @login_required(login_url='login')
 def delete_subject(request, subject_id):

@@ -38,6 +38,16 @@ from django.db.models.base import transaction
 from dotenv import load_dotenv
 from app.firebase import save_fcm_token, FCMDevice
 from django.views.static import serve
+from app.utils import (
+    handle_file_upload,
+    cleanup_failed_upload,
+    FileUploadError,
+    ALLOWED_IMAGE_TYPES,
+    MAX_IMAGE_SIZE,
+    ALLOWED_DOCUMENT_TYPES,
+    MAX_DOCUMENT_SIZE
+)
+from django.views.decorators.csrf import csrf_exempt
 
 # Import views from studentviews.py
 from app.studentviews import (
@@ -218,107 +228,47 @@ def update_profile(request):
         HttpResponse: Redirects to appropriate dashboard with success/error message
     """
     if request.method == "POST":
-        user = request.user
-        user_groups = user.groups.values_list("name", flat=True)
+        try:
+            user = request.user
+            user_groups = user.groups.values_list("name", flat=True)
 
-        # Handle profile image update
-        if "profile_image" in request.FILES:
-            try:
-                image = request.FILES["profile_image"]
+            # Handle profile image update
+            if "profile_image" in request.FILES:
+                try:
+                    image = request.FILES["profile_image"]
 
-                # Validate image file type
-                allowed_types = ["image/jpeg", "image/png", "image/gif"]
-                if image.content_type not in allowed_types:
-                    messages.error(
-                        request,
-                        "Invalid file type. Please upload a JPEG, PNG, or GIF image.",
-                    )
+                    # Handle file upload with security checks
+                    try:
+                        file_path = handle_file_upload(
+                            image,
+                            "profile_images",
+                            ALLOWED_IMAGE_TYPES,
+                            MAX_IMAGE_SIZE
+                        )
+                    except FileUploadError as e:
+                        messages.error(request, str(e))
+                        return redirect("dashboard")
+
+                    # Update user's profile image
+                    with transaction.atomic():
+                        if "Student" in user_groups:
+                            user.image = file_path
+                            user.save()
+                        elif "Teacher" in user_groups:
+                            user.image = file_path
+                            user.save()
+                        elif "Parent" in user_groups:
+                            user.image = file_path
+                            user.save()
+
+                    messages.success(request, "Profile picture updated successfully")
+                except Exception as e:
+                    messages.error(request, f"Error updating profile picture: {str(e)}")
                     return redirect("dashboard")
 
-                # Validate image size (max 5MB)
-                if image.size > 5 * 1024 * 1024:
-                    messages.error(
-                        request,
-                        "Image size too large. Please upload an image smaller than 5MB.",
-                    )
-                    return redirect("dashboard")
-
-                if "Student" in user_groups:
-                    student = Student.objects.get(id=user.id)
-                    if student.image:
-                        # Delete old image if updating
-                        if os.path.isfile(student.image.path):
-                            os.remove(student.image.path)
-                    # Save new image
-                    student.image = image
-                    student.save()
-                    messages.success(request, "Profile picture updated successfully.")
-
-                elif "Teacher" in user_groups:
-                    staff = Staff.objects.get(id=user.id)
-                    if staff.image:
-                        # Delete old image if updating
-                        if os.path.isfile(staff.image.path):
-                            os.remove(staff.image.path)
-                    # Save new image
-                    staff.image = image
-                    staff.save()
-                    messages.success(request, "Profile picture updated successfully.")
-
-                elif "Parent" in user_groups:
-                    parent = Parent.objects.get(id=user.id)
-                    if parent.image:
-                        # Delete old image if updating
-                        if os.path.isfile(parent.image.path):
-                            os.remove(parent.image.path)
-                    # Save new image
-                    parent.image = image
-                    parent.save()
-                    messages.success(request, "Profile picture updated successfully.")
-
-                elif "HOD" in user_groups or any(
-                    group.lower().startswith("hod") for group in user_groups
-                ):
-                    # HOD is typically a Staff member with special privileges
-                    staff = Staff.objects.get(id=user.id)
-                    if staff.image:
-                        # Delete old image if updating
-                        if os.path.isfile(staff.image.path):
-                            os.remove(staff.image.path)
-                    # Save new image
-                    staff.image = image
-                    staff.save()
-                    messages.success(request, "Profile picture updated successfully.")
-
-                else:
-                    messages.error(
-                        request,
-                        "User profile not found. Please make sure you are logged in as a student, staff, or parent member.",
-                    )
-                    return redirect("dashboard")
-
-            except (Student.DoesNotExist, Staff.DoesNotExist, Parent.DoesNotExist) as e:
-                messages.error(request, "User profile not found in the database.")
-                return redirect("dashboard")
-            except Exception as e:
-                messages.error(request, f"Error updating profile picture: {str(e)}")
-                return redirect("dashboard")
-        else:
-            messages.error(request, "No profile picture uploaded.")
             return redirect("dashboard")
-
-        # Redirect based on user type
-        if "Student" in user_groups:
-            return redirect("studentDashboard")
-        elif "Teacher" in user_groups:
-            return redirect("teacherDashboard")
-        elif "Parent" in user_groups:
-            return redirect("parentDashboard")
-        elif "Admission Officer" in user_groups:
-            return redirect("admissionOfficerDashboard")
-        elif "HOD" in user_groups:
-            return redirect("hodDashboard")
-        else:
+        except Exception as e:
+            messages.error(request, f"An unexpected error occurred: {str(e)}")
             return redirect("dashboard")
 
     return redirect("dashboard")
@@ -326,82 +276,43 @@ def update_profile(request):
 
 @login_required
 def change_password(request):
+    """Change user password."""
     if request.method == "POST":
-        user = request.user
-        user_groups = user.groups.values_list("name", flat=True)
-        current_password = request.POST.get("current_password")
-        new_password = request.POST.get("new_password")
-        confirm_password = request.POST.get("confirm_password")
-
-        # Check if this is an AJAX request
-        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
-        # Determine redirect URL based on user role
-        redirect_url = "dashboard"
-        if "Student" in user_groups:
-            redirect_url = "studentDashboard"
-        elif "Teacher" in user_groups:
-            redirect_url = "teacherDashboard"
-        elif "Parent" in user_groups:
-            redirect_url = "parentDashboard"
-        elif "Admission Officer" in user_groups:
-            redirect_url = "admissionOfficerDashboard"
-        elif "HOD" in user_groups:
-            redirect_url = "hodDashboard"
-
-        # Validate input
-        if not all([current_password, new_password, confirm_password]):
-            if is_ajax:
-                return JsonResponse(
-                    {"success": False, "error": "All password fields are required."}
-                )
-            messages.error(request, "All password fields are required.")
-            return redirect(redirect_url)
-
-        if new_password != confirm_password:
-            if is_ajax:
-                return JsonResponse(
-                    {"success": False, "error": "New passwords do not match."}
-                )
-            messages.error(request, "New passwords do not match.")
-            return redirect(redirect_url)
-
-        # Check current password
-        if not user.check_password(current_password):
-            if is_ajax:
-                return JsonResponse(
-                    {"success": False, "error": "Current password is incorrect."}
-                )
-            messages.error(request, "Current password is incorrect.")
-            return redirect(redirect_url)
-
-        # Set new password
         try:
-            user.set_password(new_password)
-            user.save()
+            user = request.user
+            current_password = request.POST.get("current_password")
+            new_password = request.POST.get("new_password")
+            confirm_password = request.POST.get("confirm_password")
 
-            # For both AJAX and regular requests, we'll return success and indicate need for logout
-            if is_ajax:
-                return JsonResponse(
-                    {
-                        "success": True,
-                        "redirect": "/login/",
-                        "message": "Password changed successfully. Please login again.",
-                    }
-                )
+            # Validate input
+            if not all([current_password, new_password, confirm_password]):
+                messages.error(request, "All fields are required")
+                return redirect("dashboard")
 
-            messages.success(
-                request, "Password changed successfully. Please login again."
-            )
-            return redirect("login")
+            if new_password != confirm_password:
+                messages.error(request, "New passwords do not match")
+                return redirect("dashboard")
 
+            # Check current password
+            if not user.check_password(current_password):
+                messages.error(request, "Current password is incorrect")
+                return redirect("dashboard")
+
+            # Validate new password strength
+            if len(new_password) < 8:
+                messages.error(request, "Password must be at least 8 characters long")
+                return redirect("dashboard")
+
+            # Update password
+            with transaction.atomic():
+                user.set_password(new_password)
+                user.save()
+
+            messages.success(request, "Password changed successfully")
+            return redirect("dashboard")
         except Exception as e:
-            if is_ajax:
-                return JsonResponse(
-                    {"success": False, "error": f"Error changing password: {str(e)}"}
-                )
-            messages.error(request, f"Error changing password: {str(e)}")
-            return redirect(redirect_url)
+            messages.error(request, f"An error occurred while changing password: {str(e)}")
+            return redirect("dashboard")
 
     return redirect("dashboard")
 
@@ -409,85 +320,56 @@ def change_password(request):
 @login_required
 @require_GET
 def get_subjects(request):
-    """Get subjects for a course and period"""
-    course_id = request.GET.get("course_id")
-    period = request.GET.get("period", 1)
-
-    if not course_id:
-        return JsonResponse({"success": False, "message": "Course ID is required"})
-
+    """Get subjects for a course."""
     try:
-        subjects = Subject.objects.filter(
-            course_id=course_id, period_or_year=period
-        ).values("id", "name")
+        course_id = request.GET.get("course_id")
+        if not course_id:
+            return JsonResponse({"error": "Course ID is required"}, status=400)
 
-        return JsonResponse({"success": True, "subjects": list(subjects)})
+        subjects = Subject.objects.filter(course_id=course_id).values(
+            "id", "name", "code", "period_or_year"
+        )
+        return JsonResponse(list(subjects), safe=False)
     except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 @login_required
 @require_GET
 def get_teachers(request):
-    """Get teachers for the institute"""
+    """Get teachers for a subject."""
     try:
-        teachers = Staff.objects.filter(
-            Q(designation__icontains="Teacher")
-            | Q(designation__icontains="Staff")
-            | Q(designation__icontains="Principal")
-            | Q(designation__icontains="HOD")
-            | Q(designation__icontains="Admission Officer")
-            | Q(designation__isnull=True)
-            | Q(designation="")
-        ).values("id", "name")
+        subject_id = request.GET.get("subject_id")
+        if not subject_id:
+            return JsonResponse({"error": "Subject ID is required"}, status=400)
 
-        return JsonResponse({"success": True, "teachers": list(teachers)})
+        teachers = Staff.objects.filter(
+            designation="Teacher",
+            routine__subject_id=subject_id
+        ).distinct().values("id", "name")
+        return JsonResponse(list(teachers), safe=False)
     except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 @login_required
 @require_GET
 def get_course_duration(request):
-    """Get course duration details"""
-    course_id = request.GET.get("course_id")
-
-    if not course_id:
-        return JsonResponse({"success": False, "message": "Course ID is required"})
-
+    """Get course duration information."""
     try:
+        course_id = request.GET.get("course_id")
+        if not course_id:
+            return JsonResponse({"error": "Course ID is required"}, status=400)
+
         course = Course.objects.get(id=course_id)
-
-        # Calculate number of semesters or years
-        total_periods = course.duration
-        if course.duration_type == "Semester":
-            total_periods = course.duration * 2  # 2 semesters per year
-
-        # Create a list of periods
-        periods = []
-        for i in range(1, total_periods + 1):
-            if course.duration_type == "Semester":
-                periods.append({"value": i, "label": f"Semester {i}"})
-            else:
-                periods.append({"value": i, "label": f"Year {i}"})
-
-        return JsonResponse(
-            {
-                "success": True,
-                "course": {
-                    "id": course.id,
-                    "name": course.name,
-                    "duration": course.duration,
-                    "duration_type": course.duration_type,
-                    "total_periods": total_periods,
-                    "periods": periods,
-                },
-            }
-        )
+        return JsonResponse({
+            "duration": course.duration,
+            "duration_type": course.duration_type
+        })
     except Course.DoesNotExist:
-        return JsonResponse({"success": False, "message": "Course not found"})
+        return JsonResponse({"error": "Course not found"}, status=404)
     except Exception as e:
-        return JsonResponse({"success": False, "message": str(e)})
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 @login_required
@@ -549,17 +431,60 @@ def add_notice(request):
             title = request.POST.get("title")
             message = request.POST.get("message")
             image = request.FILES.get("image")
+            file = request.FILES.get("file")
 
             if not title or not message:
                 return JsonResponse(
                     {"success": False, "error": "Title and message are required"}
                 )
 
-            notice = Notice.objects.create(title=title, message=message, image=image)
+            # Handle image upload if provided
+            image_path = None
+            if image:
+                try:
+                    image_path = handle_file_upload(
+                        image,
+                        "notice_images",
+                        ALLOWED_IMAGE_TYPES,
+                        MAX_IMAGE_SIZE
+                    )
+                except FileUploadError as e:
+                    return JsonResponse({"success": False, "error": str(e)})
 
-            return JsonResponse(
-                {"success": True, "message": "Notice added successfully"}
-            )
+            # Handle file upload if provided
+            file_path = None
+            if file:
+                try:
+                    file_path = handle_file_upload(
+                        file,
+                        "notice_files",
+                        ALLOWED_DOCUMENT_TYPES,
+                        MAX_DOCUMENT_SIZE
+                    )
+                except FileUploadError as e:
+                    # Clean up image if file upload fails
+                    if image_path:
+                        cleanup_failed_upload(image_path)
+                    return JsonResponse({"success": False, "error": str(e)})
+
+            # Create notice with uploaded files
+            try:
+                notice = Notice.objects.create(
+                    title=title,
+                    message=message,
+                    image=image_path,
+                    file=file_path
+                )
+                return JsonResponse(
+                    {"success": True, "message": "Notice added successfully"}
+                )
+            except Exception as e:
+                # Clean up uploaded files if database operation fails
+                if image_path:
+                    cleanup_failed_upload(image_path)
+                if file_path:
+                    cleanup_failed_upload(file_path)
+                return JsonResponse({"success": False, "error": str(e)})
 
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
@@ -581,87 +506,51 @@ def delete_notice(request, notice_id):
 
 
 @login_required
+@csrf_exempt
 @require_POST
 def save_fcm_token(request):
+    """Save FCM token to database"""
     try:
-        print("Received FCM token save request")
+        # Get token from request body
         data = json.loads(request.body)
-        token = data.get("token")
-        timestamp = data.get("timestamp")
-        vapid_key_used = data.get("vapidKeyUsed", False)
-
-        # Log additional information for debugging
-        auth_header = request.headers.get("Authorization", "")
-        using_vapid_auth = auth_header.startswith("VAPID ")
-
-        print(f"Auth method: {'VAPID' if using_vapid_auth else 'Cookie-based'}")
-        print(f"VAPID key used for token generation: {vapid_key_used}")
-
+        token = data.get('token')
+        
         if not token:
-            print("No token provided in request")
             return JsonResponse({"error": "Token is required"}, status=400)
-
-        user = request.user
-        print(f"User authenticated: {user.id} ({user.username})")
-        user_groups = user.groups.values_list("name", flat=True)
-
-        print(f"FCM token saving for user: {user.id}, groups: {list(user_groups)}")
-
-        # Determine user type based on group membership
+            
+        # Check if this is a fallback token
+        is_fallback = token.startswith("fcm-token-") or token.startswith("fallback-token-")
+        
+        # Determine user type if a user is authenticated
         user_type = "unknown"
-        if user.is_superuser:
-            user_type = "admin"
-        elif "Student" in user_groups:
-            user_type = "student"
-        elif "Teacher" in user_groups:
-            user_type = "teacher"
-        elif "Parent" in user_groups:
-            user_type = "parent"
-
-        # Save token directly to the user model
-        user.fcm_token = token
-        user.save(update_fields=["fcm_token"])
-        print(f"FCM token saved directly to user {user.name}")
-
-        # Update or create FCMDevice
-        try:
-            # Check if this is a fallback token
-            is_fallback = token.startswith("fcm-token-") or token.startswith(
-                "fallback-token-"
-            )
-
-            # Create or update the device
-            device, created = FCMDevice.objects.update_or_create(
-                token=token,
-                defaults={
-                    "is_active": True,
-                    "is_fallback": is_fallback,
-                    "user_type": user_type,
-                },
-            )
-
-            print(
-                f"FCMDevice {'created' if created else 'updated'} with ID: {device.id}, user_type: {user_type}"
-            )
-        except Exception as e:
-            print(f"Error creating/updating FCMDevice: {str(e)}")
-            raise
-
-        return JsonResponse(
-            {
-                "status": "success",
-                "device_id": device.id,
-                "created": created,
-                "auth_method": "vapid" if using_vapid_auth else "cookie",
+        if request.user.is_authenticated:
+            user_groups = request.user.groups.values_list("name", flat=True)
+            if "Student" in user_groups:
+                user_type = "student"
+            elif "Parent" in user_groups:
+                user_type = "parent"
+            elif "Teacher" in user_groups:
+                user_type = "teacher"
+            elif request.user.is_superuser:
+                user_type = "admin"
+        
+        # Use update_or_create to avoid unnecessary deletes
+        device, created = FCMDevice.objects.update_or_create(
+            token=token,
+            defaults={
+                "is_fallback": is_fallback,
+                "is_active": True,
                 "user_type": user_type,
-            }
+            },
         )
+        
+        return JsonResponse({"status": "success"})
+        
     except json.JSONDecodeError:
-        print("Invalid JSON in request body")
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        return JsonResponse({"error": "Invalid JSON data"}, status=400)
     except Exception as e:
-        print(f"Error in save_fcm_token: {str(e)}")
-        return JsonResponse({"error": str(e)}, status=500)
+        print(f"Error saving FCM token: {str(e)}")
+        return JsonResponse({"error": "Internal server error"}, status=500)
 
 
 def serve_firebase_sw(request):

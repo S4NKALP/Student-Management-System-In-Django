@@ -1,0 +1,29 @@
+[project]
+name = "sms"
+version = "0.1.0"
+description = "A comprehensive Student Management System built with Django, featuring multi-role access, real-time notifications, and secure authentication."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=5.2",
+    "django-cacheops>=7.2",
+    "django-debug-toolbar>=5.1.0",
+    "django-jazzmin>=3.0.1",
+    "django-mathfilters>=1.0.0",
+    "django-model-utils>=5.0.0",
+    "django-redis>=5.4.0",
+    "djangorestframework>=3.16.0",
+    "dotenv>=0.9.9",
+    "faker>=37.1.0",
+    "firebase-admin>=6.7.0",
+    "gunicorn>=23.0.0",
+    "pillow>=11.2.1",
+    "pydantic>=2.11.3",
+    "pyotp>=2.9.0",
+    "python-magic>=0.4.27",
+    "pytz>=2025.2",
+    "redis>=5.2.1",
+    "requests>=2.32.3",
+    "tenacity>=9.1.2",
+    "whitenoise>=6.9.0",
+]

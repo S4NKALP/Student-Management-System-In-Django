@@ -960,23 +960,22 @@ class Command(BaseCommand):
                     else:
                         period_end_date = joining_date + timedelta(days=365)  # 1 year
                     
-                    # Create course tracking - save() will automatically update completion percentage
-                    with transaction.atomic():
-                        course_tracking = CourseTracking.objects.create(
-                            student=student,
-                            course=course,
-                            enrollment_date=joining_date,
-                            start_date=joining_date,
-                            expected_end_date=expected_end_date,
-                            current_period=student.current_period,
-                            period_start_date=period_start_date,
-                            period_end_date=period_end_date,
-                            progress_status="In Progress",
-                            notes=fake.paragraph() if random.random() < 0.3 else None
-                        )
-                        
-                        self.stdout.write(self.style.SUCCESS(f'Created course tracking for student: {student.name} in course: {course.name}'))
-                        
+                    # Create course tracking without nested transaction
+                    course_tracking = CourseTracking.objects.create(
+                        student=student,
+                        course=course,
+                        enrollment_date=joining_date,
+                        start_date=joining_date,
+                        expected_end_date=expected_end_date,
+                        current_period=student.current_period,
+                        period_start_date=period_start_date,
+                        period_end_date=period_end_date,
+                        progress_status="In Progress",
+                        notes=fake.paragraph() if random.random() < 0.3 else None
+                    )
+                    
+                    self.stdout.write(self.style.SUCCESS(f'Created course tracking for student: {student.name} in course: {course.name}'))
+                    
                 except Exception as e:
                     self.stdout.write(self.style.ERROR(f'Error creating course tracking for student {student.name}: {str(e)}'))
                     continue

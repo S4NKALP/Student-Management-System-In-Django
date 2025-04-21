@@ -278,48 +278,112 @@ def handle_parent_student_relationship(
 @receiver(post_migrate)
 def create_user_groups(sender, **kwargs):
     """
-    Create initial user groups and permissions after migrations.
-    This ensures groups exist before any user is created.
+    Signal handler to create default user groups after database migrations:
+    - Student
+    - Parent
+    - Teacher
+    - HOD
+    - Admission Officer
     """
-    from django.contrib.auth.models import Group, Permission
-
-    # Create the necessary groups
-    groups_data = {
-        "Student": ["view_attendance", "view_notice", "view_subject"],
-        "Teacher": [
-            "view_student",
-            "view_attendance",
-            "add_attendance",
-            "change_attendance",
-            "view_notice",
-            "add_notice",
-            "view_subject",
-            "change_subject",
-        ],
-        "Parent": ["view_student", "view_attendance", "view_notice"],
-        "Admission Officer": [
-            "view_student",
-            "add_student",
-            "change_student",
-            "view_parent",
-            "add_parent",
-            "change_parent",
-            "view_course",
-            "view_batch",
-            "view_notice",
-        ],
-    }
-
-    for group_name, permissions in groups_data.items():
-        group, created = Group.objects.get_or_create(name=group_name)
-
-        if created:
-            print(f"Created user group: {group_name}")
-
-            # Add permissions to group
-            perms = Permission.objects.filter(codename__in=permissions)
-            group.permissions.add(*perms)
-            print(f"Added {perms.count()} permissions to {group_name} group")
+    if sender.name == 'app':  # Only run for our app's migrations
+        try:
+            # Create Student group
+            student_group, created = Group.objects.get_or_create(name="Student")
+            if created:
+                # Add basic student permissions
+                permissions = Permission.objects.filter(
+                    codename__in=[
+                        "view_routine", 
+                        "view_attendance", 
+                        "view_notice",
+                        "add_studentleave",
+                        "view_studentleave"
+                    ]
+                )
+                student_group.permissions.add(*permissions)
+                logger.info("Created Student group with basic permissions")
+            
+            # Create Parent group
+            parent_group, created = Group.objects.get_or_create(name="Parent")
+            if created:
+                # Add basic parent permissions
+                permissions = Permission.objects.filter(
+                    codename__in=[
+                        "view_student", 
+                        "view_attendance", 
+                        "view_notice",
+                        "view_routine"
+                    ]
+                )
+                parent_group.permissions.add(*permissions)
+                logger.info("Created Parent group with basic permissions")
+            
+            # Create Teacher group
+            teacher_group, created = Group.objects.get_or_create(name="Teacher")
+            if created:
+                # Add teacher permissions
+                permissions = Permission.objects.filter(
+                    codename__in=[
+                        "view_student", 
+                        "view_attendance", 
+                        "add_attendance",
+                        "change_attendance",
+                        "view_notice",
+                        "view_routine",
+                        "view_subject"
+                    ]
+                )
+                teacher_group.permissions.add(*permissions)
+                logger.info("Created Teacher group with basic permissions")
+                
+            # Create HOD group
+            hod_group, created = Group.objects.get_or_create(name="HOD")
+            if created:
+                # Add HOD permissions - more permissions than regular teacher
+                permissions = Permission.objects.filter(
+                    codename__in=[
+                        "view_student", 
+                        "add_student",
+                        "change_student",
+                        "view_attendance", 
+                        "add_attendance",
+                        "change_attendance",
+                        "view_notice",
+                        "add_notice",
+                        "change_notice",
+                        "view_routine",
+                        "add_routine",
+                        "change_routine",
+                        "view_subject",
+                        "add_subject",
+                        "change_subject",
+                        "view_staff",
+                        "view_course"
+                    ]
+                )
+                hod_group.permissions.add(*permissions)
+                logger.info("Created HOD group with administrative permissions")
+                
+            # Create Admission Officer group
+            admission_group, created = Group.objects.get_or_create(name="Admission Officer")
+            if created:
+                # Add admission officer permissions
+                permissions = Permission.objects.filter(
+                    codename__in=[
+                        "view_student", 
+                        "add_student",
+                        "change_student",
+                        "view_course",
+                        "view_batch",
+                        "add_batch",
+                        "change_batch"
+                    ]
+                )
+                admission_group.permissions.add(*permissions)
+                logger.info("Created Admission Officer group with admission permissions")
+                
+        except Exception as e:
+            logger.error(f"Error creating default user groups: {str(e)}")
 
 
 # --------------------------------------------------------------------

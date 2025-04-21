@@ -8,88 +8,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password - Student Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #4285f4;
-            --secondary-color: #34a853;
-            --accent-color: #ea4335;
-            --background-color: #f8f9fa;
-            --text-color: #202124;
-            --light-text: #5f6368;
-            --error-color: #ea4335;
-            --border-radius: 8px;
-            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary-color: #10b981;
+            --accent-color: #f43f5e;
+            --background-color: #f8fafc;
+            --text-color: #1e293b;
+            --light-text: #64748b;
+            --error-color: #ef4444;
+            --success-color: #10b981;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --transition: all 0.3s ease;
         }
 
         body {
-            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
-            background-color: var(--background-color);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             color: var(--text-color);
         }
 
         .reset-container {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
-            width: 380px;
-            padding: 40px;
+            width: 420px;
+            padding: 2.5rem;
             text-align: center;
+            transform: translateY(0);
+            transition: var(--transition);
+        }
+
+        .reset-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
         .logo {
-            margin-bottom: 30px;
-            width: 80px;
-            height: 80px;
+            margin-bottom: 2rem;
+            width: 90px;
+            height: 90px;
+            transition: var(--transition);
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
         }
 
         h1 {
-            font-size: 24px;
-            font-weight: 500;
-            margin-bottom: 20px;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
         }
 
         p {
-            margin-bottom: 30px;
+            margin-bottom: 1.5rem;
             color: var(--light-text);
-            line-height: 1.5;
+            line-height: 1.6;
             text-align: left;
+            font-size: 0.9375rem;
         }
 
         .options {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            margin: 30px 0;
+            gap: 1rem;
+            margin: 1.5rem 0;
         }
 
         .option-btn {
             display: flex;
             align-items: center;
             background-color: white;
-            border: 1px solid #ddd;
+            border: 2px solid #e2e8f0;
             border-radius: var(--border-radius);
-            padding: 15px;
+            padding: 1.25rem;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: var(--transition);
             text-decoration: none;
             color: var(--text-color);
         }
 
         .option-btn:hover {
             border-color: var(--primary-color);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            background-color: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
         }
 
         .option-icon {
-            font-size: 24px;
-            margin-right: 15px;
+            font-size: 1.5rem;
+            margin-right: 1rem;
             color: var(--primary-color);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(79, 70, 229, 0.1);
+            border-radius: 50%;
         }
 
         .option-text {
@@ -97,28 +126,42 @@
         }
 
         .option-text h3 {
-            margin: 0 0 5px 0;
-            font-size: 16px;
+            margin: 0 0 0.25rem 0;
+            font-size: 1rem;
+            font-weight: 600;
         }
 
         .option-text p {
             margin: 0;
-            font-size: 14px;
+            font-size: 0.875rem;
             color: var(--light-text);
         }
         
         .back-link {
-            margin-top: 25px;
+            margin-top: 1.5rem;
         }
 
         .back-link a {
             color: var(--primary-color);
             text-decoration: none;
-            font-size: 14px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .back-link a:hover {
-            text-decoration: underline;
+            color: var(--primary-hover);
+        }
+
+        @media (max-width: 480px) {
+            .reset-container {
+                width: 90%;
+                padding: 1.5rem;
+                margin: 1rem;
+            }
         }
     </style>
 </head>
@@ -135,7 +178,9 @@
         
         <div class="options">
             <a href="{% url 'phone_reset_password' %}" class="option-btn">
-                <div class="option-icon">📱</div>
+                <div class="option-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
                 <div class="option-text">
                     <h3>Reset via SMS</h3>
                     <p>Receive a verification code on your phone number</p>
@@ -143,7 +188,9 @@
             </a>
             
             <a href="{% url 'email_reset_password' %}" class="option-btn">
-                <div class="option-icon">✉️</div>
+                <div class="option-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
                 <div class="option-text">
                     <h3>Reset via Email</h3>
                     <p>Receive a reset link on your email address</p>
@@ -152,7 +199,10 @@
         </div>
         
         <div class="back-link">
-            <a href="{% url 'login' %}">Back to login</a>
+            <a href="{% url 'login' %}">
+                <i class="fas fa-arrow-left"></i>
+                Back to login
+            </a>
         </div>
     </div>
 </body>

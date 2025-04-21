@@ -9,8 +9,10 @@ from django.core.cache import cache
 from django.core.signals import request_started
 from django.db import transaction
 from django.db.models import Q
-from django.db.models.signals import m2m_changed, post_migrate, post_save
+from django.db.models.signals import m2m_changed, post_migrate, post_save, post_delete, pre_save
 from django.dispatch import receiver
+import logging
+from django.utils import timezone
 
 # Local app imports
 from app.firebase import FCMDevice, send_push_notification
@@ -22,7 +24,15 @@ from app.models import (
     Staff,
     Student,
     TeacherParentMeeting,
+    Course,
+    Subject,
+    TOTPSecret,
+    ResetToken,
+    OTPAttempt,
 )
+from app.utils import cleanup_expired_tokens
+
+logger = logging.getLogger(__name__)
 
 # --------------------------------------------------------------------
 # Course Tracking Signals
@@ -352,71 +362,279 @@ def handle_student_batch_change(
 
 @receiver(post_save, sender=Notice)
 def send_notice_notification(sender, instance, created, **kwargs):
-    """Send notifications when a notice is created or updated"""
-    # Get all tokens from active devices (all user types)
-    tokens = FCMDevice.objects.filter(is_active=True).values_list("token", flat=True)
-
-    send_push_notification(instance.title, instance.message, tokens)
+    """
+    Send notification when a notice is created or updated
+    """
+    try:
+        if created:
+            title = "New Notice"
+            message = instance.message
+        else:
+            title = "Notice Updated"
+            message = instance.message
+            
+        # Get all active FCM tokens
+        tokens = list(instance.get_notification_tokens())
+        
+        if tokens:
+            send_push_notification(title, message, tokens)
+            logger.info(f"Sent notice notification to {len(tokens)} devices")
+    except Exception as e:
+        logger.error(f"Error sending notice notification: {str(e)}")
 
 
 @receiver(post_save, sender=TeacherParentMeeting)
 def send_meeting_notification(sender, instance, created, **kwargs):
-    """Send notifications when a meeting is created or updated"""
-    tokens = []
+    """
+    Send notification when a meeting is created or updated
+    """
+    try:
+        if created:
+            title = "New Parent-Teacher Meeting"
+            message = f"Meeting scheduled for {instance.meeting_date} at {instance.meeting_time}"
+        else:
+            title = "Meeting Updated"
+            message = f"Meeting details updated for {instance.meeting_date}"
+            
+        # Get all active FCM tokens
+        tokens = list(instance.get_notification_tokens())
+        
+        if tokens:
+            send_push_notification(title, message, tokens)
+            logger.info(f"Sent meeting notification to {len(tokens)} devices")
+    except Exception as e:
+        logger.error(f"Error sending meeting notification: {str(e)}")
 
-    # Method 1: Get tokens from FCMDevice records based on user_type
-    fcm_device_tokens = FCMDevice.objects.filter(
-        is_active=True, user_type__in=["parent", "teacher"]
-    ).values_list("token", flat=True)
-    tokens.extend(fcm_device_tokens)
 
-    # Method 2: Get tokens directly from user models
-    # Get tokens from Staff model
-    staff_tokens = (
-        Staff.objects.filter(fcm_token__isnull=False)
-        .exclude(fcm_token="")
-        .values_list("fcm_token", flat=True)
-    )
-    tokens.extend(staff_tokens)
+# --------------------------------------------------------------------
+# Data Cleanup Signals
+# --------------------------------------------------------------------
 
-    # Get tokens from Parent model
-    parent_tokens = (
-        Parent.objects.filter(fcm_token__isnull=False)
-        .exclude(fcm_token="")
-        .values_list("fcm_token", flat=True)
-    )
-    tokens.extend(parent_tokens)
+@receiver(post_delete, sender=Student)
+def cleanup_orphaned_student_data(sender, instance, **kwargs):
+    """
+    Clean up orphaned data when a student is deleted
+    """
+    try:
+        with transaction.atomic():
+            # Clean up related records
+            instance.cleanup_orphaned_data()
+            logger.info(f"Cleaned up orphaned data for deleted student: {instance.id}")
+            
+            # Clear any cached data
+            cache.delete_pattern(f"student_{instance.id}_*")
+            if instance.parent:
+                cache.delete_pattern(f"parent_{instance.parent.id}_*")
+    except Exception as e:
+        logger.error(f"Error cleaning up orphaned student data: {str(e)}")
 
-    # Remove duplicates
-    unique_tokens = list(set(tokens))
+@receiver(post_delete, sender=Staff)
+def cleanup_orphaned_staff_data(sender, instance, **kwargs):
+    """
+    Clean up orphaned data when a staff member is deleted
+    """
+    try:
+        with transaction.atomic():
+            # Clean up related records
+            instance.cleanup_orphaned_data()
+            logger.info(f"Cleaned up orphaned data for deleted staff: {instance.id}")
+            
+            # Clear any cached data
+            cache.delete_pattern(f"staff_{instance.id}_*")
+    except Exception as e:
+        logger.error(f"Error cleaning up orphaned staff data: {str(e)}")
 
-    if not unique_tokens:
-        return
+@receiver(post_delete, sender=CourseTracking)
+def cleanup_orphaned_course_tracking_data(sender, instance, **kwargs):
+    """
+    Clean up orphaned data when a course tracking record is deleted
+    """
+    try:
+        with transaction.atomic():
+            # Clean up related records
+            instance.cleanup_orphaned_data()
+            logger.info(f"Cleaned up orphaned data for deleted course tracking: {instance.id}")
+            
+            # Clear any cached data
+            cache.delete_pattern(f"course_tracking_{instance.id}_*")
+            if instance.student:
+                cache.delete_pattern(f"student_{instance.student.id}_*")
+    except Exception as e:
+        logger.error(f"Error cleaning up orphaned course tracking data: {str(e)}")
 
+@receiver(post_delete, sender=Parent)
+def cleanup_orphaned_parent_data(sender, instance, **kwargs):
+    """
+    Clean up orphaned data when a parent is deleted
+    """
+    try:
+        with transaction.atomic():
+            # Clean up related records
+            instance.cleanup_orphaned_data()
+            logger.info(f"Cleaned up orphaned data for deleted parent: {instance.id}")
+            
+            # Clear any cached data
+            cache.delete_pattern(f"parent_{instance.id}_*")
+    except Exception as e:
+        logger.error(f"Error cleaning up orphaned parent data: {str(e)}")
+
+@receiver(post_delete, sender=Course)
+def cleanup_orphaned_course_data(sender, instance, **kwargs):
+    """
+    Clean up orphaned data when a course is deleted
+    """
+    try:
+        with transaction.atomic():
+            # Clean up related records
+            instance.cleanup_orphaned_data()
+            logger.info(f"Cleaned up orphaned data for deleted course: {instance.id}")
+            
+            # Clear any cached data
+            cache.delete_pattern(f"course_{instance.id}_*")
+    except Exception as e:
+        logger.error(f"Error cleaning up orphaned course data: {str(e)}")
+
+@receiver(post_delete, sender=Subject)
+def cleanup_orphaned_subject_data(sender, instance, **kwargs):
+    """
+    Clean up orphaned data when a subject is deleted
+    """
+    try:
+        with transaction.atomic():
+            # Clean up related records
+            instance.cleanup_orphaned_data()
+            logger.info(f"Cleaned up orphaned data for deleted subject: {instance.id}")
+            
+            # Clear any cached data
+            cache.delete_pattern(f"subject_{instance.id}_*")
+    except Exception as e:
+        logger.error(f"Error cleaning up orphaned subject data: {str(e)}")
+
+# --------------------------------------------------------------------
+# Data Validation Signals
+# --------------------------------------------------------------------
+
+@receiver(pre_save, sender=Student)
+def validate_student_data(sender, instance, **kwargs):
+    """
+    Validate student data before saving
+    """
+    try:
+        instance.validate_data()
+        logger.info(f"Validated student data for: {instance.id}")
+    except Exception as e:
+        logger.error(f"Error validating student data: {str(e)}")
+        raise
+
+@receiver(pre_save, sender=Staff)
+def validate_staff_data(sender, instance, **kwargs):
+    """
+    Validate staff data before saving
+    """
+    try:
+        instance.validate_data()
+        logger.info(f"Validated staff data for: {instance.id}")
+    except Exception as e:
+        logger.error(f"Error validating staff data: {str(e)}")
+        raise
+
+# --------------------------------------------------------------------
+# Course Progress Signals
+# --------------------------------------------------------------------
+
+@receiver(post_save, sender=CourseTracking)
+def update_course_progress(sender, instance, **kwargs):
+    """
+    Update course progress when tracking data changes
+    """
+    try:
+        # Update completion percentage
+        instance.update_completion_percentage()
+        
+        # Update progress status
+        if instance.completion_percentage >= 100:
+            instance.progress_status = "Completed"
+            instance.actual_end_date = date.today()
+            instance.save()
+        
+        # Clear cache using individual keys instead of pattern
+        cache.delete(f"course_tracking_{instance.id}_percentage")
+        cache.delete(f"student_{instance.student.id}_progress")
+        
+        logger.info(f"Updated course progress for tracking: {instance.id}")
+    except Exception as e:
+        logger.error(f"Error updating course progress: {str(e)}")
+
+@receiver(post_save, sender=TOTPSecret)
+@receiver(post_save, sender=ResetToken)
+def cleanup_expired_tokens_signal(sender, instance, **kwargs):
+    """
+    Signal handler to clean up expired tokens when a new token is created
+    """
+    try:
+        # Clean up expired OTP secrets and reset tokens
+        cleanup_expired_tokens()
+        
+        # Reset OTP attempts for expired lockouts
+        expired_lockouts = OTPAttempt.objects.filter(
+            is_locked=True,
+            lock_until__lt=timezone.now()
+        )
+        expired_count = expired_lockouts.count()
+        expired_lockouts.update(
+            is_locked=False,
+            lock_until=None,
+            attempts=0
+        )
+        
+        # Log cleanup results to terminal
+        print(f'[OTP Cleanup] Successfully cleaned up expired tokens and reset {expired_count} expired lockouts')
+        logger.info(f'Successfully cleaned up expired tokens and reset {expired_count} expired lockouts')
+    except Exception as e:
+        error_msg = f"Error in cleanup signal: {str(e)}"
+        print(f'[OTP Cleanup Error] {error_msg}')
+        logger.error(error_msg)
+        raise
+
+@receiver(post_delete, sender=TOTPSecret)
+@receiver(post_delete, sender=ResetToken)
+def cleanup_after_deletion(sender, instance, **kwargs):
+    """
+    Signal handler to clean up expired tokens when a token is deleted
+    """
+    try:
+        cleanup_expired_tokens()
+        print('[OTP Cleanup] Successfully cleaned up expired tokens after deletion')
+        logger.info('Successfully cleaned up expired tokens after deletion')
+    except Exception as e:
+        error_msg = f"Error in cleanup after deletion: {str(e)}"
+        print(f'[OTP Cleanup Error] {error_msg}')
+        logger.error(error_msg)
+        raise
+
+# Add a new signal for terminal OTP verification
+@receiver(post_save, sender=OTPAttempt)
+def handle_terminal_otp_attempt(sender, instance, created, **kwargs):
+    """
+    Signal handler for terminal-based OTP attempts
+    """
     if created:
-        title = "New Parent-Teacher Meeting Scheduled"
-        message = f"A parent-teacher meeting has been scheduled for {instance.meeting_date} at {instance.meeting_time}."
-        if instance.is_online:
-            message += " This is an online meeting."
-        send_push_notification(title, message, unique_tokens)
-    else:
-        # Access through instance.tracker to determine if status changed
-        # This requires django-model-utils or similar to track changes
-        if hasattr(instance, "tracker") and "status" in instance.tracker.changed():
-            old_status = instance.tracker.previous("status")
-            if instance.status == "cancelled":
-                title = "Parent-Teacher Meeting Cancelled"
-                message = f"The meeting for {instance.meeting_date} at {instance.meeting_time} has been cancelled."
-                if instance.cancellation_reason:
-                    message += f" Reason: {instance.cancellation_reason}"
-                send_push_notification(title, message, unique_tokens)
-            elif instance.status == "rescheduled":
-                # Meeting rescheduled notification
-                title = "Parent-Teacher Meeting Rescheduled"
-                message = f"The parent-teacher meeting has been rescheduled to {instance.meeting_date} at {instance.meeting_time}."
-                send_push_notification(title, message, unique_tokens)
-            elif instance.status == "completed":
-                # Meeting completed notification
-                title = "Parent-Teacher Meeting Completed"
-                message = f"The parent-teacher meeting scheduled for {instance.meeting_date} at {instance.meeting_time} has been marked as completed."
-                send_push_notification(title, message, unique_tokens)
+        try:
+            # Get the identifier (phone/email) for logging
+            identifier = instance.identifier
+            username = instance.user.username if instance.user else identifier
+            
+            # Log the OTP attempt to terminal
+            print(f'[OTP Attempt] User: {username}, Attempts: {instance.attempts}')
+            
+            # Check if user is locked out
+            if instance.is_locked:
+                print(f'[OTP Lockout] User {username} is locked until {instance.lock_until}')
+            
+            # Log to file as well
+            logger.info(f'OTP attempt for user {username}, attempts: {instance.attempts}')
+        except Exception as e:
+            error_msg = f"Error handling OTP attempt: {str(e)}"
+            print(f'[OTP Error] {error_msg}')
+            logger.error(error_msg)
+            raise

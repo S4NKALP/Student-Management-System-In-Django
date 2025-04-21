@@ -285,7 +285,7 @@ class Command(BaseCommand):
             for year_or_sem in range(1, max_year_or_sem + 1):
                 # Calculate number of subjects for this year/semester
                 # Ensure at least 2 subjects per year/semester
-                num_subjects = max(2, min(subjects_per_course, len(course_subject_names)))
+                num_subjects = max(2, min(subjects_per_course, len(course_subjects)))
                 
                 # Select subjects ensuring no duplicates within the same year/semester
                 available_subjects = [s for s in course_subject_names if not Subject.objects.filter(
@@ -888,4 +888,4 @@ class Command(BaseCommand):
                 except Exception as e:
                     # Log the error but continue with other students
                     self.stdout.write(self.style.ERROR(f'Error creating course tracking for {student.name}: {str(e)}'))
-                    continue  # Continue with next student 
+                    continue  # Continue with next student

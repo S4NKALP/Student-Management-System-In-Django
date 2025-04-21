@@ -1,23 +1,108 @@
-{% extends "shared/base.html" %}
-
-{% block title %}500 Server Error{% endblock %}
+{% extends "base.html" %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-body text-center p-5">
-                    <h1 class="display-1 text-danger mb-4">500</h1>
-                    <h2 class="mb-4">Internal Server Error</h2>
-                    <p class="lead mb-4">Sorry, something went wrong on our end.</p>
-                    <div class="mb-4">
-                        <p>We're working to fix the issue. Please try again later or contact support if the problem persists.</p>
-                    </div>
-                    <a href="/" class="btn btn-primary btn-lg">Go to Home</a>
-                </div>
-            </div>
-        </div>
+<div class="error-container">
+    <h1>500 - Server Error</h1>
+    <div class="error-message">
+        <p>Something went wrong on our end. We're working to fix the issue.</p>
+        {% if error_message %}
+        <p class="error-details">Details: {{ error_message }}</p>
+        {% endif %}
     </div>
+    <div class="error-actions">
+        {% if user.is_authenticated %}
+            {% if user.groups.filter(name='Student').exists %}
+                <a href="{% url 'studentDashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+            {% elif user.groups.filter(name='Teacher').exists %}
+                <a href="{% url 'teacherDashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+            {% elif user.groups.filter(name='Parent').exists %}
+                <a href="{% url 'parentDashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+            {% elif user.groups.filter(name='Admission Officer').exists %}
+                <a href="{% url 'admissionOfficerDashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+            {% elif user.groups.filter(name='HOD').exists %}
+                <a href="{% url 'hodDashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+            {% else %}
+                <a href="{% url 'dashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+            {% endif %}
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-primary">Return to Login</a>
+        {% endif %}
+        <button onclick="window.history.back()" class="btn btn-secondary">Go Back</button>
+    </div>
+    {% if settings.DEBUG and traceback %}
+    <div class="debug-info">
+        <h3>Debug Information:</h3>
+        <pre>{{ traceback }}</pre>
+    </div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.error-container {
+    text-align: center;
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.error-message {
+    margin: 2rem 0;
+    color: #666;
+}
+
+.error-details {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+.error-actions {
+    margin-top: 2rem;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    margin: 0 0.5rem;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.debug-info {
+    margin-top: 2rem;
+    text-align: left;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.debug-info pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+</style>
 {% endblock %} 

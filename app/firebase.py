@@ -1,10 +1,17 @@
 import os
+import time
+import logging
+from typing import List, Tuple, Optional
 from django.http import HttpResponse, JsonResponse
 from django.db import models
+from django.conf import settings
 import firebase_admin
-from firebase_admin import messaging, credentials
+from firebase_admin import messaging, credentials, exceptions
 from student_management_system.settings import BASE_DIR
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # --------------------------------------------------------------------
 # FCM Device Model
@@ -40,9 +47,11 @@ class FCMDevice(models.Model):
         verbose_name_plural = "FCM Devices"
         ordering = ["-last_active"]
 
-    def deactivate(self):
-        """Deactivate this device token"""
+    def deactivate(self, reason: str = None):
+        """Deactivate this device token with optional reason"""
         self.is_active = False
+        if reason:
+            logger.info(f"Deactivating device token {self.id}: {reason}")
         self.save()
 
 
@@ -92,85 +101,138 @@ def save_fcm_token(request, token):
 # --------------------------------------------------------------------
 
 
-def get_firebase_js():
-    """Generate Firebase JavaScript configuration"""
-    firebase_config = {
-        "apiKey": os.getenv("FIREBASE_API_KEY", ""),
-        "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
-        "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
-        "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
-        "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
-        "appId": os.getenv("FIREBASE_APP_ID", ""),
-        "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", ""),
-    }
+class FirebaseConfig:
+    """Class to handle Firebase configuration and validation"""
+    
+    @staticmethod
+    def validate_config():
+        """Validate Firebase configuration"""
+        required_vars = [
+            'FIREBASE_API_KEY',
+            'FIREBASE_AUTH_DOMAIN',
+            'FIREBASE_PROJECT_ID',
+            'FIREBASE_STORAGE_BUCKET',
+            'FIREBASE_MESSAGING_SENDER_ID',
+            'FIREBASE_APP_ID'
+        ]
+        
+        missing_vars = [var for var in required_vars if not os.getenv(var)]
+        if missing_vars:
+            raise ValueError(f"Missing required Firebase configuration variables: {', '.join(missing_vars)}")
+        
+        cert_path = os.path.join(BASE_DIR, "firebase-key.json")
+        if not os.path.exists(cert_path):
+            raise FileNotFoundError("Firebase service account key file not found")
 
-    data = """
-        importScripts('https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js');
-        importScripts('https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging-compat.js');
-
-        firebase.initializeApp({
-            apiKey: "%s",
-            authDomain: "%s",
-            projectId: "%s",
-            storageBucket: "%s",
-            messagingSenderId: "%s",
-            appId: "%s",
-            measurementId: "%s"
-        });
-
-        const messaging = firebase.messaging();
-
-        messaging.onBackgroundMessage(function(payload) {
-            const notificationTitle = payload.notification.title;
-            const notificationOptions = {
-                body: payload.notification.body,
-                icon: payload.notification.icon || '/static/img/logo.png'
-            };
-
-            return self.registration.showNotification(notificationTitle, notificationOptions);
-        });
-    """ % (
-        firebase_config["apiKey"],
-        firebase_config["authDomain"],
-        firebase_config["projectId"],
-        firebase_config["storageBucket"],
-        firebase_config["messagingSenderId"],
-        firebase_config["appId"],
-        firebase_config["measurementId"],
-    )
-    return HttpResponse(data, content_type="application/javascript")
+    @staticmethod
+    def get_config():
+        """Get validated Firebase configuration"""
+        FirebaseConfig.validate_config()
+        return {
+            "apiKey": os.getenv("FIREBASE_API_KEY"),
+            "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
+            "projectId": os.getenv("FIREBASE_PROJECT_ID"),
+            "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
+            "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
+            "appId": os.getenv("FIREBASE_APP_ID"),
+            "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID", ""),
+        }
 
 
 # --------------------------------------------------------------------
 # Firebase Admin Initialization
 # --------------------------------------------------------------------
 
-# Initialize Firebase Admin
-firebase_app = None
-try:
-    cert_path = os.path.join(BASE_DIR, "firebase-key.json")
-    if os.path.exists(cert_path):
+def initialize_firebase():
+    """Initialize Firebase Admin with proper error handling"""
+    global firebase_app
+    
+    try:
+        FirebaseConfig.validate_config()
+        cert_path = os.path.join(BASE_DIR, "firebase-key.json")
         cred = credentials.Certificate(cert_path)
         firebase_app = firebase_admin.initialize_app(cred)
-except Exception:
-    pass
+        logger.info("Firebase Admin initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize Firebase Admin: {str(e)}")
+        firebase_app = None
+
+# Initialize Firebase
+firebase_app = None
+initialize_firebase()
 
 
 # --------------------------------------------------------------------
 # Push Notification Functions
 # --------------------------------------------------------------------
 
+class FirebaseQuotaManager:
+    """Class to manage Firebase quota limits"""
+    
+    def __init__(self):
+        self.quota_limit = 500  # Default quota limit per minute
+        self.requests_count = 0
+        self.last_reset_time = time.time()
+    
+    def check_quota(self) -> bool:
+        """Check if we're within quota limits"""
+        current_time = time.time()
+        if current_time - self.last_reset_time >= 60:  # Reset every minute
+            self.requests_count = 0
+            self.last_reset_time = current_time
+        
+        return self.requests_count < self.quota_limit
+    
+    def increment_count(self):
+        """Increment request count"""
+        self.requests_count += 1
 
-def send_push_notification(title, message, tokens):
+quota_manager = FirebaseQuotaManager()
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    retry=retry_if_exception_type((exceptions.FirebaseError, exceptions.UnknownError))
+)
+def send_single_notification(token: str, title: str, message: str) -> bool:
+    """Send a single notification with retry mechanism"""
+    if not quota_manager.check_quota():
+        logger.warning("Firebase quota limit reached")
+        return False
+    
+    try:
+        messaging.send(
+            messaging.Message(
+                notification=messaging.Notification(
+                    title=title,
+                    body=message,
+                ),
+                token=token,
+            )
+        )
+        quota_manager.increment_count()
+        return True
+    except messaging.UnregisteredError:
+        logger.info(f"Token {token} is no longer valid")
+        return False
+    except exceptions.FirebaseError as e:
+        logger.error(f"Firebase error for token {token}: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error for token {token}: {str(e)}")
+        return False
+
+def send_push_notification(title: str, message: str, tokens: List[str]) -> Tuple[int, int, List[str]]:
     """
-    Send push notification using Firebase Cloud Messaging
+    Send push notification using Firebase Cloud Messaging with improved error handling
     Returns a tuple of (success_count, failure_count, failed_tokens)
     """
-    if not firebase_app or not tokens:
+    if not firebase_app:
+        logger.error("Firebase Admin not initialized")
         return 0, len(tokens) if tokens else 0, tokens
 
     if not isinstance(tokens, (list, tuple)):
-        tokens = list(tokens)  # Convert QuerySet to list
+        tokens = list(tokens)
 
     success_count = 0
     failure_count = 0
@@ -180,42 +242,33 @@ def send_push_notification(title, message, tokens):
     active_devices = FCMDevice.objects.filter(
         token__in=tokens,
         is_active=True,
-        is_fallback=False,  # Skip fallback tokens for push notifications
+        is_fallback=False,
     )
 
     # Count fallback tokens as "success" for reporting purposes
     fallback_count = FCMDevice.objects.filter(
         token__in=tokens, is_active=True, is_fallback=True
     ).count()
-
     success_count += fallback_count
 
     for device in active_devices:
         try:
             # Skip tokens that match our fallback pattern
-            if device.token.startswith("fcm-token-") or device.token.startswith(
-                "fallback-token-"
-            ):
+            if device.token.startswith(("fcm-token-", "fallback-token-")):
                 device.is_fallback = True
                 device.save()
                 continue
 
-            messaging.send(
-                messaging.Message(
-                    notification=messaging.Notification(
-                        title=title,
-                        body=message,
-                    ),
-                    token=str(device.token),  # Ensure token is a string
-                )
-            )
-            success_count += 1
-        except messaging.UnregisteredError:
-            # Token is no longer valid, deactivate the device
-            device.deactivate()
-            failure_count += 1
-            failed_tokens.append(device.token)
-        except Exception:
+            if send_single_notification(device.token, title, message):
+                success_count += 1
+            else:
+                device.deactivate("Failed to send notification after retries")
+                failure_count += 1
+                failed_tokens.append(device.token)
+
+        except Exception as e:
+            logger.error(f"Error processing device {device.id}: {str(e)}")
+            device.deactivate(f"Error: {str(e)}")
             failure_count += 1
             failed_tokens.append(device.token)
 

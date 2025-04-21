@@ -7,6 +7,11 @@ from django.dispatch import receiver
 class AppConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "app"
+    verbose_name = "School Management System"
 
     def ready(self):
-        import app.signals  # Import signals when app is ready
+        """
+        Import signals when the app is ready
+        """
+        # Import signals to ensure they are registered
+        import app.signals

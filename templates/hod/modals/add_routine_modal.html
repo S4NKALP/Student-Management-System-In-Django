@@ -2,30 +2,30 @@
 
 <!-- Add Routine Modal -->
 <div id="addRoutineModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAddRoutineModal();">
-  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-      <h5 style="margin: 0; font-size: 18px;">Add Class Routine</h5>
-      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAddRoutineModal()">&times;</button>
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="background-color: #6366f1; color: white; padding: 1rem 1.5rem; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 1.125rem; font-weight: 500;">Add Class Routine</h5>
+      <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1; padding: 0.25rem;" onclick="closeAddRoutineModal()">&times;</button>
     </div>
     <form id="addRoutineForm">
       {% csrf_token %}
-      <div style="padding: 20px;">
-        <div style="margin-bottom: 15px;">
-          <label for="periodSelect" style="display: block; margin-bottom: 8px; font-weight: 500;">{% if course.duration_type == 'Semester' %}Semester{% else %}Year{% endif %}</label>
-          <select id="periodSelect" name="period_select" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required>
+      <div style="padding: 1.5rem;">
+        <div style="margin-bottom: 1.5rem;">
+          <label for="periodSelect" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">{% if course.duration_type == 'Semester' %}Semester{% else %}Year{% endif %}</label>
+          <select id="periodSelect" name="period_select" style="width: 100%; padding: 0.625rem; border: 1px solid #d1d5db; border-radius: 6px; background-color: white; font-size: 0.875rem;" required>
             <option value="">Select {% if course.duration_type == 'Semester' %}Semester{% else %}Year{% endif %}</option>
             <!-- Options will be populated dynamically via JavaScript -->
           </select>
         </div>
         
         <!-- Subject list container - subjects will be added here dynamically -->
-        <div id="subjectsContainer" style="margin-bottom: 15px; max-height: 400px; overflow-y: auto;"></div>
+        <div id="subjectsContainer" style="margin-bottom: 1.5rem; max-height: 400px; overflow-y: auto;"></div>
         
         <input type="hidden" id="periodOrYear" name="period_or_year">
       </div>
-      <div style="padding: 15px; border-top: 1px solid #EEEEEE; text-align: right; display: flex; flex-wrap: wrap; justify-content: flex-end;">
-        <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; margin-bottom: 10px; cursor: pointer; font-size: 14px;" onclick="closeAddRoutineModal()">Cancel</button>
-        <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 10px;" onclick="submitAddRoutineForm()">Save</button>
+      <div style="padding: 1rem 1.5rem; border-top: 1px solid #e5e7eb; background-color: #f9fafb; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" style="padding: 0.5rem 1rem; border: 1px solid #d1d5db; background-color: white; color: #374151; border-radius: 6px; font-size: 0.875rem; font-weight: 500;" onclick="closeAddRoutineModal()">Cancel</button>
+        <button type="button" style="padding: 0.5rem 1rem; background-color: #6366f1; color: white; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500;" onclick="submitAddRoutineForm()">Save</button>
       </div>
     </form>
   </div>
@@ -63,9 +63,7 @@ function openAddRoutineModal() {
     let totalPeriods = 3;
     
     {% if course.total_periods %}
-    // If we have it from the template, use that
     totalPeriods = {{ course.total_periods }};
-    console.log("Using course periods from template:", totalPeriods);
     {% endif %}
     
     // Clear all options
@@ -75,7 +73,6 @@ function openAddRoutineModal() {
     periodSelect.innerHTML = `<option value="">Select ${periodLabel}</option>`;
     
     // Add options based on total periods
-    console.log(`Adding ${totalPeriods} period options`);
     for (let i = 1; i <= totalPeriods; i++) {
       periodSelect.innerHTML += `<option value="${i}">${periodLabel} ${i}</option>`;
     }
@@ -94,7 +91,7 @@ function openAddRoutineModal() {
         const periodSubjects = allSubjects.filter(subject => subject.period === selectedPeriod);
         
         if (periodSubjects.length === 0) {
-          subjectsContainer.innerHTML = '<p style="text-align: center; padding: 10px;">No subjects found for this period.</p>';
+          subjectsContainer.innerHTML = '<p style="text-align: center; padding: 1rem; color: #6b7280;">No subjects found for this period.</p>';
           return;
         }
         
@@ -102,16 +99,19 @@ function openAddRoutineModal() {
         periodSubjects.forEach(subject => {
           const subjectDiv = document.createElement('div');
           subjectDiv.className = 'subject-item';
-          subjectDiv.style.padding = '15px';
-          subjectDiv.style.marginBottom = '15px';
-          subjectDiv.style.border = '1px solid #EEEEEE';
-          subjectDiv.style.borderRadius = '4px';
+          subjectDiv.style.padding = '1rem';
+          subjectDiv.style.marginBottom = '1rem';
+          subjectDiv.style.border = '1px solid #e5e7eb';
+          subjectDiv.style.borderRadius = '6px';
+          subjectDiv.style.backgroundColor = 'white';
           
           // Create subject header
           const subjectHeader = document.createElement('h4');
           subjectHeader.textContent = subject.name;
-          subjectHeader.style.margin = '0 0 10px 0';
-          subjectHeader.style.fontSize = '16px';
+          subjectHeader.style.margin = '0 0 1rem 0';
+          subjectHeader.style.fontSize = '0.875rem';
+          subjectHeader.style.fontWeight = '600';
+          subjectHeader.style.color = '#374151';
           subjectDiv.appendChild(subjectHeader);
           
           // Add hidden input for subject ID
@@ -121,32 +121,33 @@ function openAddRoutineModal() {
           subjectIdInput.value = subject.id;
           subjectDiv.appendChild(subjectIdInput);
           
-          // Create inline form row
-          const formRow = document.createElement('div');
-          formRow.style.display = 'flex';
-          formRow.style.flexWrap = 'wrap';
-          formRow.style.gap = '10px';
-          formRow.style.alignItems = 'flex-end';
+          // Create form grid
+          const formGrid = document.createElement('div');
+          formGrid.style.display = 'grid';
+          formGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(150px, 1fr))';
+          formGrid.style.gap = '1rem';
+          formGrid.style.alignItems = 'end';
           
           // Create teacher dropdown
           const teacherDiv = document.createElement('div');
-          teacherDiv.style.flex = '2';
-          teacherDiv.style.minWidth = '180px';
           
           const teacherLabel = document.createElement('label');
           teacherLabel.textContent = 'Teacher';
           teacherLabel.style.display = 'block';
-          teacherLabel.style.marginBottom = '5px';
+          teacherLabel.style.marginBottom = '0.5rem';
+          teacherLabel.style.fontSize = '0.875rem';
           teacherLabel.style.fontWeight = '500';
+          teacherLabel.style.color = '#374151';
           teacherDiv.appendChild(teacherLabel);
           
           const teacherSelect = document.createElement('select');
           teacherSelect.name = `teacher_id_${subject.id}`;
           teacherSelect.style.width = '100%';
-          teacherSelect.style.padding = '10px';
-          teacherSelect.style.border = '1px solid #BDBDBD';
-          teacherSelect.style.borderRadius = '4px';
-          teacherSelect.style.boxSizing = 'border-box';
+          teacherSelect.style.padding = '0.625rem';
+          teacherSelect.style.border = '1px solid #d1d5db';
+          teacherSelect.style.borderRadius = '6px';
+          teacherSelect.style.backgroundColor = 'white';
+          teacherSelect.style.fontSize = '0.875rem';
           teacherSelect.required = true;
           
           // Add default option
@@ -164,60 +165,62 @@ function openAddRoutineModal() {
           {% endfor %}
           
           teacherDiv.appendChild(teacherSelect);
-          formRow.appendChild(teacherDiv);
+          formGrid.appendChild(teacherDiv);
           
           // Start time
           const startTimeDiv = document.createElement('div');
-          startTimeDiv.style.flex = '1';
-          startTimeDiv.style.minWidth = '120px';
           
           const startTimeLabel = document.createElement('label');
           startTimeLabel.textContent = 'Start Time';
           startTimeLabel.style.display = 'block';
-          startTimeLabel.style.marginBottom = '5px';
+          startTimeLabel.style.marginBottom = '0.5rem';
+          startTimeLabel.style.fontSize = '0.875rem';
           startTimeLabel.style.fontWeight = '500';
+          startTimeLabel.style.color = '#374151';
           startTimeDiv.appendChild(startTimeLabel);
           
           const startTimeInput = document.createElement('input');
           startTimeInput.type = 'time';
           startTimeInput.name = `start_time_${subject.id}`;
           startTimeInput.style.width = '100%';
-          startTimeInput.style.padding = '10px';
-          startTimeInput.style.border = '1px solid #BDBDBD';
-          startTimeInput.style.borderRadius = '4px';
-          startTimeInput.style.boxSizing = 'border-box';
+          startTimeInput.style.padding = '0.625rem';
+          startTimeInput.style.border = '1px solid #d1d5db';
+          startTimeInput.style.borderRadius = '6px';
+          startTimeInput.style.backgroundColor = 'white';
+          startTimeInput.style.fontSize = '0.875rem';
           startTimeInput.required = true;
           startTimeDiv.appendChild(startTimeInput);
           
-          formRow.appendChild(startTimeDiv);
+          formGrid.appendChild(startTimeDiv);
           
           // End time
           const endTimeDiv = document.createElement('div');
-          endTimeDiv.style.flex = '1';
-          endTimeDiv.style.minWidth = '120px';
           
           const endTimeLabel = document.createElement('label');
           endTimeLabel.textContent = 'End Time';
           endTimeLabel.style.display = 'block';
-          endTimeLabel.style.marginBottom = '5px';
+          endTimeLabel.style.marginBottom = '0.5rem';
+          endTimeLabel.style.fontSize = '0.875rem';
           endTimeLabel.style.fontWeight = '500';
+          endTimeLabel.style.color = '#374151';
           endTimeDiv.appendChild(endTimeLabel);
           
           const endTimeInput = document.createElement('input');
           endTimeInput.type = 'time';
           endTimeInput.name = `end_time_${subject.id}`;
           endTimeInput.style.width = '100%';
-          endTimeInput.style.padding = '10px';
-          endTimeInput.style.border = '1px solid #BDBDBD';
-          endTimeInput.style.borderRadius = '4px';
-          endTimeInput.style.boxSizing = 'border-box';
+          endTimeInput.style.padding = '0.625rem';
+          endTimeInput.style.border = '1px solid #d1d5db';
+          endTimeInput.style.borderRadius = '6px';
+          endTimeInput.style.backgroundColor = 'white';
+          endTimeInput.style.fontSize = '0.875rem';
           endTimeInput.required = true;
           endTimeDiv.appendChild(endTimeInput);
           
-          formRow.appendChild(endTimeDiv);
+          formGrid.appendChild(endTimeDiv);
           
-          // Add the form row to the subject div
-          subjectDiv.appendChild(formRow);
+          // Add the form grid to the subject div
+          subjectDiv.appendChild(formGrid);
           
           // Add the subject div to the container
           subjectsContainer.appendChild(subjectDiv);

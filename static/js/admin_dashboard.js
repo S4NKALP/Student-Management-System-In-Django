@@ -1,102 +1,120 @@
+// Function to get CSRF token
+function getCSRFToken() {
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    return token;
+}
+
 // Function to update leave requests
 function updateLeaveRequests() {
+    const csrfToken = getCSRFToken();
+    
     // Fetch staff leave requests
-    fetch('/app/get-staff-leaves/')
-        .then(response => response.json())
-        .then(data => {
-            const staffLeavesContainer = document.querySelector('#staff-leaves-container');
-            if (data.staff_leaves.length === 0) {
-                staffLeavesContainer.innerHTML = `
-                    <div class="text-center">
-                        <small class="text-muted">No pending staff leave requests</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            let staffLeavesHtml = '';
-            data.staff_leaves.forEach(leave => {
-                staffLeavesHtml += `
-                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-                        <div class="flex-shrink-0 me-3">
-                            <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                <i class="fas fa-calendar-times text-info"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1">
-                            <small class="mb-0 d-block fw-medium">${leave.staff_name}</small>
-                            <small class="text-muted">From: ${leave.start_date}</small>
-                            <small class="text-muted d-block">To: ${leave.end_date}</small>
-                            <small class="text-muted d-block">${leave.message}</small>
-                            <div class="mt-2">
-                                <form method="post" action="/app/approve-staff-leave/${leave.id}/" class="d-inline">
-                                    <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
-                                    <button type="submit" class="btn btn-success btn-sm">
-                                        <i class="fas fa-check me-1"></i>Approve
-                                    </button>
-                                </form>
-                                <form method="post" action="/app/reject-staff-leave/${leave.id}/" class="d-inline ms-2">
-                                    <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        <i class="fas fa-times me-1"></i>Reject
-                                    </button>
-                                </form>
-                            </div>
+    fetch('/app/get-staff-leaves/', {
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const staffLeavesContainer = document.querySelector('#staff-leaves-container');
+        if (data.staff_leaves.length === 0) {
+            staffLeavesContainer.innerHTML = `
+                <div class="text-center">
+                    <small class="text-muted">No pending staff leave requests</small>
+                </div>
+            `;
+            return;
+        }
+        
+        let staffLeavesHtml = '';
+        data.staff_leaves.forEach(leave => {
+            staffLeavesHtml += `
+                <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                    <div class="flex-shrink-0 me-3">
+                        <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fas fa-calendar-times text-info"></i>
                         </div>
                     </div>
-                `;
-            });
-            staffLeavesContainer.innerHTML = staffLeavesHtml;
+                    <div class="flex-grow-1">
+                        <small class="mb-0 d-block fw-medium">${leave.staff_name}</small>
+                        <small class="text-muted">From: ${leave.start_date}</small>
+                        <small class="text-muted d-block">To: ${leave.end_date}</small>
+                        <small class="text-muted d-block">${leave.message}</small>
+                        <div class="mt-2">
+                            <form method="post" action="/app/approve-staff-leave/${leave.id}/" class="d-inline">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="fas fa-check me-1"></i>Approve
+                                </button>
+                            </form>
+                            <form method="post" action="/app/reject-staff-leave/${leave.id}/" class="d-inline ms-2">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-times me-1"></i>Reject
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
         });
+        staffLeavesContainer.innerHTML = staffLeavesHtml;
+    });
 
     // Fetch student leave requests
-    fetch('/app/get-student-leaves/')
-        .then(response => response.json())
-        .then(data => {
-            const studentLeavesContainer = document.querySelector('#student-leaves-container');
-            if (data.student_leaves.length === 0) {
-                studentLeavesContainer.innerHTML = `
-                    <div class="text-center">
-                        <small class="text-muted">No pending student leave requests</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            let studentLeavesHtml = '';
-            data.student_leaves.forEach(leave => {
-                studentLeavesHtml += `
-                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-                        <div class="flex-shrink-0 me-3">
-                            <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                <i class="fas fa-calendar-times text-warning"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1">
-                            <small class="mb-0 d-block fw-medium">${leave.student_name}</small>
-                            <small class="text-muted">From: ${leave.start_date}</small>
-                            <small class="text-muted d-block">To: ${leave.end_date}</small>
-                            <small class="text-muted d-block">${leave.message}</small>
-                            <div class="mt-2">
-                                <form method="post" action="/app/approve-student-leave/${leave.id}/" class="d-inline">
-                                    <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
-                                    <button type="submit" class="btn btn-success btn-sm">
-                                        <i class="fas fa-check me-1"></i>Approve
-                                    </button>
-                                </form>
-                                <form method="post" action="/app/reject-student-leave/${leave.id}/" class="d-inline ms-2">
-                                    <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        <i class="fas fa-times me-1"></i>Reject
-                                    </button>
-                                </form>
-                            </div>
+    fetch('/app/get-student-leaves/', {
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const studentLeavesContainer = document.querySelector('#student-leaves-container');
+        if (data.student_leaves.length === 0) {
+            studentLeavesContainer.innerHTML = `
+                <div class="text-center">
+                    <small class="text-muted">No pending student leave requests</small>
+                </div>
+            `;
+            return;
+        }
+        
+        let studentLeavesHtml = '';
+        data.student_leaves.forEach(leave => {
+            studentLeavesHtml += `
+                <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                    <div class="flex-shrink-0 me-3">
+                        <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fas fa-calendar-times text-warning"></i>
                         </div>
                     </div>
-                `;
-            });
-            studentLeavesContainer.innerHTML = studentLeavesHtml;
+                    <div class="flex-grow-1">
+                        <small class="mb-0 d-block fw-medium">${leave.student_name}</small>
+                        <small class="text-muted">From: ${leave.start_date}</small>
+                        <small class="text-muted d-block">To: ${leave.end_date}</small>
+                        <small class="text-muted d-block">${leave.message}</small>
+                        <div class="mt-2">
+                            <form method="post" action="/app/approve-student-leave/${leave.id}/" class="d-inline">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="fas fa-check me-1"></i>Approve
+                                </button>
+                            </form>
+                            <form method="post" action="/app/reject-student-leave/${leave.id}/" class="d-inline ms-2">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-times me-1"></i>Reject
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
         });
+        studentLeavesContainer.innerHTML = studentLeavesHtml;
+    });
 }
 
 // Meeting-related functions

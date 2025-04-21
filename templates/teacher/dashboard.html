@@ -16,8 +16,8 @@
     <!-- Summary Cards -->
     <div class="row mb-4">
       <div class="col-md-6 col-lg-3 mb-3">
-        <div class="summary-card h-100">
-          <div class="card-header">
+        <div class="card summary-card h-100">
+          <div class="card-header bg-white">
             <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i> Students</h5>
           </div>
           <div class="card-body d-flex flex-column">
@@ -28,11 +28,11 @@
             <div class="text-center">
               <div class="d-flex justify-content-around">
                 <div>
-                  <h4 class="fw-bold mb-0">{{ present_students }}</h4>
+                  <h4 class="fw-bold mb-0 text-success">{{ present_students }}</h4>
                   <p class="text-muted">Present Today</p>
                 </div>
                 <div>
-                  <h4 class="fw-bold mb-0">{{ absent_students }}</h4>
+                  <h4 class="fw-bold mb-0 text-danger">{{ absent_students }}</h4>
                   <p class="text-muted">Absent Today</p>
                 </div>
               </div>
@@ -42,8 +42,8 @@
       </div>
 
       <div class="col-md-6 col-lg-3 mb-3">
-        <div class="summary-card h-100">
-          <div class="card-header">
+        <div class="card summary-card h-100">
+          <div class="card-header bg-white">
             <h5 class="card-title mb-0"><i class="fas fa-chalkboard me-2"></i> Today's Classes</h5>
           </div>
           <div class="card-body d-flex flex-column">
@@ -76,8 +76,8 @@
       </div>
 
       <div class="col-md-6 col-lg-3 mb-3">
-        <div class="summary-card h-100">
-          <div class="card-header">
+        <div class="card summary-card h-100">
+          <div class="card-header bg-white">
             <h5 class="card-title mb-0"><i class="fas fa-star me-2"></i> Feedback Rating</h5>
           </div>
           <div class="card-body text-center">
@@ -85,9 +85,9 @@
             <div class="rating-stars mb-3">
               {% for i in "12345"|make_list %}
                 {% if forloop.counter <= avg_rating_rounded %}
-                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star text-warning"></i>
                 {% else %}
-                  <i class="far fa-star"></i>
+                  <i class="far fa-star text-warning"></i>
                 {% endif %}
               {% endfor %}
             </div>
@@ -97,24 +97,24 @@
       </div>
 
       <div class="col-md-6 col-lg-3 mb-3">
-        <div class="summary-card h-100">
-          <div class="card-header">
+        <div class="card summary-card h-100">
+          <div class="card-header bg-white">
             <h5 class="card-title mb-0"><i class="fas fa-calendar-minus me-2"></i> Leave Status</h5>
           </div>
           <div class="card-body">
             <div class="d-flex justify-content-between mb-3">
               <p class="mb-0">Pending</p>
-              <span class="badge leave-pending">{{ pending_leaves }}</span>
+              <span class="badge bg-warning">{{ pending_leaves }}</span>
             </div>
             <div class="d-flex justify-content-between mb-3">
               <p class="mb-0">Approved</p>
-              <span class="badge leave-approved">{{ approved_leaves }}</span>
+              <span class="badge bg-success">{{ approved_leaves }}</span>
             </div>
             <div class="d-flex justify-content-between mb-3">
               <p class="mb-0">Rejected</p>
-              <span class="badge leave-rejected">{{ rejected_leaves }}</span>
+              <span class="badge bg-danger">{{ rejected_leaves }}</span>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-2" id="requestLeaveBtn" onclick="openLeaveModal()">
+            <button type="button" class="btn btn-primary w-100 mt-2" id="requestLeaveBtn" onclick="openLeaveModal()">
               <i class="fas fa-plus-circle me-2"></i> Request Leave
             </button>
           </div>
@@ -125,64 +125,66 @@
     <!-- Today's Classes -->
     <div class="row mb-4">
       <div class="col-12">
-        <div class="content-card">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i> Today's Classes</h5>
+        <div class="card content-card">
+          <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i> Today's Classes</h5>
+            </div>
           </div>
-
-          {% if today_routines %}
-            <!-- Display a single table with all routines -->
-            <div class="table-responsive">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Subject</th>
-                    <th>Code</th>
-                    <th>Course</th>
-                    <th class="d-none d-md-table-cell">Period/Year</th>
-                    <th>Time</th>
-                    <th class="d-none d-sm-table-cell">Attendance</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for routine in today_routines %}
+          <div class="card-body">
+            {% if today_routines %}
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
                     <tr>
-                      <td>{{ routine.name }}</td>
-                      <td>{{ routine.subject.code|default:"-" }}</td>
-                      <td>{{ routine.course_name }}</td>
-                      <td class="d-none d-md-table-cell">{{ routine.period_or_year }}</td>
-                      <td>{{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }}</td>
-                      <td class="d-none d-sm-table-cell">{{ routine.attendance_count }}/{{ routine.total_students }}</td>
-                      <td>
-                        {% if routine.is_completed %}
-                          <span class="status-badge completed">Completed</span>
-                        {% elif routine.is_ongoing %}
-                          <span class="status-badge ongoing">In Progress</span>
-                        {% else %}
-                          <span class="status-badge upcoming">Upcoming</span>
-                        {% endif %}
-                      </td>
-                      <td>
-                        {% if routine.has_attendance %}
-                          <span class="status-badge completed">Recorded</span>
-                        {% else %}
-                          <button type="button" class="btn btn-sm btn-primary" onclick="openAttendanceModal('{{ routine.id }}')">
-                            <i class="fas fa-clipboard-check"></i> <span class="d-none d-sm-inline">Attendance</span>
-                          </button>
-                        {% endif %}
-                      </td>
+                      <th>Subject</th>
+                      <th>Code</th>
+                      <th>Course</th>
+                      <th class="d-none d-md-table-cell">Period/Year</th>
+                      <th>Time</th>
+                      <th class="d-none d-sm-table-cell">Attendance</th>
+                      <th>Status</th>
+                      <th>Action</th>
                     </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          {% else %}
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle me-2"></i> No classes scheduled for today.
-            </div>
-          {% endif %}
+                  </thead>
+                  <tbody>
+                    {% for routine in today_routines %}
+                      <tr>
+                        <td>{{ routine.name }}</td>
+                        <td>{{ routine.subject.code|default:"-" }}</td>
+                        <td>{{ routine.course_name }}</td>
+                        <td class="d-none d-md-table-cell">{{ routine.period_or_year }}</td>
+                        <td>{{ routine.start_time|time:"h:i A" }} - {{ routine.end_time|time:"h:i A" }}</td>
+                        <td class="d-none d-sm-table-cell">{{ routine.attendance_count }}/{{ routine.total_students }}</td>
+                        <td>
+                          {% if routine.is_completed %}
+                            <span class="badge bg-success">Completed</span>
+                          {% elif routine.is_ongoing %}
+                            <span class="badge bg-primary">In Progress</span>
+                          {% else %}
+                            <span class="badge bg-info">Upcoming</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if routine.has_attendance %}
+                            <span class="badge bg-success">Recorded</span>
+                          {% else %}
+                            <button type="button" class="btn btn-primary btn-sm" onclick="openAttendanceModal('{{ routine.id }}')">
+                              <i class="fas fa-clipboard-check"></i> <span class="d-none d-sm-inline">Attendance</span>
+                            </button>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No classes scheduled for today.
+              </div>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
@@ -191,107 +193,82 @@
     <div class="row">
       <!-- Recent Feedback -->
       <div class="col-lg-6 mb-4">
-        <div class="content-card h-100">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="mb-0"><i class="fas fa-comment-dots me-2"></i> Recent Feedback</h5>
-            <div class="rating-summary">
-              <div class="rating-stats">
-                <div class="rating-number">
-                  {{ avg_rating|floatformat:1 }}<span class="text-muted">/5.0</span>
-                </div>
-                <div class="rating-stars mb-2">
-                  {% for i in "12345"|make_list %}
-                    {% if forloop.counter <= avg_rating_rounded %}
-                      <i class="fas fa-star"></i>
-                    {% else %}
-                      <i class="far fa-star"></i>
-                    {% endif %}
-                  {% endfor %}
-                </div>
-                <div class="rating-count text-muted">
-                  Based on {{ recent_feedback.count }} feedbacks
+        <div class="card content-card h-100">
+          <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-comment-dots me-2"></i> Recent Feedback</h5>
+              <div class="rating-summary">
+                <div class="rating-stats">
+                  <div class="rating-number">
+                    {{ avg_rating|floatformat:1 }}<span class="text-muted">/5.0</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          {% if recent_feedback %}
-            <div class="feedback-list">
-              {% for feedback in recent_feedback %}
-                <div class="feedback-card">
-                  <div class="feedback-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div class="d-flex align-items-center">
-                        <div class="student-avatar me-3">
-                          {% if feedback.student.image %}
-                            <img src="{{ feedback.student.image.url }}" alt="{{ feedback.student.name }}" class="rounded-circle">
-                          {% else %}
-                            <i class="fas fa-user-circle"></i>
-                          {% endif %}
-                        </div>
-                        <div>
-                          <h6 class="mb-0">{{ feedback.student.name }}</h6>
-                          <small class="text-muted">
-                            {{ feedback.student.course.name }} -
-                            {% if feedback.student.course.duration_type == 'Semester' %}
-                              Semester {{ feedback.student.current_period }}
-                            {% else %}
-                              Year {{ feedback.student.current_period }}
-                            {% endif %}
-                          </small>
-                          <br>
-                          <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
-                        </div>
+          <div class="card-body">
+            {% if recent_feedback %}
+              <div class="feedback-list">
+                {% for feedback in recent_feedback %}
+                  <div class="feedback-item mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div class="student-info">
+                        <h6 class="mb-1">{{ feedback.student.name }}</h6>
+                        <p class="text-muted mb-2">{{ feedback.comment|truncatechars:100 }}</p>
                       </div>
-                      <div class="rating-stars">
+                      <div class="rating">
                         {% for i in "12345"|make_list %}
                           {% if forloop.counter <= feedback.rating %}
-                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star text-warning"></i>
                           {% else %}
-                            <i class="far fa-star"></i>
+                            <i class="far fa-star text-warning"></i>
                           {% endif %}
                         {% endfor %}
                       </div>
                     </div>
+                    <small class="text-muted">{{ feedback.created_at|date:"M d, Y" }}</small>
                   </div>
-                  <div class="feedback-body">
-                    <div class="feedback-message">
-                      <p>{{ feedback.feedback_text }}</p>
-                    </div>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div class="empty-state">
-              <i class="fas fa-comments"></i>
-              <p>No recent feedback yet.</p>
-            </div>
-          {% endif %}
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No feedback received yet.
+              </div>
+            {% endif %}
+          </div>
         </div>
       </div>
 
-      <!-- Notices -->
-      <div class="col-lg-6 mb-4 notice-section">
-        <div class="content-card">
-          <h5 class="mb-3"><i class="fas fa-bullhorn me-2"></i> Recent Notices</h5>
-          {% if notices %}
-            <div class="list-group">
-              {% for notice in notices %}
-                <div class="list-group-item list-group-item-action">
-                  <div class="d-flex w-100 justify-content-between flex-wrap">
-                    <h6 class="mb-1">{{ notice.title }}</h6>
-                    <small class="text-muted">{{ notice.created_at|timesince }} ago</small>
+      <!-- Recent Notices -->
+      <div class="col-lg-6 mb-4">
+        <div class="card content-card h-100">
+          <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i> Recent Notices</h5>
+            </div>
+          </div>
+          <div class="card-body">
+            {% if recent_notices %}
+              <div class="notice-list">
+                {% for notice in recent_notices %}
+                  <div class="notice-item mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <h6 class="mb-1">{{ notice.title }}</h6>
+                        <p class="text-muted mb-2">{{ notice.content|truncatechars:100 }}</p>
+                      </div>
+                      <span class="badge bg-{{ notice.priority }}">{{ notice.get_priority_display }}</span>
+                    </div>
+                    <small class="text-muted">{{ notice.created_at|date:"M d, Y" }}</small>
                   </div>
-                  <p class="mb-1">{{ notice.message }}</p>
-                </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle me-2"></i> No recent notices.
-            </div>
-          {% endif %}
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No notices available.
+              </div>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>

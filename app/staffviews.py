@@ -25,6 +25,13 @@ from app.models import (
     FEEDBACK_TYPE_CHOICES,
 )
 import logging
+from app.utils import (
+    handle_file_upload,
+    cleanup_failed_upload,
+    FileUploadError,
+    ALLOWED_DOCUMENT_TYPES,
+    MAX_DOCUMENT_SIZE
+)
 
 
 @login_required
@@ -714,96 +721,9 @@ def manage_subject_files(request):
     logger.info(f"Teacher found: {teacher.name}")
 
     # Get all subjects taught by this teacher
-    subject_filter = request.GET.get("subject")
-
-    subjects_query = (
-        Routine.objects.filter(teacher=teacher, is_active=True)
-        .values_list("subject", flat=True)
-        .distinct()
-    )
-
-    logger.info(f"Found {len(subjects_query)} subject IDs: {list(subjects_query)}")
-
-    # Apply subject filter if provided
-    try:
-        if subject_filter:
-            subjects = Subject.objects.filter(
-                id=subject_filter, id__in=subjects_query
-            ).order_by("course__name", "period_or_year", "name")
-
-            logger.info(
-                f"Filtered by subject ID {subject_filter}, found {subjects.count()} subjects"
-            )
-
-            # If no subject found with the provided ID, return a helpful error
-            if not subjects.exists():
-                logger.warning(f"No subjects found with ID {subject_filter}")
-                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                    return JsonResponse(
-                        {
-                            "success": False,
-                            "message": f"Subject with ID {subject_filter} not found or you don't have permission to access it",
-                        },
-                        status=404,
-                    )
-                else:
-                    return render(
-                        request,
-                        "teacher/subject_files.html",
-                        {
-                            "subjects": [],
-                            "teacher": teacher,
-                            "selected_subject": None,
-                            "error_message": f"Subject with ID {subject_filter} not found or you don't have permission to access it",
-                        },
-                    )
-        else:
-            subjects = Subject.objects.filter(id__in=subjects_query).order_by(
-                "course__name", "period_or_year", "name"
-            )
-
-            logger.info(f"No filter applied, found {subjects.count()} subjects")
-
-            # If no subjects found at all, return a message
-            if not subjects.exists():
-                logger.warning("No subjects found for this teacher")
-                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                    return JsonResponse(
-                        {
-                            "success": False,
-                            "message": "You are not assigned to any subjects yet",
-                        }
-                    )
-                else:
-                    return render(
-                        request,
-                        "teacher/subject_files.html",
-                        {
-                            "subjects": [],
-                            "teacher": teacher,
-                            "selected_subject": None,
-                            "error_message": "You are not assigned to any subjects yet",
-                        },
-                    )
-    except Exception as e:
-        logger.error(f"Error loading subjects: {e}", exc_info=True)
-        # Handle any unexpected errors
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse(
-                {"success": False, "message": f"Error loading subjects: {str(e)}"},
-                status=500,
-            )
-        else:
-            return render(
-                request,
-                "teacher/subject_files.html",
-                {
-                    "subjects": [],
-                    "teacher": teacher,
-                    "selected_subject": None,
-                    "error_message": f"Error loading subjects: {str(e)}",
-                },
-            )
+    subjects = Subject.objects.filter(
+        routine__teacher=teacher, routine__is_active=True
+    ).distinct()
 
     if request.method == "POST":
         subject_id = request.POST.get("subject_id")
@@ -838,32 +758,53 @@ def manage_subject_files(request):
                     }
                 )
 
+            # Handle file upload with security checks
+            try:
+                file_path = handle_file_upload(
+                    file,
+                    "subject_files",
+                    ALLOWED_DOCUMENT_TYPES,
+                    MAX_DOCUMENT_SIZE
+                )
+            except FileUploadError as e:
+                logger.error(f"File upload validation failed: {e}")
+                return JsonResponse({"success": False, "message": str(e)})
+
             # Create new subject file
-            subject_file = SubjectFile.objects.create(
-                subject=subject,
-                title=title,
-                description=description,
-                file=file,
-                uploaded_by=teacher,
-            )
+            try:
+                subject_file = SubjectFile.objects.create(
+                    subject=subject,
+                    title=title,
+                    description=description,
+                    file=file_path,
+                    uploaded_by=teacher,
+                )
 
-            logger.info(f"File uploaded successfully: {subject_file.id}")
+                logger.info(f"File uploaded successfully: {subject_file.id}")
 
-            return JsonResponse(
-                {
-                    "success": True,
-                    "message": "File uploaded successfully",
-                    "file": {
-                        "id": subject_file.id,
-                        "title": subject_file.title,
-                        "description": subject_file.description,
-                        "file_url": subject_file.file.url,
-                        "uploaded_at": subject_file.uploaded_at.strftime(
-                            "%b %d, %Y %H:%M"
-                        ),
-                    },
-                }
-            )
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "message": "File uploaded successfully",
+                        "file": {
+                            "id": subject_file.id,
+                            "title": subject_file.title,
+                            "description": subject_file.description,
+                            "file_url": subject_file.file.url,
+                            "uploaded_at": subject_file.uploaded_at.strftime(
+                                "%b %d, %Y %H:%M"
+                            ),
+                        },
+                    }
+                )
+            except Exception as e:
+                # Clean up the uploaded file if database operation fails
+                cleanup_failed_upload(file_path)
+                logger.error(f"Error creating subject file: {e}", exc_info=True)
+                return JsonResponse(
+                    {"success": False, "message": f"Error creating subject file: {str(e)}"}
+                )
+
         except Subject.DoesNotExist:
             logger.error(f"Subject {subject_id} not found")
             return JsonResponse({"success": False, "message": "Subject not found"})
@@ -952,27 +893,11 @@ def manage_subject_files(request):
                 }
             )
         except Exception as e:
-            # If there's an error with a specific subject, log it but continue
-            logger.error(f"Error processing subject {subject.id}: {e}", exc_info=True)
+            logger.error(
+                f"Error processing subject {subject.id}: {e}", exc_info=True
+            )
 
-    logger.info(f"Rendering template with {len(subjects_data)} subjects")
-
-    # Print to console for debugging
-    print(f"DEBUG: Teacher = {teacher.name}, Subjects count = {len(subjects_data)}")
-    if subjects_data:
-        print(f"DEBUG: First subject = {subjects_data[0]['name']}")
-    else:
-        print("DEBUG: No subjects data to render")
-
-    return render(
-        request,
-        "teacher/subject_files.html",
-        {
-            "subjects": subjects_data,
-            "teacher": teacher,
-            "selected_subject": subject_filter,
-        },
-    )
+    return JsonResponse({"success": True, "subjects": subjects_data})
 
 
 @login_required

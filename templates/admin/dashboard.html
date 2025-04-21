@@ -3,6 +3,7 @@
 {% load app_filters %}
 {% block extrahead %}
 {{ block.super }}
+<meta name="csrf-token" content="{{ csrf_token }}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -34,67 +35,123 @@
             });
         }
     });
+
+    // Add CSRF token to all AJAX requests
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Set up CSRF token for AJAX requests
+    const csrftoken = getCookie('csrftoken');
+
+    // Add CSRF token to all AJAX requests
+    $(document).ready(function() {
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            }
+        });
+    });
+
+    // Update all form submissions to include CSRF token
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add CSRF token to fetch requests
+        window.fetch = new Proxy(window.fetch, {
+            apply: function(fetch, that, args) {
+                if (args.length > 0 && typeof args[0] === 'object' && args[0].method !== 'GET') {
+                    if (args[0].headers) {
+                        args[0].headers['X-CSRFToken'] = csrftoken;
+                    } else {
+                        args[0].headers = { 'X-CSRFToken': csrftoken };
+                    }
+                }
+                return fetch.apply(that, args);
+            }
+        });
+    });
 </script>
 {% endblock %}
 {% block extrastyle %}
 {{ block.super }}
 <style>
     :root {
-        --primary: #2196F3;
-        --primary-light: #BBDEFB;
-        --primary-dark: #1976D2;
-        --secondary: #607D8B;
-        --success: #4CAF50;
-        --info: #00BCD4;
+        --primary: #0D6EFD;
+        --primary-light: #E7F1FF;
+        --primary-dark: #0B5ED7;
+        --secondary: #6C757D;
+        --success: #198754;
+        --info: #0DCAF0;
         --warning: #FFC107;
-        --danger: #F44336;
-        --light: #FAFAFA;
-        --dark: #212121;
-        --gray: #9E9E9E;
+        --danger: #DC3545;
+        --light: #F8F9FA;
+        --dark: #212529;
+        --gray: #6C757D;
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --card-hover-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        --transition: all 0.3s ease;
     }
 
     body {
-        background-color: var(--light);
+        background-color: #f5f7fa;
         color: var(--dark);
     }
 
     .content-card {
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
         padding: 24px;
         margin-bottom: 24px;
-        transition: box-shadow 0.3s ease;
+        transition: var(--transition);
+        border: none;
     }
 
     .content-card:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--card-hover-shadow);
+        transform: translateY(-2px);
     }
 
     .welcome-section {
         background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
         color: white;
         padding: 32px;
-        border-radius: 8px;
+        border-radius: 12px;
         margin-bottom: 32px;
+        box-shadow: var(--card-shadow);
     }
 
     .summary-card {
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+        border: none;
+        height: 100%;
     }
 
     .summary-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--card-hover-shadow);
     }
 
     .summary-card .card-header {
         background: none;
         border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         padding: 16px;
+        border-radius: 12px 12px 0 0;
     }
 
     .summary-card .card-body {
@@ -105,193 +162,154 @@
         font-size: 2.5rem;
         font-weight: 700;
         color: var(--primary);
+        margin-bottom: 8px;
     }
 
     .stat-label {
         color: var(--secondary);
         font-size: 0.9rem;
-    }
-
-    .status-badge {
-        padding: 6px 12px;
-        border-radius: 16px;
-        font-size: 0.8rem;
         font-weight: 500;
     }
 
-    .completed {
-        background: #E8F5E9;
-        color: #2E7D32;
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 16px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        line-height: 1.4;
     }
 
-    .ongoing {
-        background: #FFF3E0;
-        color: #E65100;
+    .status-badge:hover {
+        transform: scale(1.05);
     }
 
-    .upcoming {
-        background: #E3F2FD;
-        color: #1565C0;
+    .btn {
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: var(--transition);
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        line-height: 1.5;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
-    .leave-pending {
-        background: #FFF8E1;
-        color: #F57F17;
+    .btn i {
+        font-size: 0.875rem;
     }
 
-    .leave-approved {
-        background: #E8F5E9;
-        color: #2E7D32;
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     }
 
-    .leave-rejected {
-        background: #FFEBEE;
-        color: #C62828;
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 0.8125rem;
     }
 
-    .btn-primary {
+    .btn-sm i {
+        font-size: 0.8125rem;
+    }
+
+    .btn-schedule {
         background-color: var(--primary);
-        border-color: var(--primary);
+        color: white;
+        padding: 8px 16px;
     }
 
-    .btn-success {
-        background-color: var(--success);
-        border-color: var(--success);
+    .btn-schedule:hover {
+        background-color: var(--primary-dark);
+        color: white;
     }
 
-    .btn-info {
-        background-color: var(--info);
-        border-color: var(--info);
+    .btn-action {
+        padding: 4px 8px;
+        font-size: 0.8125rem;
+        margin: 0 2px;
     }
 
-    .btn-warning {
-        background-color: var(--warning);
-        border-color: var(--warning);
+    .badge.bg-info {
+        background-color: #0DCAF0 !important;
+        color: white;
     }
 
-    .btn-danger {
-        background-color: var(--danger);
-        border-color: var(--danger);
+    .badge.bg-success {
+        background-color: #198754 !important;
+        color: white;
     }
 
-    .progress {
-        height: 8px;
-        background-color: #f0f0f0;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-bottom: 5px;
+    .badge.bg-warning {
+        background-color: #FFC107 !important;
+        color: #000;
     }
 
-    .progress-bar {
-        border-radius: 4px;
+    .badge.bg-danger {
+        background-color: #DC3545 !important;
+        color: white;
     }
 
-    .table th {
-        color: var(--secondary);
-        font-weight: 600;
-        border-bottom-width: 1px;
+    .badge.bg-secondary {
+        background-color: #6C757D !important;
+        color: white;
+    }
+
+    .meeting-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 16px;
+        font-size: 0.8125rem;
+        background-color: #ECEFF1;
+        color: #455A64;
+    }
+
+    .meeting-type.online {
+        background-color: #0DCAF0;
+        color: white;
+    }
+
+    .meeting-type i {
+        font-size: 0.8125rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    .meeting-link {
+        color: var(--primary);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .meeting-link:hover {
+        text-decoration: underline;
     }
 
     .table td {
+        padding: 12px;
         vertical-align: middle;
     }
 
-    /* Teacher Ratings Section */
-    .teacher-rating-card {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin-bottom: 20px;
-        transition: transform 0.3s ease;
+    .table th {
+        padding: 12px;
+        font-weight: 600;
+        color: #455A64;
+        background-color: #F5F7FA;
     }
 
-    .teacher-rating-card:hover {
-        transform: translateY(-4px);
-    }
-
-    /* Monthly Statistics Section */
-    .stat-box {
-        background: white;
-        border-radius: 8px;
-        padding: 24px;
-        text-align: center;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease;
-    }
-
-    .stat-box:hover {
-        transform: translateY(-4px);
-    }
-
-    .stat-box i {
-        font-size: 2.5rem;
-        margin-bottom: 16px;
-    }
-
-    /* Institute Feedback Section */
-    .feedback-card {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .rating-stars i {
-        color: var(--warning);
-        margin-right: 2px;
-    }
-
-    /* Activity Scroll */
-    .activity-scroll {
-        max-height: 400px;
-        overflow-y: auto;
-        padding-right: 5px;
-        scrollbar-width: thin;
-    }
-
-    .scrollable-content {
-        max-height: 400px;
-        overflow-y: auto;
-        padding-right: 5px;
-        scrollbar-width: thin;
-    }
-
-    .stats-scroll {
-        max-height: 300px;
-        overflow-y: auto;
-        padding-right: 5px;
-        scrollbar-width: thin;
-    }
-
-    .table-scroll {
-        max-height: 400px;
-        overflow-y: auto;
-        padding-right: 5px;
-        scrollbar-width: thin;
-    }
-
-    /* Custom scrollbar styles */
-    .activity-scroll::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .activity-scroll::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-    }
-
-    .activity-scroll::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 3px;
-    }
-
-    .activity-scroll::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-
-    /* Responsive Design */
     @media (max-width: 1200px) {
         .welcome-section {
             padding: 28px;
@@ -311,12 +329,6 @@
         .content-card {
             padding: 16px;
         }
-        .stat-box {
-            padding: 20px;
-        }
-        .stat-box i {
-            font-size: 2rem;
-        }
     }
 
     @media (max-width: 768px) {
@@ -333,15 +345,13 @@
         .stat-number {
             font-size: 2rem;
         }
-        .content-card {
-            padding: 16px;
+        .action-buttons {
+            flex-direction: column;
+            gap: 6px;
         }
-        .teacher-rating-card,
-        .feedback-card {
-            padding: 16px;
-        }
-        .activity-scroll {
-            max-height: 200px;
+        
+        .btn-action {
+            width: 100%;
         }
     }
 
@@ -353,96 +363,373 @@
         .welcome-section h2 {
             font-size: 1.3rem;
         }
-        .welcome-section p {
-            font-size: 0.9rem;
-        }
         .content-card {
             padding: 12px;
         }
         .stat-number {
             font-size: 1.8rem;
         }
-        .stat-box {
-            padding: 16px;
-        }
-        .stat-box i {
-            font-size: 1.8rem;
-        }
-        .teacher-rating-card,
-        .feedback-card {
-            padding: 12px;
-        }
-        .activity-scroll {
-            max-height: 180px;
-        }
-        .table-responsive {
-            margin: 0 -12px;
-        }
     }
 
-    @media (max-width: 375px) {
-        .welcome-section {
-            padding: 12px;
-        }
-        .welcome-section h2 {
-            font-size: 1.2rem;
-        }
-        .welcome-section p {
-            font-size: 0.8rem;
-        }
-        .content-card {
-            padding: 10px;
-        }
-        .stat-number {
-            font-size: 1.6rem;
-        }
-        .stat-box {
-            padding: 12px;
-        }
-        .stat-box i {
-            font-size: 1.6rem;
-        }
-        .teacher-rating-card,
-        .feedback-card {
-            padding: 10px;
-        }
-        .activity-scroll {
-            max-height: 160px;
-        }
-        .status-badge {
-            padding: 4px 8px;
-            font-size: 0.7rem;
-        }
-    }
-
-    /* Touch Device Optimizations */
     @media (hover: none) {
         .summary-card:hover,
-        .teacher-rating-card:hover,
-        .stat-box:hover {
+        .content-card:hover,
+        .btn:hover {
             transform: none;
-        }
-        .btn, .nav-link {
-            padding: 0.75rem 1rem;
         }
     }
 
-    /* High Contrast Mode Support */
     @media (prefers-contrast: high) {
         .summary-card,
-        .teacher-rating-card,
-        .stat-box,
-        .feedback-card {
+        .content-card {
             border: 2px solid currentColor;
         }
     }
 
-    /* Reduced Motion Support */
     @media (prefers-reduced-motion: reduce) {
         .summary-card,
-        .teacher-rating-card,
-        .stat-box {
+        .content-card,
+        .btn,
+        .status-badge,
+        .rating-stars i {
             transition: none;
+        }
+    }
+
+    /* Meeting Section Scroll */
+    .meetings-container {
+        max-height: 400px;
+        overflow-y: auto;
+        margin: -12px;
+        padding: 12px;
+    }
+
+    .meetings-table {
+        position: relative;
+        margin-bottom: 0;
+    }
+
+    .meetings-table thead {
+        position: sticky;
+        top: 0;
+        background-color: white;
+        z-index: 1;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Bright Button Colors */
+    .btn-primary {
+        background-color: #0D6EFD;
+        border-color: #0D6EFD;
+        color: white;
+    }
+
+    .btn-success {
+        background-color: #198754;
+        border-color: #198754;
+        color: white;
+    }
+
+    .btn-info {
+        background-color: #0DCAF0;
+        border-color: #0DCAF0;
+        color: white;
+    }
+
+    .btn-warning {
+        background-color: #FFC107;
+        border-color: #FFC107;
+        color: #000;
+    }
+
+    .btn-danger {
+        background-color: #DC3545;
+        border-color: #DC3545;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6C757D;
+        border-color: #6C757D;
+        color: white;
+    }
+
+    /* Button Hover States */
+    .btn-primary:hover {
+        background-color: #0B5ED7;
+        border-color: #0A58CA;
+    }
+
+    .btn-success:hover {
+        background-color: #157347;
+        border-color: #146C43;
+    }
+
+    .btn-info:hover {
+        background-color: #31D2F2;
+        border-color: #25CFF2;
+    }
+
+    .btn-warning:hover {
+        background-color: #FFCA2C;
+        border-color: #FFC720;
+    }
+
+    .btn-danger:hover {
+        background-color: #BB2D3B;
+        border-color: #B02A37;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5C636A;
+        border-color: #565E64;
+    }
+
+    /* Meeting Type Badge */
+    .meeting-type.online {
+        background-color: #0DCAF0;
+        color: white;
+    }
+
+    .meeting-type.in-person {
+        background-color: #6C757D;
+        color: white;
+    }
+
+    /* Status Badges */
+    .status-badge.completed {
+        background-color: #198754;
+        color: white;
+    }
+
+    .status-badge.cancelled {
+        background-color: #DC3545;
+        color: white;
+    }
+
+    .status-badge.rescheduled {
+        background-color: #FFC107;
+        color: #000;
+    }
+
+    /* Scrollbar Styling */
+    .meetings-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .meetings-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .meetings-container::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+
+    .meetings-container::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Scrollable Container Styles */
+    .scroll-container {
+        max-height: 400px;
+        overflow-y: auto;
+        margin: -12px;
+        padding: 12px;
+        position: relative;
+    }
+
+    .scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .scroll-container::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+
+    .scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Card Heights */
+    .stats-card {
+        height: 300px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stats-card .card-header {
+        flex-shrink: 0;
+    }
+
+    .stats-card .card-body {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .content-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .content-card .card-header {
+        flex-shrink: 0;
+        padding: 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .content-card .card-body {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    /* Table Header Sticky */
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        background-color: white;
+        z-index: 1;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Meeting Action Buttons */
+    .meeting-actions {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .btn-action {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 500;
+        min-width: 28px;
+        justify-content: center;
+        border: none;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-action i {
+        font-size: 0.75rem;
+    }
+
+    .btn-action.btn-complete {
+        background-color: #198754;
+        color: white;
+    }
+
+    .btn-action.btn-reschedule {
+        background-color: #FFC107;
+        color: #000;
+    }
+
+    .btn-action.btn-cancel {
+        background-color: #DC3545;
+        color: white;
+    }
+
+    .btn-action.btn-notes {
+        background-color: #0DCAF0;
+        color: white;
+    }
+
+    .btn-action.btn-agenda {
+        background-color: #0D6EFD;
+        color: white;
+    }
+
+    .btn-action.btn-reason {
+        background-color: #6C757D;
+        color: white;
+    }
+
+    /* Meeting Status Badges */
+    .meeting-status {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 80px;
+        justify-content: center;
+    }
+
+    .meeting-status i {
+        font-size: 0.75rem;
+    }
+
+    .meeting-status.scheduled {
+        background-color: #E7F1FF;
+        color: #0D6EFD;
+    }
+
+    .meeting-status.completed {
+        background-color: #E8F5E9;
+        color: #198754;
+    }
+
+    .meeting-status.cancelled {
+        background-color: #FFEBEE;
+        color: #DC3545;
+    }
+
+    .meeting-status.rescheduled {
+        background-color: #FFF3E0;
+        color: #F57C00;
+    }
+
+    /* Meeting Type Badge */
+    .meeting-type {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 80px;
+        justify-content: center;
+    }
+
+    .meeting-type.online {
+        background-color: #E1F5FE;
+        color: #0277BD;
+    }
+
+    .meeting-type.in-person {
+        background-color: #ECEFF1;
+        color: #455A64;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .meeting-actions {
+            flex-direction: row;
+            justify-content: flex-start;
+            margin-top: 8px;
         }
     }
 </style>
@@ -468,23 +755,21 @@
                         <h2 class="mb-1">Welcome, Admin!</h2>
                         <p class="mb-0">Student Management Dashboard</p>
                     </div>
-                    <a href="{% url 'logout' %}" class="btn btn-light">
-                        <i class="fas fa-sign-out-alt me-2"></i>Logout
-                    </a>
+
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Quick Stats Row -->
     <div class="row mb-4">
         <!-- Student Stats -->
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="summary-card h-100">
+            <div class="summary-card stats-card">
                 <div class="card-header">
                     <h5 class="card-title mb-0 small"><i class="fas fa-users text-primary me-2"></i>Students</h5>
                 </div>
-                <div class="card-body p-2 activity-scroll">
+                <div class="card-body scroll-container">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <span class="d-block text-muted small">Total Students</span>
@@ -515,11 +800,11 @@
 
         <!-- Staff Stats -->
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="summary-card h-100">
+            <div class="summary-card stats-card">
                 <div class="card-header">
                     <h5 class="card-title mb-0 small"><i class="fas fa-chalkboard-teacher text-info me-2"></i>Staff</h5>
                 </div>
-                <div class="card-body p-2 activity-scroll">
+                <div class="card-body scroll-container">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <span class="d-block text-muted small">Total Staff</span>
@@ -550,11 +835,11 @@
 
         <!-- Parent Stats -->
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="summary-card h-100">
+            <div class="summary-card stats-card">
                 <div class="card-header">
                     <h5 class="card-title mb-0 small"><i class="fas fa-user-friends text-warning me-2"></i>Parents</h5>
                 </div>
-                <div class="card-body p-2 activity-scroll">
+                <div class="card-body scroll-container">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <span class="d-block text-muted small">Total Parents</span>
@@ -585,11 +870,11 @@
 
         <!-- Course Stats -->
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="summary-card h-100">
+            <div class="summary-card stats-card">
                 <div class="card-header">
                     <h5 class="card-title mb-0 small"><i class="fas fa-book text-success me-2"></i>Courses</h5>
                 </div>
-                <div class="card-body p-2 activity-scroll">
+                <div class="card-body scroll-container">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <span class="d-block text-muted small">Total Courses</span>
@@ -623,78 +908,82 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="content-card">
-                <h5 class="mb-3">
-                    <i class="fas fa-star text-warning me-2"></i>Top Rated Teachers
-                </h5>
-                <div class="table-responsive activity-scroll">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Teacher</th>
-                                <th>Student Rating</th>
-                                <th>Parent Rating</th>
-                                <th>Total Feedbacks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for teacher in teacher_ratings %}
-                            <tr>
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-star text-warning me-2"></i>Top Rated Teachers
+                    </h5>
+                </div>
+                <div class="card-body scroll-container">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="sticky-header">
+                                <tr>
+                                    <th>Teacher</th>
+                                    <th>Student Rating</th>
+                                    <th>Parent Rating</th>
+                                    <th>Total Feedbacks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for teacher in teacher_ratings %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if teacher.image %}
+                                                <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-user-tie text-secondary"></i>
+                                        </div>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-0">{{ teacher.name }}</h6>
+                                                <small class="text-muted">{{ teacher.designation }}</small>
+                                    </div>
+                                        </div>
+                                </td>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        {% if teacher.image %}
-                                            <img src="{{ teacher.image.url }}" alt="{{ teacher.name }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2">{{ teacher.avg_student_rating|floatformat:1 }}</span>
+                                            <div class="rating-stars">
+                                                {% for i in "12345"|make_list %}
+                                                    {% if forloop.counter <= teacher.avg_student_rating %}
+                                                        <i class="fas fa-star text-warning"></i>
                                         {% else %}
-                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                                                <i class="fas fa-user-tie text-secondary"></i>
-                                    </div>
+                                                        <i class="far fa-star text-warning"></i>
                                         {% endif %}
-                                        <div>
-                                            <h6 class="mb-0">{{ teacher.name }}</h6>
-                                            <small class="text-muted">{{ teacher.designation }}</small>
-                                </div>
-                                    </div>
-                            </td>
-                            <td>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2">{{ teacher.avg_student_rating|floatformat:1 }}</span>
-                                        <div class="rating-stars">
-                                            {% for i in "12345"|make_list %}
-                                                {% if forloop.counter <= teacher.avg_student_rating %}
-                                                    <i class="fas fa-star text-warning"></i>
-                                    {% else %}
-                                                    <i class="far fa-star text-warning"></i>
-                                    {% endif %}
-                                            {% endfor %}
+                                                {% endfor %}
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2">{{ teacher.avg_parent_rating|floatformat:1 }}</span>
-                                        <div class="rating-stars">
-                                            {% for i in "12345"|make_list %}
-                                                {% if forloop.counter <= teacher.avg_parent_rating %}
-                                                    <i class="fas fa-star text-warning"></i>
-                                                {% else %}
-                                                    <i class="far fa-star text-warning"></i>
-                                                {% endif %}
-                                            {% endfor %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2">{{ teacher.avg_parent_rating|floatformat:1 }}</span>
+                                            <div class="rating-stars">
+                                                {% for i in "12345"|make_list %}
+                                                    {% if forloop.counter <= teacher.avg_parent_rating %}
+                                                        <i class="fas fa-star text-warning"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star text-warning"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
                                         </div>
-                                    </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ teacher.total_feedbacks }}</span>
                                 </td>
-                                <td>
-                                    <span class="badge bg-info">{{ teacher.total_feedbacks }}</span>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                                <td colspan="4" class="text-center">
-                                    <small class="text-muted">No teacher ratings available</small>
-                                </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                    <td colspan="4" class="text-center">
+                                        <small class="text-muted">No teacher ratings available</small>
+                                    </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -704,15 +993,17 @@
         <!-- Recent Notices -->
         <div class="col-12 mb-4">
             <div class="content-card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">
-                        <i class="fas fa-bullhorn text-primary me-2"></i>Recent Notices
-                    </h5>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="openAddNoticeModal()">
-                        <i class="fas fa-plus me-2"></i>Add Notice
-                    </button>
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-bullhorn text-primary me-2"></i>Recent Notices
+                        </h5>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openAddNoticeModal()">
+                            <i class="fas fa-plus me-2"></i>Add Notice
+                        </button>
+                    </div>
                 </div>
-                <div class="activity-scroll">
+                <div class="card-body scroll-container">
                     {% for notice in recent_notices %}
                     <div class="d-flex align-items-start mb-3 pb-3 border-bottom">
                         <div class="flex-shrink-0 me-3">
@@ -831,14 +1122,17 @@
     </div>
 </div>
 
-    <!-- Recent Feedback -->
+    <!-- Recent Feedback and Meetings Row -->
     <div class="row mb-4">
+        <!-- Recent Institute Feedback -->
         <div class="col-xl-6 mb-4">
-        <div class="content-card">
-            <h5 class="mb-3">
-                    <i class="fas fa-comments text-success me-2"></i>Recent Institute Feedback
-            </h5>
-                <div class="activity-scroll">
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comments text-success me-2"></i>Recent Institute Feedback
+                    </h5>
+                </div>
+                <div class="card-body scroll-container">
                     {% for feedback in recent_feedback %}
                     <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
                         <div class="flex-shrink-0 me-3">
@@ -879,7 +1173,7 @@
                                 {% if feedback.student %}
                                     <small class="mb-0 d-block fw-medium">{{ feedback.student.name }} (Student)</small>
                                     <small class="text-muted d-block">
-                                        {{ feedback.student.course.name }} - 
+                                        {{ feedback.student.course.name }} -
                                         {% if feedback.student.course.duration_type == 'Semester' %}
                                             Semester {{ feedback.student.current_period }}
                                         {% else %}
@@ -893,7 +1187,7 @@
                                     {% with student=feedback.parent.students.first %}
                                         {% if student %}
                                             <small class="text-muted d-block">
-                                                Parent of {{ student.name }} - 
+                                                Parent of {{ student.name }} -
                                                 {{ student.course.name }}
                                                 {% if student.course.duration_type == 'Semester' %}
                                                     (Semester {{ student.current_period }})
@@ -929,24 +1223,24 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-    <!-- Parent-Teacher Meetings -->
-    <div class="row mb-4">
-        <div class="col-12">
+        <!-- Parent-Teacher Meetings -->
+        <div class="col-xl-6 mb-4">
             <div class="content-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="fas fa-calendar-check text-primary me-2"></i>Parent-Teacher Meetings
-                </h5>
-                        <button type="button" class="btn btn-primary" onclick="openScheduleMeetingModal()">
+                        </h5>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openScheduleMeetingModal()">
                             <i class="fas fa-plus me-2"></i>Schedule Meeting
                         </button>
-                                </div>
-                    <div class="table-responsive activity-scroll">
+                    </div>
+                </div>
+                <div class="card-body scroll-container">
+                    <div class="table-responsive">
                         <table class="table table-hover">
-                            <thead>
+                            <thead class="sticky-header">
                                 <tr>
                                     <th>Date</th>
                                     <th>Time</th>
@@ -964,47 +1258,61 @@
                                     <td>{{ meeting.duration }} minutes</td>
                                     <td>
                                         {% if meeting.is_online %}
-                                            <span class="badge bg-info">Online</span>
-                                            {% if meeting.meeting_link %}
-                                                <a href="{{ meeting.meeting_link }}" target="_blank" class="ms-1">
-                                                    <i class="fas fa-link"></i>
-                                            {% endif %}
+                                            <span class="meeting-type online">
+                                                <i class="fas fa-video"></i>Online
+                                                {% if meeting.meeting_link %}
+                                                    <a href="{{ meeting.meeting_link }}" target="_blank" class="ms-1">
+                                                        <i class="fas fa-external-link-alt"></i>
+                                                {% endif %}
+                                            </span>
                                         {% else %}
-                                            <span class="badge bg-secondary">In-person</span>
+                                            <span class="meeting-type in-person">
+                                                <i class="fas fa-user-friends"></i>In-person
+                                            </span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <span class="badge {% if meeting.status == 'scheduled' %}bg-primary{% elif meeting.status == 'completed' %}bg-success{% elif meeting.status == 'cancelled' %}bg-danger{% else %}bg-warning{% endif %}">
-                                            {{ meeting.get_status_display }}
+                                        <span class="meeting-status {{ meeting.status }}">
+                                            {% if meeting.status == 'scheduled' %}
+                                                <i class="fas fa-calendar-check"></i>Scheduled
+                                            {% elif meeting.status == 'completed' %}
+                                                <i class="fas fa-check-circle"></i>Completed
+                                            {% elif meeting.status == 'cancelled' %}
+                                                <i class="fas fa-times-circle"></i>Cancelled
+                                            {% else %}
+                                                <i class="fas fa-calendar-alt"></i>Rescheduled
+                                            {% endif %}
                                         </span>
                                     </td>
                                     <td>
-                                        {% if meeting.status == 'scheduled' %}
-                                            <button class="btn btn-success btn-sm" onclick="completeMeeting({{ meeting.id }})">
-                                                <i class="fas fa-check me-1"></i>Complete
-                                            </button>
-                                            <button class="btn btn-warning btn-sm" onclick="rescheduleMeeting({{ meeting.id }})">
-                                                <i class="fas fa-calendar-alt me-1"></i>Reschedule
-                                            </button>
-                                            <button class="btn btn-danger btn-sm" onclick="cancelMeeting({{ meeting.id }})">
-                                                <i class="fas fa-times me-1"></i>Cancel
-                                            </button>
-                                        {% endif %}
-                                        {% if meeting.notes or meeting.status == 'completed' %}
-                                            <button class="btn btn-info btn-sm" onclick="viewMeetingNotes({{ meeting.id }})">
-                                                <i class="fas fa-sticky-note me-1"></i>Notes
-                                            </button>
-                                        {% endif %}
-                                        {% if meeting.agenda %}
-                                            <button class="btn btn-primary btn-sm" onclick="viewMeetingAgenda({{ meeting.id }})">
-                                                <i class="fas fa-clipboard-list me-1"></i>Agenda
-                                            </button>
-                                        {% endif %}
-                                        {% if meeting.status == 'cancelled' and meeting.cancellation_reason %}
-                                            <button class="btn btn-secondary btn-sm" onclick="viewCancellationReason({{ meeting.id }})">
-                                                <i class="fas fa-question-circle me-1"></i>Reason
-                                            </button>
-                                        {% endif %}
+                                        <div class="meeting-actions">
+                                            {% if meeting.status == 'scheduled' %}
+                                                <button class="btn-action btn-complete" onclick="completeMeeting({{ meeting.id }})" title="Complete">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button class="btn-action btn-reschedule" onclick="rescheduleMeeting({{ meeting.id }})" title="Reschedule">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                </button>
+                                                <button class="btn-action btn-cancel" onclick="cancelMeeting({{ meeting.id }})" title="Cancel">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            {% endif %}
+                                            {% if meeting.notes or meeting.status == 'completed' %}
+                                                <button class="btn-action btn-notes" onclick="viewMeetingNotes({{ meeting.id }})" title="View Notes">
+                                                    <i class="fas fa-sticky-note"></i>
+                                                </button>
+                                            {% endif %}
+                                            {% if meeting.agenda %}
+                                                <button class="btn-action btn-agenda" onclick="viewMeetingAgenda({{ meeting.id }})" title="View Agenda">
+                                                    <i class="fas fa-clipboard-list"></i>
+                                                </button>
+                                            {% endif %}
+                                            {% if meeting.status == 'cancelled' and meeting.cancellation_reason %}
+                                                <button class="btn-action btn-reason" onclick="viewCancellationReason({{ meeting.id }})" title="View Reason">
+                                                    <i class="fas fa-question-circle"></i>
+                                                </button>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                 </tr>
                                 {% empty %}
@@ -1016,10 +1324,12 @@
                                 {% endfor %}
                             </tbody>
                         </table>
-                                </div>
-                            </div>
-                                </div>
-                                </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Schedule Meeting Modal -->
     <div id="scheduleMeetingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeScheduleMeetingModal();">
@@ -1027,55 +1337,55 @@
             <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                 <h5 style="margin: 0; font-size: 18px;">Schedule New Meeting</h5>
                 <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeScheduleMeetingModal()">&times;</button>
-                                </div>
+            </div>
             <div style="padding: 20px;">
                 <div id="scheduleMeetingError" class="alert alert-danger" style="display: none;"></div>
                 <div id="scheduleMeetingLoading" class="text-center" style="display: none;">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
-                            </div>
+                    </div>
                     <p class="mt-2">Scheduling meeting...</p>
-                        </div>
+                </div>
                 <form id="scheduleMeetingForm" onsubmit="return false;">
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="meetingDate" class="form-label">Date</label>
                         <input type="date" class="form-control" id="meetingDate" name="meeting_date" required min="{{ today|date:'Y-m-d' }}">
                         <div class="invalid-feedback">Please select a valid date</div>
-                            </div>
+                    </div>
                     <div class="mb-3">
                         <label for="meetingTime" class="form-label">Time</label>
                         <input type="time" class="form-control" id="meetingTime" name="meeting_time" required>
                         <div class="invalid-feedback">Please select a valid time</div>
-                            </div>
+                    </div>
                     <div class="mb-3">
                         <label for="meetingDuration" class="form-label">Duration (minutes)</label>
                         <input type="number" class="form-control" id="meetingDuration" name="duration" min="15" max="120" value="30" required>
                         <div class="invalid-feedback">Duration must be between 15 and 120 minutes</div>
-                        </div>
+                    </div>
                     <div class="mb-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="isOnline" name="is_online">
                             <label class="form-check-label" for="isOnline">Online Meeting</label>
+                        </div>
                     </div>
-                </div>
                     <div class="mb-3" id="meetingLinkContainer" style="display: none;">
                         <label for="meetingLink" class="form-label">Meeting Link</label>
                         <input type="url" class="form-control" id="meetingLink" name="meeting_link" placeholder="https://meet.google.com/...">
                         <div class="invalid-feedback">Please enter a valid meeting link</div>
-                </div>
+                    </div>
                     <div class="mb-3">
                         <label for="scheduleMeetingAgenda" class="form-label">Agenda</label>
                         <textarea class="form-control" id="scheduleMeetingAgenda" name="agenda" rows="3" placeholder="Brief description of what you'd like to discuss"></textarea>
-            </div>
+                    </div>
                     <div class="d-flex justify-content-end gap-2">
                         <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeScheduleMeetingModal()">Cancel</button>
                         <button type="button" class="btn" style="background-color: #3F51B5; color: white;" onclick="submitMeetingForm()">Schedule Meeting</button>
                     </div>
                 </form>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- Meeting Notes Modal -->
     <div id="viewNotesModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeNotesModal();">
@@ -1083,21 +1393,21 @@
             <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                 <h5 style="margin: 0; font-size: 18px;">Meeting Notes</h5>
                 <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeNotesModal()">&times;</button>
-                    </div>
+            </div>
             <div style="padding: 20px;">
                 <div id="notesError" class="alert alert-danger" style="display: none;"></div>
                 <div id="notesLoading" class="text-center" style="display: none;">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
-                </div>
-                    <p class="mt-2">Loading notes...</p>
                     </div>
+                    <p class="mt-2">Loading notes...</p>
+                </div>
                 <div id="meetingNotesContent" style="display: none;">
                     <p id="viewMeetingNotesText" style="margin: 0; white-space: pre-wrap;"></p>
                 </div>
-                    </div>
-                </div>
-                    </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Meeting Agenda Modal -->
     <div id="viewAgendaModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeAgendaModal();">
@@ -1105,21 +1415,21 @@
             <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                 <h5 style="margin: 0; font-size: 18px;">Meeting Agenda</h5>
                 <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeAgendaModal()">&times;</button>
-                </div>
+            </div>
             <div style="padding: 20px;">
                 <div id="agendaError" class="alert alert-danger" style="display: none;"></div>
                 <div id="agendaLoading" class="text-center" style="display: none;">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
-            </div>
+                    </div>
                     <p class="mt-2">Loading agenda...</p>
                 </div>
                 <div id="meetingAgendaContent" style="display: none;">
                     <p id="viewMeetingAgendaText" style="margin: 0; white-space: pre-wrap;"></p>
                 </div>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- Cancel Meeting Modal -->
     <div id="cancelMeetingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeCancelModal();">
@@ -1127,15 +1437,15 @@
             <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                 <h5 style="margin: 0; font-size: 18px;">Cancel Meeting</h5>
                 <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeCancelModal()">&times;</button>
-                                        </div>
+            </div>
             <div style="padding: 20px;">
                 <div id="cancelError" class="alert alert-danger" style="display: none;"></div>
                 <div id="cancelLoading" class="text-center" style="display: none;">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
-                                        </div>
+                    </div>
                     <p class="mt-2">Cancelling meeting...</p>
-                                                </div>
+                </div>
                 <form id="cancelMeetingForm" onsubmit="return false;">
                     {% csrf_token %}
                     <input type="hidden" id="cancelMeetingId" name="meeting_id">
@@ -1143,15 +1453,15 @@
                         <label for="cancellationReason" class="form-label">Reason for Cancellation</label>
                         <textarea class="form-control" id="cancellationReason" name="reason" rows="3" required></textarea>
                         <div class="invalid-feedback">Please provide a reason for cancellation</div>
-                                                </div>
+                    </div>
                     <div class="d-flex justify-content-end gap-2">
                         <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeCancelModal()">Close</button>
                         <button type="button" class="btn" style="background-color: #F44336; color: white;" onclick="submitCancelForm()">Cancel Meeting</button>
-                                            </div>
+                    </div>
                 </form>
-                                                </div>
-                                                </div>
-                                            </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Reschedule Meeting Modal -->
     <div id="rescheduleMeetingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeRescheduleModal();">
@@ -1159,15 +1469,15 @@
             <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                 <h5 style="margin: 0; font-size: 18px;">Reschedule Meeting</h5>
                 <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeRescheduleModal()">&times;</button>
-                                            </div>
+            </div>
             <div style="padding: 20px;">
                 <div id="rescheduleError" class="alert alert-danger" style="display: none;"></div>
                 <div id="rescheduleLoading" class="text-center" style="display: none;">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
-                                            </div>
+                    </div>
                     <p class="mt-2">Rescheduling meeting...</p>
-                                </div>
+                </div>
                 <form id="rescheduleMeetingForm" onsubmit="return false;">
                     {% csrf_token %}
                     <input type="hidden" id="rescheduleMeetingId" name="meeting_id">
@@ -1175,16 +1485,16 @@
                         <label for="rescheduleDate" class="form-label">New Date</label>
                         <input type="date" class="form-control" id="rescheduleDate" name="meeting_date" required>
                         <div class="invalid-feedback">Please select a valid date</div>
-                                </div>
+                    </div>
                     <div class="mb-3">
                         <label for="rescheduleTime" class="form-label">New Time</label>
                         <input type="time" class="form-control" id="rescheduleTime" name="meeting_time" required>
                         <div class="invalid-feedback">Please select a valid time</div>
-                                </div>
+                    </div>
                     <div class="d-flex justify-content-end gap-2">
                         <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeRescheduleModal()">Close</button>
                         <button type="button" class="btn" style="background-color: #3F51B5; color: white;" onclick="submitRescheduleForm()">Reschedule Meeting</button>
-                                </div>
+                    </div>
                 </form>
             </div>
         </div>
@@ -1218,8 +1528,8 @@
                     </div>
                 </form>
             </div>
-</div>
-</div>
+        </div>
+    </div>
 
     <!-- Cancellation Reason Modal -->
     <div id="viewReasonModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeReasonModal();">

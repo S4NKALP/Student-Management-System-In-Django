@@ -58,7 +58,7 @@ The script generates the following types of data:
 6. Students with profiles and course assignments
 7. Parents linked to students
 8. Class routines and schedules
-9. Attendance records for past week
+9. Attendance records for past two weeks
 10. Notices/announcements
 11. Leave requests for students and staff
 12. Feedback (student, parent, institute)
@@ -70,9 +70,31 @@ The script generates the following types of data:
 The generated users have the following default passwords:
 
 - Students: `student123`
-- Staff: `staff123`
+- Regular Staff/Teachers: `staff123`
+- Department Heads (HOD): `hod1234`
+- Admission Officers: `admissionofficer123`
 - Parents: `parent123`
+
+## User Groups
+
+The following user groups are created automatically:
+
+- Student
+- Teacher 
+- HOD (Department Heads)
+- Admission Officer
+- Parent
+
+Each group has appropriate permissions assigned based on their role in the system.
+
+## Phone Numbers
+
+All users are assigned unique 10-digit Nepali phone numbers (e.g., 98xxxxxxxx, 97xxxxxxxx). These phone numbers are used as the username for authentication.
 
 ## Note
 
-The script doesn't generate actual file content for subject files due to the limitation of creating binary content programmatically. This portion is commented out in the code. 
+The script doesn't generate actual file content for subject files due to the limitation of creating binary content programmatically. This portion is commented out in the code.
+
+## Troubleshooting
+
+If you encounter issues with transactions or database errors, try running the command with the `--clear` flag to start with a clean database before generating new data. 

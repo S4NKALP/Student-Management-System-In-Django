@@ -29,6 +29,13 @@ from app.models import (
     TOTPSecret,
     ResetToken,
     OTPAttempt,
+    AttendanceRecord,
+    StudentLeave,
+    Attendance,
+    ParentFeedback,
+    ParentInstituteFeedback,
+    Routine,
+    SubjectFile,
 )
 from app.utils import cleanup_expired_tokens
 
@@ -479,15 +486,22 @@ def cleanup_orphaned_student_data(sender, instance, **kwargs):
     Clean up orphaned data when a student is deleted
     """
     try:
-        with transaction.atomic():
-            # Clean up related records
-            instance.cleanup_orphaned_data()
-            logger.info(f"Cleaned up orphaned data for deleted student: {instance.id}")
-            
-            # Clear any cached data
-            cache.delete_pattern(f"student_{instance.id}_*")
-            if instance.parent:
-                cache.delete_pattern(f"parent_{instance.parent.id}_*")
+        # Handle cleanup safely without relying on the model's method
+        # Delete attendance records
+        AttendanceRecord.objects.filter(student=instance).delete()
+        
+        # Delete course tracking
+        CourseTracking.objects.filter(student=instance).delete()
+        
+        # Delete leave requests
+        StudentLeave.objects.filter(student=instance).delete()
+        
+        # Clear any cached data
+        cache.delete(f"student_{instance.id}_profile")
+        cache.delete(f"student_{instance.id}_progress")
+        cache.delete(f"student_{instance.id}_attendance")
+        
+        logger.info(f"Cleaned up orphaned data for deleted student: {instance.id}")
     except Exception as e:
         logger.error(f"Error cleaning up orphaned student data: {str(e)}")
 
@@ -497,13 +511,18 @@ def cleanup_orphaned_staff_data(sender, instance, **kwargs):
     Clean up orphaned data when a staff member is deleted
     """
     try:
-        with transaction.atomic():
-            # Clean up related records
-            instance.cleanup_orphaned_data()
-            logger.info(f"Cleaned up orphaned data for deleted staff: {instance.id}")
-            
-            # Clear any cached data
-            cache.delete_pattern(f"staff_{instance.id}_*")
+        # Handle cleanup safely without relying on the model's method
+        # Delete attendance records where this staff is the teacher
+        Attendance.objects.filter(teacher=instance).delete()
+        
+        # Clear course relationships
+        instance.courses_taught.clear()
+        
+        # Clear any cached data
+        cache.delete(f"staff_{instance.id}_profile")
+        cache.delete(f"staff_{instance.id}_schedule")
+        
+        logger.info(f"Cleaned up orphaned data for deleted staff: {instance.id}")
     except Exception as e:
         logger.error(f"Error cleaning up orphaned staff data: {str(e)}")
 
@@ -513,15 +532,15 @@ def cleanup_orphaned_course_tracking_data(sender, instance, **kwargs):
     Clean up orphaned data when a course tracking record is deleted
     """
     try:
-        with transaction.atomic():
-            # Clean up related records
-            instance.cleanup_orphaned_data()
-            logger.info(f"Cleaned up orphaned data for deleted course tracking: {instance.id}")
-            
-            # Clear any cached data
-            cache.delete_pattern(f"course_tracking_{instance.id}_*")
-            if instance.student:
-                cache.delete_pattern(f"student_{instance.student.id}_*")
+        # No need for transaction, just clear cache
+        # CourseTracking doesn't have its own cleanup_orphaned_data method
+        
+        # Clear any cached data - use individual deletions instead of patterns
+        cache.delete(f"course_tracking_{instance.id}_percentage")
+        if instance.student:
+            cache.delete(f"student_{instance.student.id}_progress")
+        
+        logger.info(f"Cleaned up cached data for deleted course tracking: {instance.id}")
     except Exception as e:
         logger.error(f"Error cleaning up orphaned course tracking data: {str(e)}")
 
@@ -531,13 +550,18 @@ def cleanup_orphaned_parent_data(sender, instance, **kwargs):
     Clean up orphaned data when a parent is deleted
     """
     try:
-        with transaction.atomic():
-            # Clean up related records
-            instance.cleanup_orphaned_data()
-            logger.info(f"Cleaned up orphaned data for deleted parent: {instance.id}")
-            
-            # Clear any cached data
-            cache.delete_pattern(f"parent_{instance.id}_*")
+        # Handle cleanup safely without relying on the model's method
+        # Delete feedback records
+        ParentFeedback.objects.filter(parent=instance).delete()
+        
+        # Delete institute feedback
+        ParentInstituteFeedback.objects.filter(parent=instance).delete()
+        
+        # Clear any cached data
+        cache.delete(f"parent_{instance.id}_profile")
+        cache.delete(f"parent_{instance.id}_students")
+        
+        logger.info(f"Cleaned up orphaned data for deleted parent: {instance.id}")
     except Exception as e:
         logger.error(f"Error cleaning up orphaned parent data: {str(e)}")
 
@@ -547,13 +571,21 @@ def cleanup_orphaned_course_data(sender, instance, **kwargs):
     Clean up orphaned data when a course is deleted
     """
     try:
-        with transaction.atomic():
-            # Clean up related records
-            instance.cleanup_orphaned_data()
-            logger.info(f"Cleaned up orphaned data for deleted course: {instance.id}")
-            
-            # Clear any cached data
-            cache.delete_pattern(f"course_{instance.id}_*")
+        # Handle cleanup safely without relying on the model's method
+        # Delete subjects
+        Subject.objects.filter(course=instance).delete()
+        
+        # Delete course tracking records
+        CourseTracking.objects.filter(course=instance).delete()
+        
+        # Delete routines
+        Routine.objects.filter(course=instance).delete()
+        
+        # Clear any cached data
+        cache.delete(f"course_{instance.id}_details")
+        cache.delete(f"course_{instance.id}_subjects")
+        
+        logger.info(f"Cleaned up orphaned data for deleted course: {instance.id}")
     except Exception as e:
         logger.error(f"Error cleaning up orphaned course data: {str(e)}")
 
@@ -563,13 +595,23 @@ def cleanup_orphaned_subject_data(sender, instance, **kwargs):
     Clean up orphaned data when a subject is deleted
     """
     try:
-        with transaction.atomic():
-            # Clean up related records
-            instance.cleanup_orphaned_data()
-            logger.info(f"Cleaned up orphaned data for deleted subject: {instance.id}")
-            
-            # Clear any cached data
-            cache.delete_pattern(f"subject_{instance.id}_*")
+        # Handle cleanup safely without relying on the model's method
+        # Delete subject files
+        SubjectFile.objects.filter(subject=instance).delete()
+        
+        # Delete routines
+        Routine.objects.filter(subject=instance).delete()
+        
+        # Delete attendance records
+        attendances = Attendance.objects.filter(routine__subject=instance)
+        for attendance in attendances:
+            attendance.delete()
+        
+        # Clear any cached data
+        cache.delete(f"subject_{instance.id}_details")
+        cache.delete(f"subject_{instance.id}_files")
+        
+        logger.info(f"Cleaned up orphaned data for deleted subject: {instance.id}")
     except Exception as e:
         logger.error(f"Error cleaning up orphaned subject data: {str(e)}")
 

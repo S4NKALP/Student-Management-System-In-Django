@@ -14,6 +14,8 @@ from app.models import (
     CourseTracking, TeacherParentMeeting, SubjectFile
 )
 
+fake = Faker()
+
 # Nepali-specific data
 NEPALI_FIRST_NAMES = [
     'Aarav', 'Aayush', 'Abhishek', 'Aditya', 'Amit', 'Anish', 'Anup', 'Arjun', 'Ashish', 'Bibek',
@@ -70,6 +72,8 @@ class Command(BaseCommand):
         
         # Get or create groups
         staff_group, _ = Group.objects.get_or_create(name='Teacher')
+        hod_group, _ = Group.objects.get_or_create(name='HOD')
+        admission_officer_group, _ = Group.objects.get_or_create(name='Admission Officer')
         parent_group, _ = Group.objects.get_or_create(name='Parent')
         student_group, _ = Group.objects.get_or_create(name='Student')
         
@@ -121,7 +125,7 @@ class Command(BaseCommand):
         subjects = self._create_subjects(fake, courses, subjects_per_course)
         
         # Create staff members
-        staff_members = self._create_staff(fake, num_staff, staff_group)
+        staff_members = self._create_staff(fake, num_staff, staff_group, courses)
         
         # Create students
         students = self._create_students(fake, num_students, courses, batches, student_group)
@@ -159,7 +163,24 @@ class Command(BaseCommand):
         return f"{random.choice(NEPALI_FIRST_NAMES)} {random.choice(NEPALI_LAST_NAMES)}"
 
     def _get_nepali_phone(self):
-        return f"98{random.randint(1000000, 9999999)}"
+        """Generate a realistic Nepali phone number with proper formatting"""
+        # Nepal mobile prefixes (2 digits)
+        prefixes = ['98', '97']
+        
+        # Generate a unique phone number
+        while True:
+            prefix = random.choice(prefixes)
+            # Generate 8 digits after the prefix (no spaces, no formatting)
+            digits = ''.join([str(random.randint(0, 9)) for _ in range(8)])
+            phone = f"{prefix}{digits}"
+            
+            # Check if this phone already exists in any user model
+            student_exists = Student.objects.filter(phone=phone).exists()
+            staff_exists = Staff.objects.filter(phone=phone).exists()
+            parent_exists = Parent.objects.filter(phone=phone).exists()
+            
+            if not (student_exists or staff_exists or parent_exists):
+                return phone
 
     def _get_nepali_address(self, city):
         wards = [f"Ward No. {random.randint(1, 35)}" for _ in range(3)]
@@ -233,7 +254,7 @@ class Command(BaseCommand):
         return courses
     
     def _create_subjects(self, fake, courses, subjects_per_course):
-        subjects = []
+        subjects = []  # Initialize subjects list
         
         subject_names = {
             'Computer Science Engineering': [
@@ -285,7 +306,7 @@ class Command(BaseCommand):
             for year_or_sem in range(1, max_year_or_sem + 1):
                 # Calculate number of subjects for this year/semester
                 # Ensure at least 2 subjects per year/semester
-                num_subjects = max(2, min(subjects_per_course, len(course_subjects)))
+                num_subjects = max(2, min(subjects_per_course, len(course_subject_names)))
                 
                 # Select subjects ensuring no duplicates within the same year/semester
                 available_subjects = [s for s in course_subject_names if not Subject.objects.filter(
@@ -319,36 +340,72 @@ class Command(BaseCommand):
         
         return subjects
     
-    def _create_staff(self, fake, num_staff, staff_group):
+    def _create_staff(self, fake, num_staff, staff_group, courses):
         staff_members = []
+        # Keep track of which courses already have an HOD
+        courses_with_hod = set()
         
         for i in range(num_staff):
-            gender = random.choice(['Male', 'Female'])
-            name = self._get_nepali_name()
-            phone = self._get_nepali_phone()
-            city = random.choice(NEPALI_CITIES)
-            
-            staff = Staff(
-                name=name,
-                phone=phone,
-                designation=random.choice(NEPALI_DESIGNATIONS),
-                gender=gender,
-                birth_date=fake.date_of_birth(minimum_age=30, maximum_age=65),
-                email=fake.email(),
-                temporary_address=self._get_nepali_address(city),
-                permanent_address=self._get_nepali_address(city),
-                marital_status=random.choice(['Married', 'Unmarried']),
-                parent_name=self._get_nepali_name(),
-                parent_phone=self._get_nepali_phone(),
-                citizenship_no=f"{random.randint(10000, 99999)}-{random.randint(10000, 99999)}",
-                joining_date=fake.date_between(start_date='-5y', end_date='today')
-            )
-            staff.save()
-            staff.set_password('staff123')
-            staff.save()
-            staff.groups.add(staff_group)
-            staff_members.append(staff)
-            self.stdout.write(self.style.SUCCESS(f'Created staff: {staff.name}'))
+            try:
+                gender = random.choice(['Male', 'Female'])
+                name = self._get_nepali_name()
+                phone = self._get_nepali_phone()
+                city = random.choice(NEPALI_CITIES)
+                designation = random.choice(NEPALI_DESIGNATIONS)
+                
+                staff = Staff(
+                    name=name,
+                    phone=phone,
+                    designation=designation,
+                    gender=gender,
+                    birth_date=fake.date_of_birth(minimum_age=30, maximum_age=65),
+                    email=fake.email(),
+                    temporary_address=self._get_nepali_address(city),
+                    permanent_address=self._get_nepali_address(city),
+                    marital_status=random.choice(['Married', 'Unmarried']),
+                    parent_name=self._get_nepali_name(),
+                    parent_phone=self._get_nepali_phone(),
+                    citizenship_no=f"{random.randint(10000, 99999)}-{random.randint(10000, 99999)}",
+                    joining_date=fake.date_between(start_date='-5y', end_date='today')
+                )
+                
+                # First save to get a primary key
+                staff.save()
+                
+                # Set appropriate password based on designation
+                password = 'staff123'
+                if staff.designation == 'HOD':
+                    password = 'hod1234'
+                elif staff.designation == 'Admission Officer':
+                    password = 'admissionofficer123'
+                
+                staff.set_password(password)
+                
+                # Add staff to the appropriate group based on designation
+                if staff.designation == 'HOD':
+                    hod_group = Group.objects.get(name='HOD')
+                    staff.groups.add(hod_group)
+                    
+                    # Assign a course to HOD that doesn't already have one
+                    available_courses = [c for c in courses if c.id not in courses_with_hod]
+                    if available_courses:
+                        course = random.choice(available_courses)
+                        staff.course = course
+                        courses_with_hod.add(course.id)
+                        staff.save()
+                        self.stdout.write(self.style.SUCCESS(f'Assigned HOD {staff.name} to course: {course.name}'))
+                    
+                elif staff.designation == 'Admission Officer':
+                    admission_officer_group = Group.objects.get(name='Admission Officer')
+                    staff.groups.add(admission_officer_group)
+                else:
+                    staff.groups.add(staff_group)
+                    
+                staff_members.append(staff)
+                self.stdout.write(self.style.SUCCESS(f'Created staff: {staff.name} with phone {phone} (password: {password})'))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'Error creating staff: {str(e)}'))
+                continue
         
         return staff_members
     
@@ -356,45 +413,61 @@ class Command(BaseCommand):
         students = []
         
         for i in range(num_students):
-            gender = random.choice(['Male', 'Female'])
-            name = self._get_nepali_name()
-            phone = self._get_nepali_phone()
-            city = random.choice(NEPALI_CITIES)
-            
-            course = random.choice(courses)
-            max_semester = course.duration
-            if course.duration_type == 'Semester':
-                max_semester = course.duration * 2
-            
-            current_period = random.randint(1, max_semester)
-            
-            student = Student(
-                name=name,
-                status=random.choice(['Active', 'Leave', 'Completed']),
-                gender=gender,
-                birth_date=fake.date_of_birth(minimum_age=18, maximum_age=25),
-                email=fake.email(),
-                phone=phone,
-                temporary_address=self._get_nepali_address(city),
-                permanent_address=self._get_nepali_address(city),
-                marital_status=random.choice(['Married', 'Unmarried']),
-                parent_name=self._get_nepali_name(),
-                parent_phone=self._get_nepali_phone(),
-                citizenship_no=f"{random.randint(10000, 99999)}-{random.randint(10000, 99999)}",
-                course=course,
-                current_period=current_period,
-                joining_date=fake.date_between(start_date='-4y', end_date='-1y')
-            )
-            student.save()
-            student.set_password('student123')
-            student.save()
-            student.groups.add(student_group)
-            
-            batch = random.choice(batches)
-            student.batches.add(batch)
-            
-            students.append(student)
-            self.stdout.write(self.style.SUCCESS(f'Created student: {student.name}'))
+            try:
+                # Generate random personal information
+                name = self._get_nepali_name()
+                email = fake.email()
+                phone = self._get_nepali_phone()
+                city = random.choice(NEPALI_CITIES)
+                temp_address = self._get_nepali_address(city)
+                perm_address = self._get_nepali_address(city)
+                birth_date = fake.date_of_birth(minimum_age=18, maximum_age=25)
+                
+                # Generate random academic information
+                course = random.choice(courses)
+                batch = random.choice(batches)
+                current_period = random.randint(1, course.duration)
+                if course.duration_type == 'Semester':
+                    current_period = random.randint(1, course.duration * 2)
+                
+                # Generate random joining date (within last 2 years)
+                joining_date = datetime.now().date() - timedelta(days=random.randint(0, 730))
+                
+                # Create student
+                student = Student(
+                    name=name,
+                    email=email,
+                    phone=phone,
+                    temporary_address=temp_address,
+                    permanent_address=perm_address,
+                    birth_date=birth_date,
+                    course=course,
+                    current_period=current_period,
+                    joining_date=joining_date,
+                    gender=random.choice(['Male', 'Female', 'Other']),
+                    status='Active',
+                    is_active=True
+                )
+                
+                # Save the student first to get a primary key
+                student.save()
+                
+                # Set password and save again
+                password = 'student123'
+                student.set_password(password)
+                
+                # Add student to batch
+                batch.students.add(student)
+                
+                # Add to student group
+                student.groups.add(student_group)
+                
+                students.append(student)
+                self.stdout.write(self.style.SUCCESS(f'Created student {student.name} with phone {phone} (password: {password})'))
+            except Exception as e:
+                # Log the error but continue with other students
+                self.stdout.write(self.style.ERROR(f'Error creating student: {str(e)}'))
+                continue  # Continue with next student
         
         return students
     
@@ -402,28 +475,44 @@ class Command(BaseCommand):
         parents = []
         
         for i in range(num_parents):
-            name = self._get_nepali_name()
-            phone = self._get_nepali_phone()
-            city = random.choice(NEPALI_CITIES)
-            
-            parent = Parent(
-                name=name,
-                phone=phone,
-                email=fake.email(),
-                address=self._get_nepali_address(city),
-            )
-            parent.save()
-            parent.set_password('parent123')
-            parent.save()
-            parent.groups.add(parent_group)
-            
-            num_children = random.randint(1, min(2, len(students)))
-            assigned_students = random.sample(students, num_children)
-            for student in assigned_students:
-                parent.students.add(student)
-            
-            parents.append(parent)
-            self.stdout.write(self.style.SUCCESS(f'Created parent: {parent.name} with {num_children} children'))
+            try:
+                name = self._get_nepali_name()
+                phone = self._get_nepali_phone()
+                city = random.choice(NEPALI_CITIES)
+                
+                parent = Parent(
+                    name=name,
+                    phone=phone,
+                    email=fake.email(),
+                    address=self._get_nepali_address(city),
+                )
+                
+                # First save to get a primary key
+                parent.save()
+                
+                # Set password directly using Django's method
+                password = 'parent123'
+                parent.set_password(password)
+                
+                # Add parent to group
+                parent.groups.add(parent_group)
+                
+                # Assign students to parent if available
+                if students:
+                    num_children = min(2, len(students))
+                    if num_children > 0:
+                        assigned_students = random.sample(students, num_children)
+                        for student in assigned_students:
+                            parent.students.add(student)
+                    
+                    self.stdout.write(self.style.SUCCESS(f'Created parent: {parent.name} with phone {phone} (password: {password}) with {num_children} children'))
+                else:
+                    self.stdout.write(self.style.SUCCESS(f'Created parent: {parent.name} with phone {phone} (password: {password}) with no children'))
+                
+                parents.append(parent)
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'Error creating parent: {str(e)}'))
+                continue
         
         return parents
     
@@ -853,39 +942,41 @@ class Command(BaseCommand):
                     
                     # Calculate dates based on student's joining date
                     joining_date = student.joining_date or datetime.now().date() - timedelta(days=random.randint(180, 365))
-                    expected_end_date = joining_date + timedelta(days=365 * course.duration)
                     
-                    # Calculate completion percentage based on current semester
-                    if course.duration_type == 'Semester':
-                        total_semesters = course.duration * 2
-                        completion_percentage = int((student.current_period / total_semesters) * 100)
+                    # Calculate expected end date based on course duration type
+                    if course.duration_type == "Year":
+                        years = course.duration
+                        duration_days = years * 365
+                    else:  # Semester based
+                        years = course.duration
+                        duration_days = years * 365  # Use full years for total duration
+                    
+                    expected_end_date = joining_date + timedelta(days=duration_days)
+                    
+                    # Set period dates based on duration type
+                    period_start_date = joining_date
+                    if course.duration_type == "Semester":
+                        period_end_date = joining_date + timedelta(days=180)  # 6 months
                     else:
-                        completion_percentage = int((student.current_period / course.duration) * 100)
+                        period_end_date = joining_date + timedelta(days=365)  # 1 year
                     
-                    # Determine progress status
-                    if completion_percentage == 100:
-                        progress_status = 'Completed'
-                    elif completion_percentage == 0:
-                        progress_status = 'Not Started'
-                    else:
-                        progress_status = 'In Progress'
-                    
-                    tracking = CourseTracking(
-                        student=student,
-                        course=course,
-                        enrollment_date=joining_date,
-                        start_date=joining_date,
-                        expected_end_date=expected_end_date,
-                        actual_end_date=None,
-                        progress_status=progress_status,
-                        completion_percentage=completion_percentage,
-                        current_period=student.current_period,
-                        semester_start_date=joining_date,
-                        notes=f"Tracking student progress in {course.name}"
-                    )
-                    tracking.save()
-                    self.stdout.write(self.style.SUCCESS(f'Created course tracking for {student.name} in {course.name}'))
+                    # Create course tracking - save() will automatically update completion percentage
+                    with transaction.atomic():
+                        course_tracking = CourseTracking.objects.create(
+                            student=student,
+                            course=course,
+                            enrollment_date=joining_date,
+                            start_date=joining_date,
+                            expected_end_date=expected_end_date,
+                            current_period=student.current_period,
+                            period_start_date=period_start_date,
+                            period_end_date=period_end_date,
+                            progress_status="In Progress",
+                            notes=fake.paragraph() if random.random() < 0.3 else None
+                        )
+                        
+                        self.stdout.write(self.style.SUCCESS(f'Created course tracking for student: {student.name} in course: {course.name}'))
+                        
                 except Exception as e:
-                    # Log the error but continue with other students
-                    self.stdout.write(self.style.ERROR(f'Error creating course tracking for {student.name}: {str(e)}'))
-                    continue  # Continue with next student
+                    self.stdout.write(self.style.ERROR(f'Error creating course tracking for student {student.name}: {str(e)}'))
+                    continue

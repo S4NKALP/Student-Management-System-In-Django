@@ -126,12 +126,14 @@ class Course(models.Model):
         verbose_name = "Course"
         verbose_name_plural = "Courses"
         indexes = [
-            models.Index(fields=['name']),
-            models.Index(fields=['code']),
-            models.Index(fields=['is_active']),
-            models.Index(fields=['duration_type']),
-            models.Index(fields=['name', 'is_active']),  # For active course lookups
-            models.Index(fields=['code', 'is_active']),  # For active course lookups by code
+            models.Index(fields=["name"]),
+            models.Index(fields=["code"]),
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["duration_type"]),
+            # For active course lookups
+            models.Index(fields=["name", "is_active"]),
+            # For active course lookups by code
+            models.Index(fields=["code", "is_active"]),
         ]
 
     def cleanup_orphaned_data(self):
@@ -140,10 +142,10 @@ class Course(models.Model):
         """
         # Clean up subjects using the correct reverse relationship
         Subject.objects.filter(course=self).delete()
-        
+
         # Clean up course tracking records
         self.student_trackings.all().delete()
-        
+
         # Clean up routine records
         self.routines.all().delete()
 
@@ -222,11 +224,13 @@ class Subject(models.Model):
         unique_together = ["name", "course", "period_or_year"]
         ordering = ["course", "period_or_year", "name"]
         indexes = [
-            models.Index(fields=['course']),
-            models.Index(fields=['period_or_year']),
-            models.Index(fields=['name']),
-            models.Index(fields=['course', 'period_or_year']),  # For course period subjects
-            models.Index(fields=['name', 'course']),            # For subject lookups
+            models.Index(fields=["course"]),
+            models.Index(fields=["period_or_year"]),
+            models.Index(fields=["name"]),
+            # For course period subjects
+            models.Index(fields=["course", "period_or_year"]),
+            # For subject lookups
+            models.Index(fields=["name", "course"]),
         ]
 
     def cleanup_orphaned_data(self):
@@ -235,10 +239,10 @@ class Subject(models.Model):
         """
         # Clean up subject files
         self.subjectfile_set.all().delete()
-        
+
         # Clean up routine records
         self.routines.all().delete()
-        
+
         # Clean up attendance records
         self.attendance_records.all().delete()
 
@@ -323,7 +327,6 @@ class Student(AbstractUser):
     joining_date = models.DateField(null=True, blank=True)
     password = models.CharField(max_length=128, editable=False, null=True)
     fcm_token = models.CharField(max_length=500, null=True, blank=True)
-    meetings = models.ManyToManyField("TeacherParentMeeting", related_name="students", blank=True)
 
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS = ["name"]
@@ -403,12 +406,12 @@ class Student(AbstractUser):
             with transaction.atomic():
                 # Validate data before saving
                 self.full_clean()
-                
+
                 # Call the original save method
                 super().save(*args, **kwargs)
-                
+
                 # Update related records in the same transaction
-                if hasattr(self, 'course_trackings'):
+                if hasattr(self, "course_trackings"):
                     for tracking in self.course_trackings.all():
                         tracking.update_completion_percentage()
         except ValidationError as e:
@@ -420,13 +423,13 @@ class Student(AbstractUser):
         """Validate student data before saving"""
         if self.phone and not self.phone.isdigit():
             raise ValidationError("Phone number must contain only digits")
-        
-        if self.email and '@' not in self.email:
+
+        if self.email and "@" not in self.email:
             raise ValidationError("Invalid email format")
-        
+
         if self.birth_date and self.birth_date > date.today():
             raise ValidationError("Birth date cannot be in the future")
-        
+
         if self.joining_date and self.joining_date > date.today():
             raise ValidationError("Joining date cannot be in the future")
 
@@ -436,13 +439,13 @@ class Student(AbstractUser):
         """
         # Clean up attendance records
         self.attendance_records.all().delete()
-        
+
         # Clean up course tracking
         self.course_trackings.all().delete()
-        
+
         # Clean up leave records
         self.leave_requests.all().delete()
-        
+
         # Clean up meeting records
         self.meetings.clear()
 
@@ -464,26 +467,26 @@ class Student(AbstractUser):
         Get FCM tokens for notifications
         """
         tokens = set()
-        
+
         # Get student's token
         if self.fcm_token:
             tokens.add(self.fcm_token)
-            
+
         # Get parent's token
         if self.parent and self.parent.fcm_token:
             tokens.add(self.parent.fcm_token)
-            
+
         return tokens
 
     class Meta:
         verbose_name = "Student"
         verbose_name_plural = "Students"
         indexes = [
-            models.Index(fields=['phone']),
-            models.Index(fields=['status']),
-            models.Index(fields=['course']),
-            models.Index(fields=['current_period']),
-            models.Index(fields=['joining_date']),
+            models.Index(fields=["phone"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["course"]),
+            models.Index(fields=["current_period"]),
+            models.Index(fields=["joining_date"]),
         ]
 
 
@@ -546,7 +549,9 @@ class Staff(AbstractUser):
         help_text="Course for which this staff member is HOD",
     )
     courses_taught = models.ManyToManyField(Course, related_name="teachers", blank=True)
-    meetings = models.ManyToManyField("TeacherParentMeeting", related_name="staff_members", blank=True)
+    meetings = models.ManyToManyField(
+        "TeacherParentMeeting", related_name="staff_members", blank=True
+    )
 
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS = ["name"]
@@ -606,13 +611,13 @@ class Staff(AbstractUser):
         """Validate staff data before saving"""
         if self.phone and not self.phone.isdigit():
             raise ValidationError("Phone number must contain only digits")
-        
-        if self.email and '@' not in self.email:
+
+        if self.email and "@" not in self.email:
             raise ValidationError("Invalid email format")
-        
+
         if self.birth_date and self.birth_date > date.today():
             raise ValidationError("Birth date cannot be in the future")
-        
+
         if self.joining_date and self.joining_date > date.today():
             raise ValidationError("Joining date cannot be in the future")
 
@@ -622,10 +627,10 @@ class Staff(AbstractUser):
         """
         # Clean up attendance records
         self.attendance_records.all().delete()
-        
+
         # Clean up course assignments
         self.courses_taught.clear()
-        
+
         # Clean up meeting records
         self.meetings.clear()
 
@@ -647,25 +652,27 @@ class Staff(AbstractUser):
         Get FCM tokens for notifications
         """
         tokens = set()
-        
+
         # Get staff's token
         if self.fcm_token:
             tokens.add(self.fcm_token)
-            
+
         return tokens
 
     class Meta:
         verbose_name = "Staff"
         verbose_name_plural = "Staffs"
         indexes = [
-            models.Index(fields=['phone']),
-            models.Index(fields=['designation']),
-            models.Index(fields=['is_active']),
-            models.Index(fields=['course']),
+            models.Index(fields=["phone"]),
+            models.Index(fields=["designation"]),
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["course"]),
             # Add these composite indexes
-            models.Index(fields=['designation', 'is_active']),  # For active staff by role
-            models.Index(fields=['course', 'is_active']),       # For course staff
-            models.Index(fields=['phone', 'is_active']),        # For active staff lookups
+            # For active staff by role
+            models.Index(fields=["designation", "is_active"]),
+            models.Index(fields=["course", "is_active"]),  # For course staff
+            # For active staff lookups
+            models.Index(fields=["phone", "is_active"]),
         ]
 
 
@@ -696,14 +703,15 @@ class Routine(models.Model):
             "period_or_year",
         ]
         indexes = [
-            models.Index(fields=['course']),
-            models.Index(fields=['subject']),
-            models.Index(fields=['teacher']),
-            models.Index(fields=['is_active']),
-            models.Index(fields=['period_or_year']),
-            models.Index(fields=['course', 'period_or_year']),  # For course routines
-            models.Index(fields=['teacher', 'is_active']),      # For teacher schedules
-            models.Index(fields=['subject', 'is_active']),      # For subject schedules
+            models.Index(fields=["course"]),
+            models.Index(fields=["subject"]),
+            models.Index(fields=["teacher"]),
+            models.Index(fields=["is_active"]),
+            models.Index(fields=["period_or_year"]),
+            # For course routines
+            models.Index(fields=["course", "period_or_year"]),
+            models.Index(fields=["teacher", "is_active"]),  # For teacher schedules
+            models.Index(fields=["subject", "is_active"]),  # For subject schedules
         ]
 
 
@@ -737,14 +745,17 @@ class Attendance(models.Model):
         verbose_name = "Attendance"
         verbose_name_plural = "Attendances"
         indexes = [
-            models.Index(fields=['date']),
-            models.Index(fields=['routine']),
-            models.Index(fields=['teacher']),
-            models.Index(fields=['class_status']),
+            models.Index(fields=["date"]),
+            models.Index(fields=["routine"]),
+            models.Index(fields=["teacher"]),
+            models.Index(fields=["class_status"]),
             # Add these composite indexes
-            models.Index(fields=['date', 'routine']),           # For date-based routine lookups
-            models.Index(fields=['teacher', 'date']),           # For teacher attendance history
-            models.Index(fields=['routine', 'class_status']),   # For class status filtering
+            # For date-based routine lookups
+            models.Index(fields=["date", "routine"]),
+            # For teacher attendance history
+            models.Index(fields=["teacher", "date"]),
+            # For class status filtering
+            models.Index(fields=["routine", "class_status"]),
         ]
 
 
@@ -770,13 +781,15 @@ class AttendanceRecord(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['attendance']),
-            models.Index(fields=['student']),
-            models.Index(fields=['student_attend']),
+            models.Index(fields=["attendance"]),
+            models.Index(fields=["student"]),
+            models.Index(fields=["student_attend"]),
             # Add these composite indexes
-            models.Index(fields=['student', 'student_attend']),  # For attendance filtering
-            models.Index(fields=['attendance', 'student']),      # For attendance lookups
-            models.Index(fields=['attendance', 'student_attend']), # For attendance status
+            # For attendance filtering
+            models.Index(fields=["student", "student_attend"]),
+            models.Index(fields=["attendance", "student"]),  # For attendance lookups
+            # For attendance status
+            models.Index(fields=["attendance", "student_attend"]),
         ]
 
 
@@ -841,13 +854,14 @@ class StudentLeave(models.Model):
         verbose_name_plural = "Student Leaves"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=['student']),
-            models.Index(fields=['status']),
-            models.Index(fields=['start_date']),
-            models.Index(fields=['end_date']),
-            models.Index(fields=['student', 'status']),         # For student leave status
-            models.Index(fields=['start_date', 'end_date']),    # For date range queries
-            models.Index(fields=['status', 'start_date']),      # For pending leaves
+            models.Index(fields=["student"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["start_date"]),
+            models.Index(fields=["end_date"]),
+            # For student leave status
+            models.Index(fields=["student", "status"]),
+            models.Index(fields=["start_date", "end_date"]),  # For date range queries
+            models.Index(fields=["status", "start_date"]),  # For pending leaves
         ]
 
 
@@ -1058,16 +1072,16 @@ class CourseTracking(models.Model):
         """Validate course tracking data"""
         if self.enrollment_date and self.enrollment_date > date.today():
             raise ValidationError("Enrollment date cannot be in the future")
-        
+
         if self.start_date and self.start_date > date.today():
             raise ValidationError("Start date cannot be in the future")
-        
+
         if self.expected_end_date and self.expected_end_date < self.start_date:
             raise ValidationError("Expected end date cannot be before start date")
-        
+
         if self.actual_end_date and self.actual_end_date < self.start_date:
             raise ValidationError("Actual end date cannot be before start date")
-        
+
         if self.completion_percentage < 0 or self.completion_percentage > 100:
             raise ValidationError("Completion percentage must be between 0 and 100")
 
@@ -1084,39 +1098,40 @@ class CourseTracking(models.Model):
 
             # Get completed subjects from SubjectProgress
             completed_subjects = SubjectProgress.objects.filter(
-                student=self.student,
-                subject__course=self.course,
-                status="Completed"
+                student=self.student, subject__course=self.course, status="Completed"
             ).count()
 
             # Get attendance percentage for active subjects
             attended_classes = AttendanceRecord.objects.filter(
                 student=self.student,
                 attendance__routine__subject__course=self.course,
-                student_attend=True
+                student_attend=True,
             ).count()
 
             total_classes = AttendanceRecord.objects.filter(
-                student=self.student,
-                attendance__routine__subject__course=self.course
+                student=self.student, attendance__routine__subject__course=self.course
             ).count()
 
             # Calculate weighted completion percentage
             subject_weight = 0.7  # 70% weight to subject completion
             attendance_weight = 0.3  # 30% weight to attendance
 
-            subject_percentage = (completed_subjects / total_subjects) * 100 if total_subjects > 0 else 0
-            attendance_percentage = (attended_classes / total_classes) * 100 if total_classes > 0 else 0
+            subject_percentage = (
+                (completed_subjects / total_subjects) * 100 if total_subjects > 0 else 0
+            )
+            attendance_percentage = (
+                (attended_classes / total_classes) * 100 if total_classes > 0 else 0
+            )
 
             # Calculate final percentage
             completion_percentage = int(
-                (subject_percentage * subject_weight) + 
-                (attendance_percentage * attendance_weight)
+                (subject_percentage * subject_weight)
+                + (attendance_percentage * attendance_weight)
             )
 
             # Ensure percentage is between 0 and 100
             completion_percentage = max(0, min(100, completion_percentage))
-            
+
             # Update progress status based on completion
             if completion_percentage >= 100:
                 self.progress_status = "Completed"
@@ -1193,13 +1208,13 @@ class CourseTracking(models.Model):
         try:
             self.clean()
             # Update completion percentage without triggering save again
-            if not hasattr(self, '_updating_completion'):
+            if not hasattr(self, "_updating_completion"):
                 self._updating_completion = True
                 try:
                     self.completion_percentage = self.update_completion_percentage()
                 finally:
-                    delattr(self, '_updating_completion')
-            
+                    delattr(self, "_updating_completion")
+
             super().save(*args, **kwargs)
         except Exception as e:
             print(f"Error saving course tracking for {self.student.name}: {str(e)}")
@@ -1274,17 +1289,17 @@ class CourseTracking(models.Model):
         unique_together = ["student", "course"]
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=['student']),
-            models.Index(fields=['course']),
-            models.Index(fields=['progress_status']),
-            models.Index(fields=['current_period']),
-            models.Index(fields=['enrollment_date']),
-            models.Index(fields=['student', 'progress_status']),
-            models.Index(fields=['course', 'progress_status']),
-            models.Index(fields=['student', 'course', 'progress_status']),
-            models.Index(fields=['completion_percentage']),
-            models.Index(fields=['start_date', 'expected_end_date']),
-            models.Index(fields=['current_period', 'progress_status']),
+            models.Index(fields=["student"]),
+            models.Index(fields=["course"]),
+            models.Index(fields=["progress_status"]),
+            models.Index(fields=["current_period"]),
+            models.Index(fields=["enrollment_date"]),
+            models.Index(fields=["student", "progress_status"]),
+            models.Index(fields=["course", "progress_status"]),
+            models.Index(fields=["student", "course", "progress_status"]),
+            models.Index(fields=["completion_percentage"]),
+            models.Index(fields=["start_date", "expected_end_date"]),
+            models.Index(fields=["current_period", "progress_status"]),
         ]
 
 
@@ -1327,12 +1342,13 @@ class ResetToken(models.Model):
 
 class OTPAttempt(models.Model):
     """Model to track OTP attempts for rate limiting"""
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='otp_attempts',
+        related_name="otp_attempts",
         null=True,
-        blank=True
+        blank=True,
     )
     identifier = models.CharField(max_length=255)  # phone or email
     attempts = models.IntegerField(default=0)
@@ -1342,21 +1358,21 @@ class OTPAttempt(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['identifier']),
-            models.Index(fields=['is_locked']),
-            models.Index(fields=['lock_until']),
+            models.Index(fields=["identifier"]),
+            models.Index(fields=["is_locked"]),
+            models.Index(fields=["lock_until"]),
         ]
 
     def increment_attempts(self):
         """Increment attempt count and handle locking"""
         self.attempts += 1
         self.last_attempt = timezone.now()
-        
+
         # Lock after 3 failed attempts for 15 minutes
         if self.attempts >= 3:
             self.is_locked = True
             self.lock_until = timezone.now() + timedelta(minutes=15)
-        
+
         self.save()
 
     def reset_attempts(self):
@@ -1370,11 +1386,11 @@ class OTPAttempt(models.Model):
         """Check if the user is currently locked out"""
         if not self.is_locked:
             return False
-            
+
         if self.lock_until and timezone.now() > self.lock_until:
             self.reset_attempts()
             return False
-            
+
         return True
 
 
@@ -1459,22 +1475,23 @@ class Parent(AbstractUser):
         """
         # Clean up meeting records
         self.meetings.all().delete()
-        
+
         # Clean up feedback records
         self.feedbacks.all().delete()
         self.institute_feedbacks.all().delete()
-        
+
         # Clean up notification tokens
         self.fcm_token = None
-        self.save(update_fields=['fcm_token'])
+        self.save(update_fields=["fcm_token"])
 
     class Meta:
         verbose_name = "Parent"
         verbose_name_plural = "Parents"
         indexes = [
-            models.Index(fields=['phone']),
-            models.Index(fields=['is_active']),
-            models.Index(fields=['phone', 'is_active']),        # For active parent lookups
+            models.Index(fields=["phone"]),
+            models.Index(fields=["is_active"]),
+            # For active parent lookups
+            models.Index(fields=["phone", "is_active"]),
         ]
 
 
@@ -1508,11 +1525,11 @@ class TeacherParentMeeting(models.Model):
         ordering = ["-meeting_date", "-meeting_time"]
         unique_together = ["meeting_date", "meeting_time"]
         indexes = [
-            models.Index(fields=['meeting_date']),
-            models.Index(fields=['status']),
-            models.Index(fields=['is_online']),
-            models.Index(fields=['meeting_date', 'status']),    # For upcoming meetings
-            models.Index(fields=['status', 'is_online']),       # For online meetings
+            models.Index(fields=["meeting_date"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["is_online"]),
+            models.Index(fields=["meeting_date", "status"]),  # For upcoming meetings
+            models.Index(fields=["status", "is_online"]),  # For online meetings
         ]
 
     def __str__(self):
@@ -1569,22 +1586,29 @@ class TeacherParentMeeting(models.Model):
 
 class SubjectProgress(models.Model):
     """Model for tracking student progress in individual subjects"""
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='subject_progress')
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='student_progress')
-    status = models.CharField(max_length=20, choices=PROGRESS_STATUS_CHOICES, default="Not Started")
+
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE, related_name="subject_progress"
+    )
+    subject = models.ForeignKey(
+        Subject, on_delete=models.CASCADE, related_name="student_progress"
+    )
+    status = models.CharField(
+        max_length=20, choices=PROGRESS_STATUS_CHOICES, default="Not Started"
+    )
     completion_percentage = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
     notes = models.TextField(blank=True, null=True)
 
     class Meta:
-        unique_together = ['student', 'subject']
-        ordering = ['-last_updated']
+        unique_together = ["student", "subject"]
+        ordering = ["-last_updated"]
         indexes = [
-            models.Index(fields=['student']),
-            models.Index(fields=['subject']),
-            models.Index(fields=['status']),
-            models.Index(fields=['student', 'subject']),
-            models.Index(fields=['student', 'status']),
+            models.Index(fields=["student"]),
+            models.Index(fields=["subject"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["student", "subject"]),
+            models.Index(fields=["student", "status"]),
         ]
 
     def __str__(self):

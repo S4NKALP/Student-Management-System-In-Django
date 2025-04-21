@@ -126,21 +126,20 @@ def create_course_tracking(sender, instance, created, **kwargs):
 
             expected_end_date = start_date + timedelta(days=duration_days)
 
-            # Create course tracking with transaction
-            with transaction.atomic():
-                course_tracking = CourseTracking.objects.create(
-                    student=instance,
-                    course=instance.course,
-                    start_date=start_date,
-                    expected_end_date=expected_end_date,
-                    current_period=instance.current_period,
-                    period_start_date=start_date,
-                    period_end_date=start_date
-                    + timedelta(days=180),  # 6 months for first semester
-                )
+            # Create course tracking without nested transaction
+            course_tracking = CourseTracking.objects.create(
+                student=instance,
+                course=instance.course,
+                start_date=start_date,
+                expected_end_date=expected_end_date,
+                current_period=instance.current_period,
+                period_start_date=start_date,
+                period_end_date=start_date
+                + timedelta(days=180),  # 6 months for first semester
+            )
 
-                # Force initial percentage calculation
-                course_tracking.force_update_percentage()
+            # The model's save() method will handle the percentage calculation automatically
+            # No need to manually call update_completion_percentage()
 
         except Exception as e:
             print(

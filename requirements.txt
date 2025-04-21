@@ -37,7 +37,7 @@ httplib2==0.22.0
 idna==3.10
 isort==6.0.1
 mmh3==5.1.0
-mo-dots==10.672.25036
+mo-dots==10.678.25061
 mo-future==7.672.25036
 mo-imports==7.672.25036
 mo-parsing==8.675.25037

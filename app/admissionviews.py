@@ -699,11 +699,11 @@ def edit_course_tracking(request):
         # Update tracking fields
         start_date = request.POST.get("start_date")
         if start_date:
-            tracking.start_date = start_date
+            tracking.start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
 
         expected_end_date = request.POST.get("expected_end_date")
         if expected_end_date:
-            tracking.expected_end_date = expected_end_date
+            tracking.expected_end_date = datetime.strptime(expected_end_date, "%Y-%m-%d").date()
 
         current_period = request.POST.get("current_period")
         if current_period:

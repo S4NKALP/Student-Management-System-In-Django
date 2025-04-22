@@ -505,9 +505,8 @@ def delete_notice(request, notice_id):
     return JsonResponse({"success": False, "error": "Invalid request method"})
 
 
-@login_required
-@csrf_exempt
 @require_POST
+@csrf_exempt
 def save_fcm_token(request):
     """Save FCM token to database"""
     try:

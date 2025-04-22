@@ -1,4 +1,82 @@
-// Get CSRF token from cookie
+// Get CSRF token from cookie or any other available source
+function getCSRFToken() {
+    // Try getting from cookie
+    let token = getCookie('csrftoken');
+    
+    // If not in cookie, try getting from meta tag (Django often puts it there)
+    if (!token) {
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        if (metaTag) {
+            token = metaTag.getAttribute('content');
+        }
+    }
+    
+    // Try getting from a hidden input field with name="csrfmiddlewaretoken"
+    if (!token) {
+        const inputField = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (inputField) {
+            token = inputField.value;
+        }
+    }
+    
+    console.log('CSRF Token found:', token ? 'Yes (length: ' + token.length + ')' : 'No');
+    return token || '';
+}
+
+// CSRF-safe fetch utility function
+async function csrfFetch(url, options = {}) {
+    // Default options
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'include'
+    };
+    
+    // Merge provided options with defaults
+    const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...options.headers
+        }
+    };
+    
+    // Add CSRF token if not explicitly provided and it's a mutating request method
+    const method = mergedOptions.method ? mergedOptions.method.toUpperCase() : 'GET';
+    const needsCSRF = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+    
+    if (needsCSRF && !mergedOptions.headers['X-CSRFToken']) {
+        const csrfToken = getCSRFToken();
+        if (csrfToken) {
+            // Set token in exactly the format Django expects (X-CSRFToken)
+            // Django is case-sensitive and specifically looks for X-CSRFToken
+            mergedOptions.headers['X-CSRFToken'] = csrfToken;
+        } else {
+            console.warn('No CSRF token available for a mutating request to:', url);
+        }
+    }
+    
+    try {
+        console.log(`Making ${method} request to ${url} with headers:`, mergedOptions.headers);
+        const response = await fetch(url, mergedOptions);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server response:', response.status, errorText);
+            throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
+    }
+}
+
+// Original getCookie function
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -71,43 +149,30 @@ async function getDeviceToken() {
 
         console.log('Got FCM token:', token);
 
-        // Get CSRF token
-        const csrftoken = getCookie('csrftoken');
-        if (!csrftoken) {
-            throw new Error('CSRF token not found');
+        // Simple approach: send token to server using basic fetch
+        try {
+            const response = await fetch('/app/saveFCMToken/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ token: token })
+            });
+            
+            if (response.ok) {
+                console.log('FCM Token saved successfully');
+            } else {
+                console.error('Failed to save FCM token:', response.status);
+            }
+            
+            return token;
+        } catch (fetchError) {
+            console.error('Error saving FCM token:', fetchError);
+            return token; // Return token even if saving failed
         }
-
-        // Send the token to your backend for storage
-        const response = await fetch('/app/saveFCMToken/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({ token: token })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to save token to server');
-        }
-
-        console.log('FCM Token saved successfully');
-        return token;
     } catch (error) {
         console.error('Error in getDeviceToken:', error);
-        try {
-            // Clean up and retry on failure
-            await messaging.deleteToken().catch(console.error);
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            for (let registration of registrations) {
-                await registration.unregister();
-            }
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return getDeviceToken();
-        } catch (retryError) {
-            console.error('Error during cleanup and retry:', retryError);
-            throw error;
-        }
+        return null;
     }
 }
 
@@ -157,4 +222,20 @@ messaging.onMessage((payload) => {
                 });
         });
     }
+});
+
+// Automatically initialize FCM when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait a moment for the page to fully initialize
+    setTimeout(() => {
+        getDeviceToken()
+            .then(token => {
+                if (token) {
+                    console.log('FCM initialized successfully with token');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to initialize FCM:', error);
+            });
+    }, 2000);
 }); 

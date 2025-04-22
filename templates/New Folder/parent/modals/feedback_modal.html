@@ -1,0 +1,245 @@
+<!-- Parent Feedback Modal -->
+<div id="parentFeedbackModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeParentFeedbackModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Give Feedback</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeParentFeedbackModal()">&times;</button>
+    </div>
+    <div style="padding: 20px;">
+      <!-- Custom Tab Navigation -->
+      <div class="feedback-tabs">
+        <div id="parent-teacher-tab-btn" class="feedback-tab-btn active" onclick="switchParentFeedbackTab('teacher')">
+          Teacher Feedback
+        </div>
+        <div id="parent-institute-tab-btn" class="feedback-tab-btn" onclick="switchParentFeedbackTab('institute')">
+          Institute Feedback
+        </div>
+      </div>
+      
+      <!-- Tab Content -->
+      <div class="tab-content">
+        <!-- Teacher Feedback Form -->
+        <div id="parent-teacher-tab-content" class="tab-pane active">
+          <form method="post" action="{% url 'submit_feedback' %}" id="parentTeacherFeedbackForm">
+            {% csrf_token %}
+            <input type="hidden" name="feedback_type" value="teacher">
+            <div class="mb-3">
+              <label for="parent_teacher_select" class="form-label">Select Teacher</label>
+              <select class="form-select" id="parent_teacher_select" name="teacher_id" required style="border-color: #BDBDBD;">
+                <option value="">Select Teacher</option>
+                {% for teacher in teachers %}
+                  <option value="{{ teacher.id }}">{{ teacher.name }} - {{ teacher.designation }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="parent_student_select" class="form-label">Select Student</label>
+              <select class="form-select" id="parent_student_select" name="student_id" required style="border-color: #BDBDBD;">
+                <option value="">Select Student</option>
+                {% for student in parent.students.all %}
+                  <option value="{{ student.id }}">{{ student.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Rating</label>
+              <div class="rating-stars d-flex">
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="1" onclick="selectParentRating(this, 'parent_teacher_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="2" onclick="selectParentRating(this, 'parent_teacher_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="3" onclick="selectParentRating(this, 'parent_teacher_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="4" onclick="selectParentRating(this, 'parent_teacher_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="5" onclick="selectParentRating(this, 'parent_teacher_rating')"></i>
+                <input type="hidden" name="rating" id="parent_teacher_rating" value="" required>
+                <div class="invalid-feedback d-block" id="parent-teacher-rating-error" style="display: none;">Please select a rating</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="parent_teacher_feedback" class="form-label">Your Feedback</label>
+              <textarea class="form-control" id="parent_teacher_feedback" name="feedback_text" rows="3" required style="border-color: #BDBDBD;"></textarea>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeParentFeedbackModal()">Cancel</button>
+              <button type="submit" class="btn" style="background-color: #3F51B5; color: white;">Submit Feedback</button>
+            </div>
+          </form>
+        </div>
+        
+        <!-- Institute Feedback Form -->
+        <div id="parent-institute-tab-content" class="tab-pane">
+          <form method="post" action="{% url 'submit_institute_feedback' %}" id="parentInstituteFeedbackForm">
+            {% csrf_token %}
+            <input type="hidden" name="feedback_type" value="institute">
+            <div class="mb-3">
+              <label for="parent_feedback_type_select" class="form-label">Feedback Category</label>
+              <select class="form-select" id="parent_feedback_type_select" name="feedback_type" required style="border-color: #BDBDBD;">
+                <option value="">Select Category</option>
+                <option value="General">General</option>
+                <option value="Facilities">Facilities</option>
+                <option value="Teaching">Teaching Quality</option>
+                <option value="Infrastructure">Infrastructure</option>
+                <option value="Administration">Administration</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="parent_institute_student_select" class="form-label">Select Student</label>
+              <select class="form-select" id="parent_institute_student_select" name="student_id" required style="border-color: #BDBDBD;">
+                <option value="">Select Student</option>
+                {% for student in parent.students.all %}
+                  <option value="{{ student.id }}">{{ student.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Rating</label>
+              <div class="rating-stars d-flex">
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="1" onclick="selectParentRating(this, 'parent_institute_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="2" onclick="selectParentRating(this, 'parent_institute_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="3" onclick="selectParentRating(this, 'parent_institute_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="4" onclick="selectParentRating(this, 'parent_institute_rating')"></i>
+                <i class="far fa-star fs-4 text-warning rating-star" data-value="5" onclick="selectParentRating(this, 'parent_institute_rating')"></i>
+                <input type="hidden" name="rating" id="parent_institute_rating" value="" required>
+                <div class="invalid-feedback d-block" id="parent-institute-rating-error" style="display: none;">Please select a rating</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="parent_institute_feedback" class="form-label">Your Feedback</label>
+              <textarea class="form-control" id="parent_institute_feedback" name="feedback_text" rows="3" required placeholder="Please provide your feedback about the institute" style="border-color: #BDBDBD;"></textarea>
+            </div>
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_anonymous" id="parent_isAnonymous" style="border-color: #BDBDBD;">
+                <label class="form-check-label" for="parent_isAnonymous">
+                  Submit anonymously
+                </label>
+              </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn" style="background-color: #9E9E9E; color: white;" onclick="closeParentFeedbackModal()">Cancel</button>
+              <button type="submit" class="btn" style="background-color: #3F51B5; color: white;">Submit Feedback</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Parent Feedback Modal Scripts -->
+<script>
+  function openParentFeedbackModal() {
+    document.getElementById('parentFeedbackModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeParentFeedbackModal() {
+    document.getElementById('parentFeedbackModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function switchParentFeedbackTab(tabName) {
+    const teacherTabBtn = document.getElementById('parent-teacher-tab-btn');
+    const instituteTabBtn = document.getElementById('parent-institute-tab-btn');
+    const teacherContent = document.getElementById('parent-teacher-tab-content');
+    const instituteContent = document.getElementById('parent-institute-tab-content');
+
+    teacherTabBtn.classList.remove('active');
+    instituteTabBtn.classList.remove('active');
+    teacherContent.classList.remove('active');
+    instituteContent.classList.remove('active');
+
+    if (tabName === 'teacher') {
+      teacherTabBtn.classList.add('active');
+      teacherContent.classList.add('active');
+    } else if (tabName === 'institute') {
+      instituteTabBtn.classList.add('active');
+      instituteContent.classList.add('active');
+    }
+  }
+  
+  function selectParentRating(star, inputId) {
+    const value = parseInt(star.getAttribute('data-value'));
+    document.getElementById(inputId).value = value;
+    
+    // Update star display
+    const allStars = star.parentNode.querySelectorAll('.rating-star');
+    allStars.forEach(s => {
+      const starValue = parseInt(s.getAttribute('data-value'));
+      if (starValue <= value) {
+        s.classList.remove('far');
+        s.classList.add('fas');
+        s.classList.add('selected');
+      } else {
+        s.classList.remove('fas');
+        s.classList.add('far');
+        s.classList.remove('selected');
+      }
+    });
+    
+    // Hide error message if any
+    const errorId = inputId === 'parent_teacher_rating' ? 'parent-teacher-rating-error' : 'parent-institute-rating-error';
+    document.getElementById(errorId).style.display = 'none';
+  }
+</script>
+
+<!-- Additional Feedback Styles -->
+<style>
+.feedback-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.feedback-tab-btn {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: #6c757d;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.feedback-tab-btn:hover {
+  color: #3F51B5;
+}
+
+.feedback-tab-btn.active {
+  color: #3F51B5;
+  border-bottom: 2px solid #3F51B5;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+.rating-stars {
+  gap: 0.5rem;
+}
+
+.rating-star {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rating-star:hover,
+.rating-star.selected {
+  transform: scale(1.2);
+}
+
+.form-select,
+.form-control {
+  border-color: #BDBDBD;
+}
+
+.form-select:focus,
+.form-control:focus {
+  border-color: #3F51B5;
+  box-shadow: 0 0 0 0.2rem rgba(63, 81, 181, 0.25);
+}
+</style> 

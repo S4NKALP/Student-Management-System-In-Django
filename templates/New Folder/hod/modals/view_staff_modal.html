@@ -1,0 +1,165 @@
+{% load static %}
+
+<div id="viewStaffModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeViewStaffModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background-color: #3F51B5; color: white; padding: 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;">
+      <h5 style="margin: 0; font-size: 18px;">Staff Details</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeViewStaffModal()">&times;</button>
+    </div>
+    <div style="padding: 15px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <!-- Left Column -->
+        <div>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img id="staffProfilePicture" src="{% static 'img/user.png' %}" alt="Staff Image" style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 3px solid #3F51B5;">
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Name</label>
+            <p id="staffName" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Designation</label>
+            <p id="staffDesignation" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Email</label>
+            <p id="staffEmail" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Phone</label>
+            <p id="staffPhone" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Gender</label>
+            <p id="staffGender" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Birth Date</label>
+            <p id="staffBirthDate" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Marital Status</label>
+            <p id="staffMaritalStatus" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Joining Date</label>
+            <p id="staffJoiningDate" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Status</label>
+            <p id="staffStatus" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Parent Name</label>
+            <p id="staffParentName" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Parent Phone</label>
+            <p id="staffParentPhone" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Citizenship No.</label>
+            <p id="staffCitizenshipNo" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Passport</label>
+            <p id="staffPassport" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px;">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 500;">Temporary Address</label>
+          <p id="staffTemporaryAddress" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 500;">Permanent Address</label>
+          <p id="staffPermanentAddress" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px;">
+        <label style="display: block; margin-bottom: 4px; font-weight: 500;">Assigned Subjects</label>
+        <div id="staffSubjects" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 6px; background-color: #f8f9fa; border-radius: 4px; min-height: 40px;"></div>
+      </div>
+    </div>
+    <div style="padding: 12px; border-top: 1px solid #EEEEEE; text-align: right; position: sticky; bottom: 0; background-color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+      <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="closeViewStaffModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openViewStaffModal(staffId) {
+  fetch(`/app/staff/${staffId}/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        const staff = data.staff;
+        const profilePicture = document.getElementById('staffProfilePicture');
+        profilePicture.src = staff.image || "{% static 'img/user.png' %}";
+        
+        // Basic Information
+        document.getElementById('staffName').textContent = staff.name || '-';
+        document.getElementById('staffDesignation').textContent = staff.designation || '-';
+        document.getElementById('staffEmail').textContent = staff.email || '-';
+        document.getElementById('staffPhone').textContent = staff.phone || '-';
+        document.getElementById('staffGender').textContent = staff.gender || '-';
+        document.getElementById('staffBirthDate').textContent = staff.birth_date || '-';
+        document.getElementById('staffMaritalStatus').textContent = staff.marital_status || '-';
+        document.getElementById('staffJoiningDate').textContent = staff.joining_date || '-';
+        document.getElementById('staffStatus').textContent = staff.is_active ? 'Active' : 'Inactive';
+        
+        // Parent Details
+        document.getElementById('staffParentName').textContent = staff.parent_name || '-';
+        document.getElementById('staffParentPhone').textContent = staff.parent_phone || '-';
+        
+        // Documents
+        document.getElementById('staffCitizenshipNo').textContent = staff.citizenship_no || '-';
+        document.getElementById('staffPassport').textContent = staff.passport || '-';
+        
+        // Address Information
+        document.getElementById('staffTemporaryAddress').textContent = staff.temporary_address || '-';
+        document.getElementById('staffPermanentAddress').textContent = staff.permanent_address || '-';
+        
+        // Assigned Subjects
+        const subjectsContainer = document.getElementById('staffSubjects');
+        subjectsContainer.innerHTML = '';
+        if (staff.subjects && staff.subjects.length > 0) {
+          staff.subjects.forEach(subject => {
+            const badge = document.createElement('span');
+            badge.style.cssText = 'background-color: #3F51B5; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;';
+            badge.textContent = subject.name;
+            subjectsContainer.appendChild(badge);
+          });
+        } else {
+          subjectsContainer.innerHTML = '<span style="color: #666;">No subjects assigned</span>';
+        }
+        
+        document.getElementById('viewStaffModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      } else {
+        showMessageModal('Error', data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showMessageModal('Error', 'Failed to fetch staff details.');
+    });
+}
+
+function closeViewStaffModal() {
+  document.getElementById('viewStaffModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+</script> 

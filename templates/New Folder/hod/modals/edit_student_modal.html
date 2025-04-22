@@ -1,0 +1,206 @@
+{% load static %}
+
+<!-- Edit Student Modal -->
+<div id="editStudentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeEditStudentModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background-color: #3F51B5; color: white; padding: 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;">
+      <h5 style="margin: 0; font-size: 18px;">Edit Student</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeEditStudentModal()">&times;</button>
+    </div>
+    <div style="padding: 15px;">
+      <!-- Profile Picture Preview -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="position: relative; display: inline-block;">
+          <img id="studentEditProfilePreview" src="{% static 'img/user.png' %}" alt="Student Image" style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 3px solid #3F51B5;">
+          <div style="position: absolute; bottom: 0; right: 0;">
+            <button type="button" onclick="document.getElementById('edit_profile_picture').click()" style="width: 36px; height: 36px; border-radius: 50%; background-color: #3F51B5; color: white; border: none; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+              <i class="fas fa-camera"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <form id="editStudentForm">
+        {% csrf_token %}
+        <input type="hidden" id="edit_student_id" name="student_id">
+        <!-- Hidden file input controlled by the camera button -->
+        <input type="file" id="edit_profile_picture" name="image" accept="image/*" style="display: none;" onchange="previewStudentImage(this)">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <!-- Left Column -->
+          <div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Name <span style="color: red;">*</span></label>
+              <input type="text" id="edit_name" name="name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Phone <span style="color: red;">*</span></label>
+              <input type="tel" id="edit_phone" name="phone" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Email</label>
+              <input type="email" id="edit_email" name="email" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Gender</label>
+              <select id="edit_gender" name="gender" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Select Gender</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+                <option value="O">Other</option>
+              </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Birth Date</label>
+              <input type="date" id="edit_birth_date" name="birth_date" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Admission Date</label>
+              <input type="date" id="edit_admission_date" name="admission_date" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+          </div>
+          <!-- Right Column -->
+          <div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Parent/Guardian Name</label>
+              <input type="text" id="edit_parent_name" name="parent_name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Parent/Guardian Phone</label>
+              <input type="tel" id="edit_parent_phone" name="parent_phone" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Citizenship Number</label>
+              <input type="text" id="edit_citizenship_no" name="citizenship_no" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Temporary Address</label>
+              <textarea id="edit_temporary_address" name="temporary_address" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 80px;"></textarea>
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3F51B5;">Permanent Address</label>
+              <textarea id="edit_permanent_address" name="permanent_address" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 80px;"></textarea>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div style="padding: 12px; border-top: 1px solid #EEEEEE; text-align: right; position: sticky; bottom: 0; background-color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+      <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 8px;" onclick="closeEditStudentModal()">Cancel</button>
+      <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="submitEditStudentForm()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function previewStudentImage(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('studentEditProfilePreview').src = e.target.result;
+    }
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function openEditStudentModal(studentId) {
+  document.getElementById('editStudentModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  loadStudentData(studentId);
+}
+
+function closeEditStudentModal() {
+  document.getElementById('editStudentModal').style.display = 'none';
+  document.body.style.overflow = '';
+  document.getElementById('editStudentForm').reset();
+  document.getElementById('studentEditProfilePreview').src = "{% static 'img/user.png' %}";
+}
+
+function loadStudentData(studentId) {
+  // Reset profile picture
+  document.getElementById('studentEditProfilePreview').src = "{% static 'img/user.png' %}";
+  
+  // Clear previous data
+  document.getElementById('edit_student_id').value = '';
+  document.getElementById('edit_name').value = '';
+  document.getElementById('edit_email').value = '';
+  document.getElementById('edit_phone').value = '';
+  document.getElementById('edit_gender').value = '';
+  document.getElementById('edit_birth_date').value = '';
+  document.getElementById('edit_admission_date').value = '';
+  document.getElementById('edit_temporary_address').value = '';
+  document.getElementById('edit_permanent_address').value = '';
+  document.getElementById('edit_parent_name').value = '';
+  document.getElementById('edit_parent_phone').value = '';
+  document.getElementById('edit_citizenship_no').value = '';
+  
+  fetch(`/app/get-student/${studentId}/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        const student = data.student;
+        
+        // Set profile picture if available
+        if (student.image) {
+          document.getElementById('studentEditProfilePreview').src = student.image;
+        }
+        
+        // Set form values
+        document.getElementById('edit_student_id').value = student.id;
+        document.getElementById('edit_name').value = student.name || '';
+        document.getElementById('edit_email').value = student.email || '';
+        document.getElementById('edit_phone').value = student.phone || '';
+        document.getElementById('edit_gender').value = student.gender || '';
+        document.getElementById('edit_birth_date').value = student.birth_date || '';
+        document.getElementById('edit_admission_date').value = student.joining_date || '';
+        document.getElementById('edit_temporary_address').value = student.temporary_address || '';
+        document.getElementById('edit_permanent_address').value = student.permanent_address || '';
+        document.getElementById('edit_parent_name').value = student.parent_name || '';
+        document.getElementById('edit_parent_phone').value = student.parent_phone || '';
+        document.getElementById('edit_citizenship_no').value = student.citizenship_no || '';
+      } else {
+        showMessageModal('Error', data.message || 'Error loading student data');
+      }
+    })
+    .catch(error => {
+      showMessageModal('Error', 'An error occurred while loading student data');
+    });
+}
+
+function submitEditStudentForm() {
+  const form = document.getElementById('editStudentForm');
+  const formData = new FormData(form);
+  const studentId = document.getElementById('edit_student_id').value;
+
+  fetch(`/app/edit-student/${studentId}/`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      showMessageModal('Success', 'Student updated successfully');
+      closeEditStudentModal();
+      location.reload();
+    } else {
+      showMessageModal('Error', data.message || 'Error updating student');
+    }
+  })
+  .catch(error => {
+    showMessageModal('Error', 'An error occurred while updating the student');
+  });
+}
+</script> 

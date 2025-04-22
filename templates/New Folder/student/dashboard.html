@@ -1,0 +1,888 @@
+{% extends 'shared/base.html' %}
+{% load static %}
+{% load tz %}
+{% load app_filters %}
+
+
+{% block content %}
+<!-- Add CSRF token to the page -->
+{% csrf_token %}
+
+<div class="container-fluid py-4">
+  <!-- Welcome Section -->
+  {% include 'shared/welcome_section.html' with user=student %}
+
+  <!-- Dashboard Content -->
+  <div id="dashboardSection" class="content-section" style="display: block;">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <!-- Attendance Summary Card -->
+      <div class="col-md-4 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0 small"><i class="fas fa-calendar-check me-1"></i> Attendance Summary</h5>
+          </div>
+          <div class="card-body p-2">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <span class="d-block text-muted small">Days Attended</span>
+                <h3>{{ attendance_summary.classes_attended }}</h3>
+                {% if attendance_summary.actual_classes %}
+                <span class="d-block text-muted small mt-2">Classes Recorded</span>
+                <h5>{{ attendance_summary.actual_classes }}</h5>
+                {% endif %}
+              </div>
+              <div class="text-end">
+                <span class="d-block text-muted small">Attendance Rate</span>
+                <h3 class="text-primary">{{ attendance_summary.attendance_percentage|floatformat:1 }}%</h3>
+                {% if attendance_summary.actual_percentage %}
+                <span class="d-block text-muted small mt-2">Rate (Recorded Only)</span>
+                <h5 class="text-primary">{{ attendance_summary.actual_percentage|floatformat:1 }}%</h5>
+                {% endif %}
+              </div>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <div><small>0%</small></div>
+              <div><small>100%</small></div>
+            </div>
+            <div class="progress mb-2 position-relative" style="height: 15px; border-radius: 20px; background-color: #f0f0f0;">
+              <!-- Target marker at 75% -->
+              <div class="position-absolute" style="left: 75%; top: -10px; bottom: -10px; width: 2px; background-color: #dc3545;"></div>
+              <div class="progress-bar {% if attendance_summary.attendance_percentage < 75 %}bg-danger{% else %}bg-success{% endif %}"
+                   role="progressbar"
+                   style="width: {{ attendance_summary.attendance_percentage }}%;"
+                   aria-valuenow="{{ attendance_summary.attendance_percentage }}"
+                   aria-valuemin="0"
+                   aria-valuemax="100"></div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">Minimum required: 75%</small>
+              {% if attendance_summary.attendance_percentage < 75 %}
+              <small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Below minimum requirement</small>
+              {% endif %}
+            </div>
+            <!-- <small class="text-muted d-block text-center">
+              Based on attendance out of {% if student.course and student.course.duration_type == "Year" %}365 days per year{% else %}180 days per semester{% endif %}
+            </small> -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Course Progress Card -->
+      <div class="col-md-4 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0 small"><i class="fas fa-graduation-cap me-1"></i> Course Progress</h5>
+          </div>
+          <div class="card-body p-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <small class="text-muted d-block mb-1">Total Courses</small>
+                <h3 class="fw-bold mb-0">{{ course_summary.total_courses }}</h3>
+              </div>
+              <div class="text-end">
+                <small class="text-muted d-block mb-1">Completion Rate</small>
+                <h3 class="fw-bold text-success mb-0">{{ course_summary.completion_percentage|floatformat:1 }}%</h3>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between mt-3">
+              <div>
+                <small class="text-muted d-block">Completed</small>
+                <span class="badge bg-success p-2"><i class="fas fa-check me-1"></i> {{ course_summary.completed_courses }}</span>
+              </div>
+              <div class="text-end">
+                <small class="text-muted d-block">Ongoing</small>
+                <span class="badge bg-warning p-2"><i class="fas fa-spinner me-1"></i> {{ course_summary.ongoing_courses }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Card -->
+      <div class="col-md-4 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0 small"><i class="fas fa-clock me-1"></i> Recent Activity</h5>
+          </div>
+          <div class="card-body p-2">
+            <div class="activity-scroll" style="max-height: 150px; overflow-y: auto; padding-right: 5px; scrollbar-width: thin;">
+              {% for leave in recent_leaves %}
+              <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-calendar-alt text-primary me-2"></i>
+                <div>
+                  <small class="mb-0 d-block">Leave Request ({{ leave.date|date:"M d" }})</small>
+                  <span class="badge {% if leave.status == 0 %}bg-warning{% elif leave.status == 1 %}bg-success{% else %}bg-danger{% endif %}">{{ leave.get_status_display }}</span>
+                  <small class="text-muted">{{ leave.created_at|timesince }} ago</small>
+                </div>
+              </div>
+              {% endfor %}
+
+              {% for feedback in recent_feedback %}
+              <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-comment text-success me-2"></i>
+                <div>
+                  <small class="mb-0 d-block">Gave feedback {% if feedback.teacher %}to {{ feedback.teacher.name }}{% endif %}</small>
+                  <div>
+                    {% for i in "12345"|make_list %}
+                    {% if forloop.counter <= feedback.rating %}
+                      <i class="fas fa-star text-warning" style="font-size: 0.7rem;"></i>
+                    {% else %}
+                      <i class="far fa-star text-warning" style="font-size: 0.7rem;"></i>
+                    {% endif %}
+                    {% endfor %}
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+
+              {% for notice in notices %}
+              <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-bullhorn text-info me-2"></i>
+                <div>
+                  <small class="mb-0 d-block">{{ notice.title }}</small>
+                  <small class="text-muted">{{ notice.created_at|timesince }} ago</small>
+                </div>
+              </div>
+              {% endfor %}
+
+              {% for record in attendance_records %}
+              <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-user-check {% if record.student_attend %}text-success{% else %}text-danger{% endif %} me-2"></i>
+                <div>
+                  <small class="mb-0 d-block">{% if record.student_attend %}Attended{% else %}Missed{% endif %} {{ record.attendance.routine.subject.name|truncatechars:15 }}</small>
+                  <small class="text-muted">{{ record.attendance.date|date:"M d" }}</small>
+                </div>
+              </div>
+              {% endfor %}
+
+              {% if not recent_leaves and not recent_feedback and not notices and not attendance_records %}
+              <div class="text-center">
+                <small class="text-muted">No recent activity</small>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leave Status Card -->
+      <div class="col-md-4 col-lg-3 mb-3">
+        <div class="summary-card h-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0 small"><i class="fas fa-calendar-minus me-1"></i> Leave Status</h5>
+          </div>
+          <div class="card-body p-2">
+            <div class="d-flex justify-content-between mb-2">
+              <small class="mb-0">Pending</small>
+              <span class="badge leave-pending">{{ pending_leaves }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <small class="mb-0">Approved</small>
+              <span class="badge leave-approved">{{ approved_leaves }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <small class="mb-0">Rejected</small>
+              <span class="badge leave-rejected">{{ rejected_leaves }}</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-1" id="requestLeaveBtn" onclick="openLeaveModal()">
+              <i class="fas fa-plus-circle me-1"></i> Request
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Course Overview Section -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="content-card">
+          <h4 class="card-title mb-3 d-flex align-items-center">
+            <i class="fas fa-graduation-cap me-2"></i> Course Details
+          </h4>
+
+          {% if course_details %}
+            {% for course in course_details %}
+            <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">{{ course.name }}</h5>
+                <span class="status-badge {% if course.progress_status == 'Completed' %}bg-success{% elif course.progress_status == 'In Progress' %}bg-warning{% else %}bg-secondary{% endif %}">
+                  {{ course.progress_status }}
+                </span>
+              </div>
+
+              <!-- Course Progress -->
+              <div class="progress mb-3">
+                <div class="progress-bar bg-primary" role="progressbar"
+                     aria-valuenow="{{ course.completion_percentage }}" aria-valuemin="0" aria-valuemax="100"
+                     style="--progress-width: {{ course.completion_percentage }}%">
+                  {{ course.completion_percentage }}%
+                </div>
+              </div>
+
+              <!-- Course Information -->
+              <div class="row mb-4">
+                <div class="col-md-6">
+                  <table class="table">
+                    <tbody>
+                      <tr>
+                        <th>Course Name</th>
+                        <td>{{ course.name }}</td>
+                      </tr>
+                      <tr>
+                        <th>Course Code</th>
+                        <td>{{ course.code|default:"-" }}</td>
+                      </tr>
+                      <tr>
+                        <th>Description</th>
+                        <td>{{ course.description|default:"No description available" }}</td>
+                      </tr>
+                      <tr>
+                        <th>Start Date</th>
+                        <td>{{ course.start_date|date:"M d, Y" }}</td>
+                      </tr>
+                      <tr>
+                        <th>Duration Type</th>
+                        <td>{{ course.duration_type }}</td>
+                      </tr>
+                      <tr>
+                        <th>Total Duration</th>
+                        <td>
+                          {% if course.duration_type == "Semester" %}
+                            {{ course.duration }} years ({{ course.duration|multiply:2 }} semesters)
+                          {% else %}
+                            {{ course.duration }} years
+                          {% endif %}
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Status</th>
+                        <td>
+                          <span class="badge {% if course.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ course.is_active|yesno:"Active,Inactive" }}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Expected End Date</th>
+                        <td>{{ course.expected_end_date|date:"M d, Y" }}</td>
+                      </tr>
+                      {% if course.actual_end_date %}
+                      <tr>
+                        <th>Actual End Date</th>
+                        <td>{{ course.actual_end_date|date:"M d, Y" }}</td>
+                      </tr>
+                      {% endif %}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="col-md-6">
+                  <table class="table">
+                    <tbody>
+                      <tr>
+                        <th>{% if course.duration_type == "Semester" %}Current Semester{% else %}Current Year{% endif %}</th>
+                        <td>{% if course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} {{ course.current_period }}</td>
+                      </tr>
+                      <tr>
+                        <th>{% if course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} Start</th>
+                        <td>{{ course.period_start_date|date:"M d, Y" }}</td>
+                      </tr>
+                      <tr>
+                        <th>{% if course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} End</th>
+                        <td>{{ course.period_end_date|date:"M d, Y" }}</td>
+                      </tr>
+                      {% if course.remaining_days is not None %}
+                      <tr>
+                        <th>{% if course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} Days Remaining</th>
+                        <td>{{ course.remaining_days }} days</td>
+                      </tr>
+                      {% endif %}
+                      {% if course.total_remaining_days is not None %}
+                      <tr>
+                        <th>Total Course Days Remaining</th>
+                        <td>{{ course.total_remaining_days }} days</td>
+                      </tr>
+                      {% endif %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>No courses assigned yet.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-section" id="subjectsSection" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-book me-2"></i>Current {% if active_tracking.course.duration_type == "Semester" %}Semester{% else %}Year{% endif %} Subjects
+      </h3>
+      {% if current_subjects %}
+        <div class="row g-3">
+          {% for subject in current_subjects %}
+            <div class="col-md-4 col-lg-3">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h5 class="card-title">{{ subject.name }}</h5>
+                  <p class="card-text">
+                    <small class="text-muted">{% if subject.course.duration_type == "Semester" %}Semester{% else %}Year{% endif %}: {{ subject.period_or_year }}</small>
+                  </p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <button class="btn btn-primary btn-sm view-subject-files" data-subject-id="{{ subject.id }}" onclick="openSubjectFilesModal('{{ subject.id }}')">
+                      View Files
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>No subjects assigned for the current {% if active_tracking.course.duration_type == "Semester" %}semester{% else %}year{% endif %}.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="content-section" id="routineSection" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-calendar-alt mr-2"></i> Class Routine
+      </h3>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Subject</th>
+              <th>Code</th>
+              <th>Teacher</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if current_semester_routines %}
+              {% for routine in current_semester_routines %}
+                <tr>
+                  <td>{{ routine.start_time|time:"H:i" }} - {{ routine.end_time|time:"H:i" }}</td>
+                  <td>{{ routine.subject.name }}</td>
+                  <td>{{ routine.subject.code|default:"-" }}</td>
+                  <td>{{ routine.teacher.name }}</td>
+                </tr>
+              {% endfor %}
+            {% elif has_routines %}
+              <tr>
+                <td colspan="4" class="text-center">No routines for current semester (Semester {{ student.current_semester }}).</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center">No routines assigned yet.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-section" id="leaveSection" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-calendar-times mr-2"></i> Leave Management
+      </h3>
+      <div class="row mb-4">
+        <div class="col-12">
+          <button class="btn btn-primary" onclick="openLeaveModal()">
+            <i class="fas fa-plus me-2"></i>Request Leave
+          </button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-responsive table-hover">
+          <thead>
+            <tr>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Message</th>
+              <th>Status</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for leave in student_leaves %}
+            <tr>
+              <td>{{ leave.start_date|date:"M d, Y" }}</td>
+              <td>{{ leave.end_date|date:"M d, Y" }}</td>
+              <td>{{ leave.message }}</td>
+              <td>
+                <span class="status-badge {% if leave.status == 1 %}bg-success{% elif leave.status == 2 %}bg-danger{% else %}bg-warning{% endif %}">
+                  {{ leave.get_status_display }}
+                </span>
+              </td>
+              <td>{{ leave.created_at|date:"M d, Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center">No leave requests found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-section" id="feedbackSection" style="display: none;">
+    <div class="content-card">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+          <i class="fas fa-comments me-2"></i> Feedback
+        </h3>
+        <button class="btn btn-primary" onclick="openFeedbackModal()">
+          <i class="fas fa-plus me-2"></i> Give Feedback
+        </button>
+      </div>
+
+      <div class="row">
+        <!-- Teacher Feedback -->
+        <div class="col-md-6 mb-4">
+          <h4 class="mb-3">Teacher Feedback</h4>
+          {% if student.feedbacks.all %}
+            <div class="feedback-list">
+              {% for feedback in student.feedbacks.all %}
+                <div class="feedback-card">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                      <div>
+                        <h5 class="mb-1">{{ feedback.teacher.name }}</h5>
+                        <small class="text-muted">{{ feedback.teacher.designation }}</small>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                          {% else %}
+                            <i class="far fa-star text-warning"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-message mt-3">
+                    <p>{{ feedback.feedback_text }}</p>
+                  </div>
+                  <div class="feedback-footer mt-2">
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-comments"></i>
+              <p>No teacher feedback submitted yet.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Institute Feedback -->
+        <div class="col-md-6 mb-4">
+          <h4 class="mb-3">Institute Feedback</h4>
+          {% if institute_feedback %}
+            <div class="feedback-list">
+              {% for feedback in institute_feedback %}
+                <div class="feedback-card">
+                  <div class="feedback-header">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                      <div>
+                        <h5 class="mb-1">{{ feedback.feedback_type }}</h5>
+                        <small class="text-muted">{{ feedback.created_at|date:"M d, Y" }}</small>
+                      </div>
+                      <div class="rating-stars">
+                        {% for i in "12345"|make_list %}
+                          {% if forloop.counter <= feedback.rating %}
+                            <i class="fas fa-star text-warning"></i>
+                          {% else %}
+                            <i class="far fa-star text-warning"></i>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="feedback-message mt-3">
+                    <p>{{ feedback.feedback_text }}</p>
+                  </div>
+                  <div class="feedback-footer mt-2">
+                    <small class="text-muted">{{ feedback.created_at|timesince }} ago</small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-building"></i>
+              <p>No institute feedback submitted yet.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-section" id="noticeSection" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-bullhorn mr-2"></i> Notices
+      </h3>
+      <div class="row">
+        {% for notice in notices %}
+        <div class="col-md-6 mb-4">
+          <div class="card h-100">
+            {% if notice.image %}
+            <img src="{{ notice.image.url }}" class="card-img-top" alt="{{ notice.title }}">
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title">{{ notice.title }}</h5>
+              <p class="card-text">{{ notice.message }}</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">{{ notice.created_at|date:"M d, Y" }}</small>
+                {% if notice.file %}
+                <a href="{{ notice.file.url }}" class="btn btn-sm btn-primary" target="_blank">
+                  <i class="fas fa-download me-1"></i>Download
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+          <p class="text-muted text-center">No notices available.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="content-section" id="profileSection" style="display: none;">
+    <div class="content-card">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-user mr-2"></i> Profile Information
+      </h3>
+      <div class="row">
+        <!-- Profile Header with Image and Actions -->
+        <div class="col-12 mb-4">
+          <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex align-items-center mb-3 mb-md-0">
+              {% if student.image %}
+                <div class="profile-picture-container profile-md">
+                  <img src="{{ student.image.url }}" alt="{{ student.name }}" class="profile-picture">
+                </div>
+              {% else %}
+                <div class="profile-picture-container profile-md">
+                  <img src="{% static 'img/user.png' %}" alt="Default User" class="profile-picture">
+                </div>
+              {% endif %}
+              <div>
+                <h4 class="mb-1">{{ student.name }}</h4>
+                <p class="mb-0 text-muted">
+                  <span class="me-3"><i class="fas fa-id-card me-1"></i> {{ student.id }}</span>
+                  <span class="me-3"><i class="fas fa-envelope me-1"></i> {{ student.email }}</span>
+                  <span><i class="fas fa-phone me-1"></i> {{ student.phone }}</span>
+                </p>
+                <div class="mt-2">
+                  <span class="badge {% if student.status == 'Active' %}bg-success{% elif student.status == 'Leave' %}bg-warning{% else %}bg-secondary{% endif %} me-2">
+                    {{ student.status }}
+                  </span>
+                  {% if student.course %}
+                    <span class="badge bg-info me-2">{{ student.course.name }}</span>
+                  {% endif %}
+                  <span class="badge bg-primary">Semester {{ student.current_semester }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="profile-actions d-flex gap-2">
+              <button class="btn btn-sm btn-primary" onclick="openProfileModal()">
+                <i class="fas fa-camera me-1"></i> Update Photo
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="openPasswordModal()">
+                <i class="fas fa-key me-1"></i> Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Information Section -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-user-circle me-2"></i>Personal Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Full Name</small>
+                  <p class="mb-0 fw-medium">{{ student.name }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Gender</small>
+                  <p class="mb-0 fw-medium">{{ student.gender }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Birth Date</small>
+                  <p class="mb-0 fw-medium">{{ student.birth_date|date:"M d, Y" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Marital Status</small>
+                  <p class="mb-0 fw-medium">{{ student.marital_status }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Citizenship No.</small>
+                  <p class="mb-0 fw-medium">{{ student.citizenship_no|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Joining Date</small>
+                  <p class="mb-0 fw-medium">{{ student.joining_date|date:"M d, Y" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact & Parent Information -->
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-address-book me-2"></i>Contact Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Email Address</small>
+                  <p class="mb-0 fw-medium">{{ student.email }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Phone Number</small>
+                  <p class="mb-0 fw-medium">{{ student.phone }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Parent Name</small>
+                  <p class="mb-0 fw-medium">{{ student.parent_name|default:"Not provided" }}</p>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Parent Phone</small>
+                  <p class="mb-0 fw-medium">{{ student.parent_phone|default:"Not provided" }}</p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Temporary Address</small>
+                  <p class="mb-0 fw-medium">{{ student.temporary_address|default:"Not provided" }}</p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted d-block">Permanent Address</small>
+                  <p class="mb-0 fw-medium">{{ student.permanent_address|default:"Not provided" }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Academic Information -->
+        <div class="col-12 mb-4">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light py-2">
+              <h5 class="card-title mb-0"><i class="fas fa-graduation-cap me-2"></i>Academic Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <small class="text-muted d-block">Course</small>
+                  <p class="mb-0 fw-medium">{{ student.course.name|default:"Not assigned" }}</p>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted d-block">Current Semester</small>
+                  <p class="mb-0 fw-medium">{{ student.current_semester }}</p>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted d-block">Joining Date</small>
+                  <p class="mb-0 fw-medium">{{ student.joining_date|date:"M d, Y" }}</p>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted d-block">Batches</small>
+                  <p class="mb-0">
+                    {% for batch in student.batches.all %}
+                      <span class="badge bg-info me-1">{{ batch.name }}</span>
+                    {% empty %}
+                      <span class="text-muted">No batches assigned</span>
+                    {% endfor %}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Common Modals -->
+{% include 'shared/common_modals.html' with user=student %}
+
+<!-- Student-specific Modals -->
+{% include 'student/modals/pdf_viewer_modal.html' %}
+{% include 'student/modals/subject_files_modal.html' %}
+{% include 'student/modals/feedback_modal.html' %}
+
+
+<!-- Add fix script -->
+<script src="{% static 'js/student_modals.js' %}"></script> 
+<script src="{% static 'js/navigation.js' %}"></script>
+<script src="{% static 'js/rating.js' %}"></script>
+
+<!-- Bottom Navigation -->
+{% include 'shared/bottom_nav.html' with user=student %}
+
+<!-- Add a new attendance section -->
+<div class="content-section" id="attendanceSection" style="display: none;">
+  <div class="content-card">
+    <h3 class="text-xl font-semibold mb-4">
+      <i class="fas fa-clipboard-check me-2"></i> Attendance Record
+    </h3>
+
+    <!-- Attendance Summary -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body">
+            <h5 class="card-title mb-3"><i class="fas fa-chart-pie text-primary me-2"></i>Attendance Summary</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <span class="d-block text-muted small">Days Attended</span>
+                <h3>{{ attendance_summary.classes_attended }}</h3>
+                {% if attendance_summary.actual_classes %}
+                <span class="d-block text-muted small mt-2">Classes Recorded</span>
+                <h5>{{ attendance_summary.actual_classes }}</h5>
+                {% endif %}
+              </div>
+              <div class="text-end">
+                <span class="d-block text-muted small">Attendance Rate</span>
+                <h3 class="text-primary">{{ attendance_summary.attendance_percentage|floatformat:1 }}%</h3>
+                {% if attendance_summary.actual_percentage %}
+                <span class="d-block text-muted small mt-2">Rate (Recorded Only)</span>
+                <h5 class="text-primary">{{ attendance_summary.actual_percentage|floatformat:1 }}%</h5>
+                {% endif %}
+              </div>
+            </div>
+            <div class="progress mb-2 position-relative" style="height: 15px; border-radius: 20px; background-color: #f0f0f0;">
+              <!-- Target marker at 75% -->
+              <div class="position-absolute" style="left: 75%; top: -10px; bottom: -10px; width: 2px; background-color: #dc3545;"></div>
+              <div class="progress-bar {% if attendance_summary.attendance_percentage < 75 %}bg-danger{% else %}bg-success{% endif %}"
+                   role="progressbar"
+                   style="width: {{ attendance_summary.attendance_percentage }}%;"
+                   aria-valuenow="{{ attendance_summary.attendance_percentage }}"
+                   aria-valuemin="0"
+                   aria-valuemax="100"></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">Minimum required: 75%</small>
+              {% if attendance_summary.attendance_percentage < 75 %}
+              <small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Below minimum requirement</small>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-8">
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body">
+            <h5 class="card-title mb-3"><i class="fas fa-info-circle text-info me-2"></i>Attendance Details</h5>
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <div class="text-center p-3 bg-light rounded">
+                  <div class="display-6 text-success mb-1">{{ attendance_summary.present_count }}</div>
+                  <div class="small text-muted">Present</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="text-center p-3 bg-light rounded">
+                  <div class="display-6 text-danger mb-1">{{ attendance_summary.absent_count }}</div>
+                  <div class="small text-muted">Absent</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="text-center p-3 bg-light rounded">
+                  <div class="display-6 text-success mb-1">{{ attendance_summary.current_streak }}</div>
+                  <div class="small text-muted">Current Streak</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="text-center p-3 bg-light rounded">
+                  <div class="display-6 text-info mb-1">{{ attendance_summary.longest_streak }}</div>
+                  <div class="small text-muted">Best Streak</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Records Table -->
+    <div class="table-responsive">
+      <table class="table table-responsive table-hover">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Subject</th>
+            <th>Teacher</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in attendance_records %}
+          <tr>
+            <td>{{ record.attendance.date|date:"M d, Y" }}</td>
+            <td>{{ record.attendance.routine.subject.name }}</td>
+            <td>{{ record.attendance.teacher.name }}</td>
+            <td>
+              <span class="status-badge {% if record.student_attend %}bg-success{% else %}bg-danger{% endif %}">
+                {% if record.student_attend %}Present{% else %}Absent{% endif %}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center">No attendance records found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block extrascripts %}
+<script>
+  // Initialize Firebase and request notification permission when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    // Call getDeviceToken to initialize Firebase and request notification permission
+    if (typeof getDeviceToken === 'function') {
+      getDeviceToken().catch(error => {
+        console.error('Error initializing Firebase:', error);
+      });
+    }
+  });
+</script>
+{% endblock %}
+

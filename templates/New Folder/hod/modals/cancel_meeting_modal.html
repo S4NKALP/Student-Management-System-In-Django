@@ -1,0 +1,23 @@
+<!-- Cancel Meeting Modal -->
+<div id="cancelMeetingModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeCancelMeetingModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 600px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background-color: #3F51B5; color: white; padding: 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;">
+      <h5 style="margin: 0; font-size: 18px;">Cancel Meeting</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeCancelMeetingModal()">&times;</button>
+    </div>
+    <div style="padding: 15px;">
+      <form id="cancelMeetingForm">
+        <input type="hidden" id="cancelMeetingId" name="meeting_id">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 500;" for="cancellationReason">Reason for Cancellation</label>
+          <textarea id="cancellationReason" name="cancellation_reason" rows="3" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 80px;"></textarea>
+        </div>
+      </form>
+    </div>
+    
+    <div style="padding: 12px; border-top: 1px solid #EEEEEE; text-align: right; position: sticky; bottom: 0; background-color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+      <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 8px;" onclick="closeCancelMeetingModal()">Close</button>
+      <button type="button" style="background-color: #DC3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="submitCancelMeetingForm()">Cancel Meeting</button>
+    </div>
+  </div>
+</div> 

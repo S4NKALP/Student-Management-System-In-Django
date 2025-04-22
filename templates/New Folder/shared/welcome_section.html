@@ -1,0 +1,247 @@
+{% load static %}
+
+<!-- Welcome Section -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="welcome-card">
+      <div class="welcome-content">
+        <div class="user-info">
+          <div class="profile-image">
+            {% if user.image %}
+              <img src="{{ user.image.url }}" alt="{{ user.name }}" class="profile-picture">
+            {% else %}
+              <img src="{% static 'img/user.png' %}" alt="Default User" class="profile-picture">
+            {% endif %}
+          </div>
+          <div class="user-details">
+            <h2>Welcome, {{ user.name }}!</h2>
+            <div class="user-meta">
+              <span class="user-role">
+                {% if user.groups.all.0.name == "HOD" %}
+                  <i class="fas fa-user-shield"></i> Head of Department
+                {% elif user.designation %}
+                  <i class="fas fa-user-tie"></i> {{ user.designation }}
+                {% elif user.groups.all.0.name == "Parent" %}
+                  <i class="fas fa-user-friends"></i> Parent
+                {% elif user.groups.all.0.name == "Student" %}
+                  <i class="fas fa-user-graduate"></i> Student
+                {% else %}
+                  <i class="fas fa-user"></i> User
+                {% endif %}
+              </span>
+              <span class="user-id">
+                <i class="fas fa-id-card"></i> ID: {{ user.id }}
+              </span>
+              {% if user.phone %}
+                <span class="user-phone">
+                  <i class="fas fa-phone"></i> {{ user.phone }}
+                </span>
+              {% endif %}
+              {% if user.email %}
+                <span class="user-email">
+                  <i class="fas fa-envelope"></i> {{ user.email }}
+                </span>
+              {% endif %}
+              {% if user.department %}
+                <span class="user-department">
+                  <i class="fas fa-building"></i> {{ user.department }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="user-actions">
+          <button class="action-btn" onclick="openProfileModal()">
+            <i class="fas fa-user-edit"></i>
+            <span>Edit Profile</span>
+          </button>
+          <button class="action-btn" onclick="openPasswordModal()">
+            <i class="fas fa-key"></i>
+            <span>Change Password</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.welcome-card {
+  background: linear-gradient(135deg, #4e54c8, #8f94fb);
+  border-radius: 15px;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.welcome-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: clamp(0.75rem, 2vw, 1rem);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  flex: 1;
+  min-width: 280px;
+}
+
+.profile-image {
+  width: clamp(60px, 10vw, 80px);
+  height: clamp(60px, 10vw, 80px);
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.profile-picture {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 200px;
+}
+
+.user-details h2 {
+  color: white;
+  margin: 0 0 0.5rem 0;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.user-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: clamp(0.5rem, 1.5vw, 1rem);
+}
+
+.user-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.user-meta i {
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
+  flex-shrink: 0;
+}
+
+.user-actions {
+  display: flex;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  margin-left: auto;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 1rem);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1024px) {
+  .welcome-content {
+    gap: 1.25rem;
+  }
+  
+  .user-meta {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+  }
+
+  .user-info {
+    flex-direction: column;
+    text-align: center;
+    min-width: auto;
+  }
+
+  .user-details {
+    min-width: auto;
+  }
+
+  .user-meta {
+    justify-content: center;
+  }
+
+  .user-actions {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-card {
+    border-radius: 12px;
+  }
+
+  .user-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .user-meta span {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .user-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (hover: none) {
+  .action-btn:hover {
+    transform: none;
+  }
+}
+</style>

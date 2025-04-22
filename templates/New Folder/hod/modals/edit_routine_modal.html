@@ -1,0 +1,267 @@
+{% load static %}
+
+<!-- Edit Routine Modal -->
+<div id="editRoutineModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeEditRoutineModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <div style="background-color: #3F51B5; color: white; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <h5 style="margin: 0; font-size: 18px;">Edit Class Routine</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeEditRoutineModal()">&times;</button>
+    </div>
+    <form id="editRoutineForm">
+      {% csrf_token %}
+      <input type="hidden" id="editRoutineId" name="routine_id">
+      <div style="padding: 20px;">
+        <div style="margin-bottom: 15px;">
+          <label for="editSubjectId" style="display: block; margin-bottom: 8px; font-weight: 500;">Subject</label>
+          <select id="editSubjectId" name="subject_id" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required>
+            <option value="">Select Subject</option>
+            {% for subject in subjects %}
+              <option value="{{ subject.id }}">{{ subject.name }} ({% if course.duration_type == 'Semester' %}Semester{% else %}Year{% endif %} {{ subject.period_or_year }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label for="editTeacherId" style="display: block; margin-bottom: 8px; font-weight: 500;">Teacher</label>
+          <select id="editTeacherId" name="teacher_id" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required>
+            <option value="">Select Teacher</option>
+            {% for teacher in staff %}
+              <option value="{{ teacher.id }}">{{ teacher.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+          <div style="flex: 1;">
+            <label for="editStartTime" style="display: block; margin-bottom: 8px; font-weight: 500;">Start Time</label>
+            <input type="time" id="editStartTime" name="start_time" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required>
+          </div>
+          <div style="flex: 1;">
+            <label for="editEndTime" style="display: block; margin-bottom: 8px; font-weight: 500;">End Time</label>
+            <input type="time" id="editEndTime" name="end_time" style="width: 100%; padding: 10px; border: 1px solid #BDBDBD; border-radius: 4px; box-sizing: border-box;" required>
+          </div>
+        </div>
+        
+        <input type="hidden" id="editPeriodOrYear" name="period_or_year">
+      </div>
+      <div style="padding: 15px; border-top: 1px solid #EEEEEE; text-align: right; display: flex; flex-wrap: wrap; justify-content: flex-end;">
+        <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; margin-bottom: 10px; cursor: pointer; font-size: 14px;" onclick="closeEditRoutineModal()">Cancel</button>
+        <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 10px;" onclick="submitEditRoutineForm()">Update</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditRoutineModal(routineId) {
+  if (!routineId) {
+    console.error('No routine ID provided');
+    return;
+  }
+  
+  console.log(`Fetching routine data for ID: ${routineId}`);
+  
+  // Fetch routine data
+  fetch(`/app/api/hod/routines/${routineId}/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch routine data');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Received routine data:', data);
+      
+      // Check if data has the correct structure
+      if (!data.success || !data.routine) {
+        throw new Error('Invalid data format received from server');
+      }
+      
+      // Get routine data from the response
+      const routine = data.routine;
+      
+      // Populate form fields
+      document.getElementById('editRoutineId').value = routineId;
+      document.getElementById('editSubjectId').value = routine.subject_id;
+      document.getElementById('editTeacherId').value = routine.teacher_id;
+      document.getElementById('editStartTime').value = routine.start_time;
+      document.getElementById('editEndTime').value = routine.end_time;
+      document.getElementById('editPeriodOrYear').value = routine.period_or_year;
+      
+      console.log('Form populated with values:', {
+        subject_id: routine.subject_id,
+        teacher_id: routine.teacher_id,
+        start_time: routine.start_time,
+        end_time: routine.end_time,
+        period_or_year: routine.period_or_year
+      });
+      
+      // Set default period/year based on subject selection
+      const subjectSelect = document.getElementById('editSubjectId');
+      if (subjectSelect) {
+        subjectSelect.addEventListener('change', function() {
+          const selectedOption = this.options[this.selectedIndex];
+          const periodOrYear = selectedOption.textContent.match(/\((?:Semester|Year) (\d+)\)/);
+          if (periodOrYear && periodOrYear[1]) {
+            document.getElementById('editPeriodOrYear').value = periodOrYear[1];
+          }
+        });
+      }
+      
+      // Show modal
+      const modal = document.getElementById('editRoutineModal');
+      if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching routine data:', error);
+      if (typeof window.showMessageModal === 'function') {
+        window.showMessageModal('Error', error.message || 'Failed to fetch routine data');
+      } else if (typeof window.showToast === 'function') {
+        window.showToast('error', error.message || 'Failed to fetch routine data');
+      } else {
+        alert('Failed to fetch routine data: ' + error.message);
+      }
+    });
+}
+
+function closeEditRoutineModal() {
+  const modal = document.getElementById('editRoutineModal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
+// Make functions available globally
+if (typeof window !== 'undefined') {
+  window.openEditRoutineModal = openEditRoutineModal;
+  window.closeEditRoutineModal = closeEditRoutineModal;
+}
+
+// Add form submission function
+function submitEditRoutineForm() {
+  const form = document.getElementById('editRoutineForm');
+  if (!form) {
+    console.error('Edit routine form not found');
+    return;
+  }
+  
+  // Create form data
+  const formData = new FormData(form);
+  const routineId = formData.get('routine_id');
+  
+  if (!routineId) {
+    console.error('No routine ID provided');
+    return;
+  }
+  
+  // Validate form
+  const subjectId = formData.get('subject_id');
+  const teacherId = formData.get('teacher_id');
+  const startTime = formData.get('start_time');
+  const endTime = formData.get('end_time');
+  
+  console.log('Submitting form with values:', {
+    routine_id: routineId,
+    subject_id: subjectId,
+    teacher_id: teacherId,
+    start_time: startTime,
+    end_time: endTime,
+    period_or_year: formData.get('period_or_year')
+  });
+  
+  if (!subjectId || !teacherId || !startTime || !endTime) {
+    const message = 'Please fill in all required fields';
+    console.error(message, {
+      subject_id: subjectId,
+      teacher_id: teacherId,
+      start_time: startTime,
+      end_time: endTime
+    });
+    
+    if (typeof window.showMessageModal === 'function') {
+      window.showMessageModal('Error', message);
+    } else if (typeof window.showToast === 'function') {
+      window.showToast('error', message);
+    } else {
+      alert(message);
+    }
+    return;
+  }
+  
+  // Get CSRF token
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  console.log('Using CSRF token:', csrfToken);
+  
+  // Send request to server - using POST instead of PUT to avoid potential issues
+  fetch(`/app/api/hod/routines/${routineId}/edit/`, {
+    method: 'POST', // Changed from PUT to POST
+    body: formData,
+    headers: {
+      'X-CSRFToken': csrfToken,
+      // Don't set Content-Type header when using FormData, 
+      // browser will set it automatically with proper boundary
+    }
+  })
+  .then(response => {
+    console.log('Server response status:', response.status);
+    console.log('Server response headers:', Object.fromEntries([...response.headers]));
+    
+    // Try to handle both JSON and text responses
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json().then(data => {
+        if (!response.ok) {
+          console.error('Server error response:', data);
+          throw new Error(data.message || 'Failed to update routine');
+        }
+        return data;
+      });
+    } else {
+      return response.text().then(text => {
+        console.log('Server response text:', text);
+        if (!response.ok) {
+          throw new Error(text || 'Failed to update routine');
+        }
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          return { success: true, message: 'Routine updated successfully' };
+        }
+      });
+    }
+  })
+  .then(data => {
+    console.log('Server success response:', data);
+    if (typeof window.showMessageModal === 'function') {
+      window.showMessageModal('Success', 'Routine updated successfully');
+    } else if (typeof window.showToast === 'function') {
+      window.showToast('success', 'Routine updated successfully');
+    } else {
+      alert('Routine updated successfully');
+    }
+    closeEditRoutineModal();
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  })
+  .catch(error => {
+    console.error('Error updating routine:', error);
+    if (typeof window.showMessageModal === 'function') {
+      window.showMessageModal('Error', error.message || 'Failed to update routine');
+    } else if (typeof window.showToast === 'function') {
+      window.showToast('error', error.message || 'Failed to update routine');
+    } else {
+      alert('Failed to update routine: ' + error.message);
+    }
+  });
+}
+
+// Make submission function globally available
+if (typeof window !== 'undefined') {
+  window.submitEditRoutineForm = submitEditRoutineForm;
+}
+</script> 

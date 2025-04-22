@@ -1,0 +1,384 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Force cache clear for JavaScript files
+        if (window.location.href.indexOf('cache=clear') === -1) {
+            // Only run once to avoid redirect loop
+            const allScripts = document.querySelectorAll('script[src]');
+            for (const script of allScripts) {
+                if (script.src.indexOf('static/js/') !== -1) {
+                    const originalSrc = script.src;
+                    script.src = originalSrc + '?v=' + new Date().getTime();
+                }
+            }
+        }
+    </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>{% block title %}Student Management System{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Base CSS -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <!-- Custom Dashboard CSS -->
+    <link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{% static 'css/custom.css' %}" rel="stylesheet">
+
+    <!-- Responsive Styles -->
+    <style>
+        /* Base responsive styles */
+        html {
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+        }
+        
+        body {
+            overflow-x: hidden;
+            width: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Responsive typography */
+        @media (max-width: 768px) {
+            html {
+                font-size: 14px;
+            }
+            h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.5rem; }
+            h3 { font-size: 1.3rem; }
+            h4 { font-size: 1.1rem; }
+            h5 { font-size: 1rem; }
+            h6 { font-size: 0.9rem; }
+        }
+
+        /* Responsive containers and spacing */
+        @media (max-width: 768px) {
+            .container, .container-fluid {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            .row {
+                margin-left: -10px;
+                margin-right: -10px;
+            }
+            .col-md-6, .col-lg-3 {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .card {
+                margin-bottom: 1rem;
+            }
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .welcome-section h2 {
+                font-size: 1.5rem;
+            }
+            .summary-card .card-body {
+                padding: 0.75rem;
+            }
+        }
+
+        /* Small screen optimizations */
+        @media (max-width: 576px) {
+            html {
+                font-size: 13px;
+            }
+            .container-fluid {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .col-md-6, .col-lg-3 {
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+            .row {
+                margin-left: -5px;
+                margin-right: -5px;
+            }
+            .card {
+                border-radius: 0.5rem;
+            }
+            .btn {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.875rem;
+            }
+            .form-control {
+                font-size: 0.875rem;
+            }
+            .table th, .table td {
+                padding: 0.5rem;
+                font-size: 0.875rem;
+            }
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            .toast {
+                width: 100%;
+                max-width: none;
+            }
+        }
+
+        /* Responsive navigation */
+        @media (max-width: 768px) {
+            .navbar-nav {
+                padding: 1rem 0;
+            }
+            .navbar-toggler {
+                padding: 0.25rem 0.5rem;
+            }
+            .dropdown-menu {
+                border: none;
+                box-shadow: none;
+            }
+        }
+
+        /* Responsive forms */
+        @media (max-width: 576px) {
+            .form-group {
+                margin-bottom: 0.75rem;
+            }
+            .form-label {
+                font-size: 0.875rem;
+                margin-bottom: 0.25rem;
+            }
+            .form-control {
+                height: calc(1.5em + 0.5rem + 2px);
+            }
+        }
+
+        /* Responsive images and media */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Profile picture responsive styles */
+        .profile-picture-container {
+            position: relative;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: #f5f5f5;
+            border: 2px solid #3F51B5;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            aspect-ratio: 1;
+        }
+
+        .profile-picture {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        /* Profile picture sizes */
+        .profile-picture-container.profile-lg {
+            width: 120px;
+            height: 120px;
+        }
+
+        .profile-picture-container.profile-md {
+            width: 80px;
+            height: 80px;
+        }
+
+        .profile-picture-container.profile-sm {
+            width: 60px;
+            height: 60px;
+        }
+
+        /* Mobile optimizations for profile pictures */
+        @media (max-width: 576px) {
+            .profile-picture-container {
+                border-width: 1.5px;
+            }
+            .profile-picture-container.profile-lg {
+                width: 100px;
+                height: 100px;
+            }
+            .profile-picture-container.profile-md {
+                width: 60px;
+                height: 60px;
+            }
+            .profile-picture-container.profile-sm {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        /* Responsive modals */
+        @media (max-width: 576px) {
+            .modal-dialog {
+                margin: 0;
+                max-width: none;
+                height: 100%;
+            }
+            .modal-content {
+                border-radius: 0;
+                min-height: 100%;
+            }
+        }
+
+        /* Touch device optimizations */
+        @media (hover: none) {
+            .btn, .nav-link, .dropdown-item {
+                padding: 0.75rem 1rem;
+            }
+            .form-control, .form-select {
+                padding: 0.75rem 1rem;
+            }
+        }
+    </style>
+    {% block extrahead %}{% endblock %}
+</head>
+<body>
+    {% if messages %}
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+        {% for message in messages %}
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header {% if message.tags == 'error' %}bg-danger text-white{% elif message.tags == 'success' %}bg-success text-white{% else %}bg-info text-white{% endif %}">
+                <strong class="me-auto">{% if message.tags == 'error' %}Error{% elif message.tags == 'success' %}Success{% else %}Info{% endif %}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                {{ message }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+
+    <!-- Firebase Configuration -->
+    <script src="{% static 'js/firebase-config.js' %}"></script>
+
+    <!-- Firebase Initialization -->
+    <script src="{% static 'js/firebase-init.js' %}"></script>
+
+    <!-- Custom Dashboard Components - No type="module" -->
+    <script src="{% static 'js/rating.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/tabs.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/bootstrap-init.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/notifications.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/form-validation.js' %}?v={% now 'U' %}"></script>
+    <!-- Navigation JS -->
+    <script src="{% static 'js/navigation.js' %}?v={% now 'U' %}"></script>
+    <!-- Main Dashboard JS - Must come after all supporting scripts -->
+    <script src="{% static 'js/dashboard.js' %}?v={% now 'U' %}"></script>
+
+    <!-- Common Modal Functions -->
+    <script>
+        function openLeaveModal() {
+            var modal = document.getElementById('customLeaveModal');
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLeaveModal() {
+            var modal = document.getElementById('customLeaveModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function openProfileModal() {
+            var modal = document.getElementById('profileModal');
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProfileModal() {
+            var modal = document.getElementById('profileModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function openPasswordModal() {
+            var modal = document.getElementById('passwordModal');
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePasswordModal() {
+            var modal = document.getElementById('passwordModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // Handle Escape key for all modals
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                var modals = document.querySelectorAll('[id$="Modal"]');
+                modals.forEach(function(modal) {
+                    if (modal.style.display === 'block') {
+                        // Call the appropriate close function
+                        var modalId = modal.id;
+                        var closeFunction = window['close' + modalId.charAt(0).toUpperCase() + modalId.slice(1)];
+                        if (typeof closeFunction === 'function') {
+                            closeFunction();
+                        } else {
+                            // Fallback to basic close
+                            modal.style.display = 'none';
+                            document.body.style.overflow = '';
+                        }
+                    }
+                });
+            }
+        });
+
+        // Handle clicking outside modal to close
+        document.addEventListener('click', function(event) {
+            var modals = document.querySelectorAll('[id$="Modal"]');
+            modals.forEach(function(modal) {
+                if (event.target === modal) {
+                    // Call the appropriate close function
+                    var modalId = modal.id;
+                    var closeFunction = window['close' + modalId.charAt(0).toUpperCase() + modalId.slice(1)];
+                    if (typeof closeFunction === 'function') {
+                        closeFunction();
+                    } else {
+                        // Fallback to basic close
+                        modal.style.display = 'none';
+                        document.body.style.overflow = '';
+                    }
+                }
+            });
+        });
+
+        // Auto-hide toasts
+        document.addEventListener('DOMContentLoaded', function() {
+            var toasts = document.querySelectorAll('.toast');
+            toasts.forEach(function(toast) {
+                setTimeout(function() {
+                    toast.style.display = 'none';
+                }, 5000); // Hide after 5 seconds
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

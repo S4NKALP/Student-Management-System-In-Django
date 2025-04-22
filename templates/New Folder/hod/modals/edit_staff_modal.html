@@ -1,0 +1,202 @@
+{% load static %}
+
+<div id="editStaffModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeEditStaffModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background-color: #3F51B5; color: white; padding: 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;">
+      <h5 style="margin: 0; font-size: 18px;">Edit Staff</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeEditStaffModal()">&times;</button>
+    </div>
+    <div style="padding: 15px;">
+      <form id="editStaffForm" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" id="editStaffId" name="staff_id">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <!-- Left Column -->
+          <div>
+            <div style="text-align: center; margin-bottom: 20px;">
+              <img id="editStaffProfilePicture" src="{% static 'img/user.png' %}" alt="Profile Picture" style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 3px solid #3F51B5;">
+              <div style="margin-top: 10px;">
+                <input type="file" id="editStaffProfilePictureInput" name="image" accept="image/*" style="display: none;">
+                <button type="button" onclick="document.getElementById('editStaffProfilePictureInput').click()" style="background-color: #3F51B5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;">Change Picture</button>
+              </div>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Name <span style="color: red;">*</span></label>
+              <input type="text" id="editStaffName" name="name" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Phone <span style="color: red;">*</span></label>
+              <input type="tel" id="editStaffPhone" name="phone" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+              <small style="color: #666; display: block; margin-top: 2px; font-size: 11px;">This will be used as the login ID</small>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Email</label>
+              <input type="email" id="editStaffEmail" name="email" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Gender</label>
+              <select id="editStaffGender" name="gender" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Birth Date</label>
+              <input type="date" id="editStaffBirthDate" name="birth_date" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Marital Status</label>
+              <select id="editStaffMaritalStatus" name="marital_status" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Select Marital Status</option>
+                <option value="Married">Married</option>
+                <option value="Unmarried">Unmarried</option>
+                <option value="Divorced">Divorced</option>
+              </select>
+            </div>
+          </div>
+          <!-- Right Column -->
+          <div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Assigned Subjects <span style="color: red;">*</span></label>
+              <select id="editStaffSubjects" name="subjects[]" multiple style="width: 100%; min-height: 100px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required>
+                {% for subject in subjects %}
+                  <option value="{{ subject.id }}">
+                    {{ subject.name }} {% if course.duration_type == 'Semester' %}(Semester {{ subject.period_or_year }}){% else %}(Year {{ subject.period_or_year }}){% endif %}
+                  </option>
+                {% empty %}
+                  <option value="" disabled>No subjects available</option>
+                {% endfor %}
+              </select>
+              <small style="color: #666; display: block; margin-top: 2px; font-size: 11px;">Hold Ctrl/Cmd to select multiple subjects</small>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Temporary Address</label>
+              <input type="text" id="editStaffTempAddress" name="temporary_address" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Permanent Address</label>
+              <input type="text" id="editStaffPermAddress" name="permanent_address" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Parent Name</label>
+              <input type="text" id="editStaffParentName" name="parent_name" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Parent Phone</label>
+              <input type="tel" id="editStaffParentPhone" name="parent_phone" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" pattern="[0-9]{10}" maxlength="10" title="Please enter a 10-digit phone number">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Citizenship Number</label>
+              <input type="text" id="editStaffCitizenshipNo" name="citizenship_no" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Passport</label>
+              <input type="text" id="editStaffPassport" name="passport" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 4px; font-weight: 500;">Status</label>
+              <select id="editStaffStatus" name="is_active" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" required>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div style="padding: 12px; border-top: 1px solid #EEEEEE; text-align: right; position: sticky; bottom: 0; background-color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+      <button type="button" style="background-color: #9E9E9E; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 8px;" onclick="closeEditStaffModal()">Cancel</button>
+      <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="submitEditStaffForm()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openEditStaffModal(staffId) {
+  fetch(`/app/staff/${staffId}/`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const staff = data.staff;
+        document.getElementById('editStaffId').value = staff.id;
+        document.getElementById('editStaffProfilePicture').src = staff.image || "{% static 'img/user.png' %}";
+        document.getElementById('editStaffName').value = staff.name;
+        document.getElementById('editStaffEmail').value = staff.email;
+        document.getElementById('editStaffPhone').value = staff.phone;
+        document.getElementById('editStaffGender').value = staff.gender;
+        document.getElementById('editStaffBirthDate').value = staff.birth_date;
+        document.getElementById('editStaffMaritalStatus').value = staff.marital_status;
+        document.getElementById('editStaffTempAddress').value = staff.temporary_address;
+        document.getElementById('editStaffPermAddress').value = staff.permanent_address;
+        document.getElementById('editStaffParentName').value = staff.parent_name;
+        document.getElementById('editStaffParentPhone').value = staff.parent_phone;
+        document.getElementById('editStaffCitizenshipNo').value = staff.citizenship_no;
+        document.getElementById('editStaffPassport').value = staff.passport;
+        document.getElementById('editStaffStatus').value = staff.is_active;
+        
+        // Set selected subjects
+        const subjectsSelect = document.getElementById('editStaffSubjects');
+        if (staff.subjects && staff.subjects.length > 0) {
+          Array.from(subjectsSelect.options).forEach(option => {
+            option.selected = staff.subjects.some(subject => subject.id === parseInt(option.value));
+          });
+        }
+        
+        document.getElementById('editStaffModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      } else {
+        showMessageModal('Error', data.message);
+      }
+    })
+    .catch(error => {
+      showMessageModal('Error', 'Failed to fetch staff details.');
+    });
+}
+
+function closeEditStaffModal() {
+  document.getElementById('editStaffModal').style.display = 'none';
+  document.body.style.overflow = '';
+  document.getElementById('editStaffForm').reset();
+}
+
+function submitEditStaffForm() {
+  const formData = new FormData(document.getElementById('editStaffForm'));
+  const staffId = document.getElementById('editStaffId').value;
+  
+  fetch(`/app/staff/edit/${staffId}/`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      closeEditStaffModal();
+      showMessageModal('Success', 'Staff details updated successfully.');
+      // Refresh the staff list
+      location.reload();
+    } else {
+      showMessageModal('Error', data.message);
+    }
+  })
+  .catch(error => {
+    showMessageModal('Error', 'Failed to update staff details.');
+  });
+}
+
+// Handle profile picture preview
+document.getElementById('editStaffProfilePictureInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('editStaffProfilePicture').src = e.target.result;
+    }
+    reader.readAsDataURL(file);
+  }
+});
+</script> 

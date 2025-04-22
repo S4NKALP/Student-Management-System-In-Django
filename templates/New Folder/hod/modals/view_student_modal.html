@@ -1,0 +1,168 @@
+{% load static %}
+
+<!-- View Student Modal -->
+<div id="viewStudentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 10000;" onclick="if(event.target === this) closeViewStudentModal();">
+  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 800px; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background-color: #3F51B5; color: white; padding: 12px; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1;">
+      <h5 style="margin: 0; font-size: 18px;">Student Details</h5>
+      <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 24px;" onclick="closeViewStudentModal()">&times;</button>
+    </div>
+    <div style="padding: 15px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <!-- Left Column -->
+        <div>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img id="studentProfilePicture" src="{% static 'img/user.png' %}" alt="Student Image" style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 3px solid #3F51B5;">
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Name</label>
+            <p id="view_name" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Email</label>
+            <p id="view_email" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Phone</label>
+            <p id="view_phone" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Gender</label>
+            <p id="view_gender" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Date of Birth</label>
+            <p id="view_birth_date" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Citizenship Number</label>
+            <p id="view_citizenship_no" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Course</label>
+            <p id="view_course" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Current Period</label>
+            <p id="view_current_period" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Admission Date</label>
+            <p id="view_admission_date" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Status</label>
+            <p id="view_status" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Parent Name</label>
+            <p id="view_parent_name" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 500;">Parent Phone</label>
+            <p id="view_parent_phone" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px;">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 500;">Temporary Address</label>
+          <p id="view_temporary_address" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 500;">Permanent Address</label>
+          <p id="view_permanent_address" style="margin: 0; padding: 6px; background-color: #f8f9fa; border-radius: 4px;"></p>
+        </div>
+      </div>
+    </div>
+    <div style="padding: 12px; border-top: 1px solid #EEEEEE; text-align: right; position: sticky; bottom: 0; background-color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+      <button type="button" style="background-color: #3F51B5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;" onclick="closeViewStudentModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openViewStudentModal(studentId) {
+  document.getElementById('viewStudentModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  loadStudentDataForView(studentId);
+}
+
+function closeViewStudentModal() {
+  document.getElementById('viewStudentModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function loadStudentDataForView(studentId) {
+  // Reset profile picture
+  document.getElementById('studentProfilePicture').src = "{% static 'img/user.png' %}";
+  
+  // Clear previous data
+  document.getElementById('view_name').textContent = '';
+  document.getElementById('view_email').textContent = '';
+  document.getElementById('view_phone').textContent = '';
+  document.getElementById('view_gender').textContent = '';
+  document.getElementById('view_birth_date').textContent = '';
+  document.getElementById('view_admission_date').textContent = '';
+  document.getElementById('view_temporary_address').textContent = '';
+  document.getElementById('view_permanent_address').textContent = '';
+  document.getElementById('view_parent_name').textContent = '';
+  document.getElementById('view_parent_phone').textContent = '';
+  document.getElementById('view_citizenship_no').textContent = '';
+  document.getElementById('view_course').textContent = '';
+  document.getElementById('view_current_period').textContent = '';
+  document.getElementById('view_status').textContent = '';
+  
+  fetch(`/app/get-student/${studentId}/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        const student = data.student;
+        
+        // Set profile picture
+        if (student.image) {
+          document.getElementById('studentProfilePicture').src = student.image;
+        }
+        
+        // Basic information
+        document.getElementById('view_name').textContent = student.name || 'N/A';
+        document.getElementById('view_email').textContent = student.email || 'N/A';
+        document.getElementById('view_phone').textContent = student.phone || 'N/A';
+        document.getElementById('view_gender').textContent = student.gender === 'M' ? 'Male' : (student.gender === 'F' ? 'Female' : 'Other');
+        
+        // Academic information
+        document.getElementById('view_course').textContent = student.course_name || 'N/A';
+        document.getElementById('view_current_period').textContent = student.current_period || 'N/A';
+        document.getElementById('view_status').textContent = student.is_active ? 'Active' : 'Inactive';
+        
+        // Personal information
+        document.getElementById('view_birth_date').textContent = student.birth_date || 'N/A';
+        document.getElementById('view_admission_date').textContent = student.joining_date || 'N/A';
+        document.getElementById('view_citizenship_no').textContent = student.citizenship_no || 'N/A';
+        
+        // Address information
+        document.getElementById('view_temporary_address').textContent = student.temporary_address || 'N/A';
+        document.getElementById('view_permanent_address').textContent = student.permanent_address || 'N/A';
+        
+        // Parent information
+        document.getElementById('view_parent_name').textContent = student.parent_name || 'N/A';
+        document.getElementById('view_parent_phone').textContent = student.parent_phone || 'N/A';
+      } else {
+        showMessageModal('Error', data.message || 'Error loading student data');
+      }
+    })
+    .catch(error => {
+      showMessageModal('Error', 'An error occurred while loading student data');
+    });
+}
+</script> 

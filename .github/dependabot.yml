@@ -1,22 +1,17 @@
 version: 2
 updates:
-  - package-ecosystem: "pip" # For Python projects using pip
-    directory: "/" # Root directory of your repository
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
-      interval: "weekly" # Check for updates weekly
+      interval: "weekly"
     commit-message:
-      prefix: "fix(deps)" # Custom prefix for Dependabot PRs
-    open-pull-requests-limit: 5 # Limit the number of open PRs at once
+      prefix: "fix(deps)"
+    open-pull-requests-limit: 5
     reviewers:
-      - "S4NKALP" # Add GitHub username(s) to review PRs
-    # Add version constraints to be more conservative
+      - "S4NKALP"
     versioning-strategy: "lockfile-only"
-    # Limit updates to patches and minor versions, not major
     allow:
       - dependency-type: "direct"
-        update-type: "semver:patch"
-      - dependency-type: "direct"
-        update-type: "semver:minor"
     # Ignore specific problematic packages if needed
     # ignore:
     #   - dependency-name: "some-package"

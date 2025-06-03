@@ -64,7 +64,6 @@ db.sqlite3
 db.sqlite3-journal
 */migrations/*.py
 */migrations/*
-!*/migrations/__init__.py
 
 # Flask stuff:
 instance/
@@ -160,7 +159,7 @@ dump.rdb
 firebase-config.json
 firebase.json
 static/js/firebase-config.js
-firebase-key.json
+@firebase-key.json
 
 # Environment files
 .env
@@ -175,3 +174,6 @@ local_settings.py
 *_key.json
 *_credentials.json
 *_secret.json
+
+@firebase-messaging-sw.js
+@firebase-config.js

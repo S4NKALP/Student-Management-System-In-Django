@@ -1,12 +1,37 @@
 // Function to get CSRF token
 function getCSRFToken() {
-    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    return token;
+    // Try getting from meta tag
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) {
+        return metaTag.getAttribute('content');
+    }
+    
+    // Try getting from form input
+    const inputField = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (inputField) {
+        return inputField.value;
+    }
+    
+    // Try getting from cookie
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith('csrftoken=')) {
+            return decodeURIComponent(cookie.substring('csrftoken='.length));
+        }
+    }
+    
+    console.error('CSRF token not found in meta tag, form input, or cookie');
+    return null;
 }
 
 // Function to update leave requests
 function updateLeaveRequests() {
     const csrfToken = getCSRFToken();
+    if (!csrfToken) {
+        console.error('No CSRF token available. Cannot make request.');
+        return;
+    }
     
     // Fetch staff leave requests
     fetch('/app/get-staff-leaves/', {

@@ -177,3 +177,4 @@ local_settings.py
 
 @firebase-messaging-sw.js
 @firebase-config.js
+firebase-key.json

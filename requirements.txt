@@ -12,7 +12,6 @@ django-debug-toolbar==5.1.0
 django-jazzmin==3.0.1
 django-mathfilters==1.0.0
 django-model-utils==5.0.0
-django-query-profiler==0.9
 django-redis==5.4.0
 djangorestframework==3.16.0
 dotenv==0.9.9
@@ -32,16 +31,8 @@ googleapis-common-protos==1.70.0
 grpcio==1.71.0
 grpcio-status==1.71.0
 gunicorn==23.0.0
-hiredis==3.1.0
 httplib2==0.22.0
 idna==3.10
-isort==6.0.1
-mmh3==5.1.0
-mo-dots==10.672.25036
-mo-future==7.672.25036
-mo-imports==7.672.25036
-mo-parsing==8.675.25037
-mo-sql-parsing==11.675.25037
 msgpack==1.1.0
 packaging==25.0
 pillow==11.2.1
@@ -61,7 +52,6 @@ pytz==2025.2
 redis==5.2.1
 requests==2.32.3
 rsa==4.9.1
-setuptools==79.0.0
 sqlparse==0.5.3
 tenacity==9.1.2
 typing-extensions==4.13.2

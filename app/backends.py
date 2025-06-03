@@ -15,6 +15,14 @@ class MultiModelBackend(ModelBackend):
         if username is None or password is None:
             return None
 
+        # Try authenticating as superuser/admin first
+        try:
+            user = User.objects.get(email=username)
+            if user.check_password(password):
+                return user
+        except User.DoesNotExist:
+            pass
+
         # Try authenticating as Staff by phone first
         staff = Staff.objects.filter(phone=username).first()
         if staff:
@@ -52,6 +60,13 @@ class MultiModelBackend(ModelBackend):
         """
         Retrieve a user instance using their ID.
         """
+        # Try to get superuser/admin first
+        try:
+            return User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            pass
+
+        # Try other user types
         for model in [Staff, Student, Parent]:
             try:
                 return model.objects.get(pk=user_id)

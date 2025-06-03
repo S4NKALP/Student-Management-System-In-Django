@@ -237,7 +237,7 @@
             {% csrf_token %}
             <div class="input-group">
                 <label for="username">Email or Phone Number</label>
-                <input type="text" name="username" id="username" required autofocus placeholder="Enter email or phone number" pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|[0-9]{10}" title="Please enter a valid email or 10-digit phone number">
+                <input type="text" name="username" id="username" required autofocus placeholder="Enter email or phone number">
             </div>
             
             <div class="input-group">
@@ -270,6 +270,23 @@
                 const icon = this.querySelector('i');
                 icon.classList.toggle('fa-eye');
                 icon.classList.toggle('fa-eye-slash');
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const usernameInput = document.getElementById('username');
+
+            form.addEventListener('submit', function(event) {
+                const value = usernameInput.value.trim();
+                const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                const phonePattern = /^\d{10}$/;
+
+                if (!emailPattern.test(value) && !phonePattern.test(value)) {
+                    event.preventDefault();
+                    alert('Please enter a valid email address or a 10-digit phone number.');
+                    usernameInput.focus();
+                }
             });
         });
     </script>
